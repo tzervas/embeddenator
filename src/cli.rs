@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "embeddenator")]
-#[command(version = "0.1.0")]
+#[command(version = "0.2.0")]
 #[command(about = "Holographic computing substrate using sparse ternary VSA")]
 #[command(author = "Embeddenator Contributors")]
 pub struct Cli {
