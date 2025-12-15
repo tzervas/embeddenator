@@ -9,42 +9,18 @@ permissions:
   contents: read
 
 jobs:
-  build-test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        
-      - name: Cargo test
-        run: cargo test --verbose
-        
-      - name: Build tool binary
-        run: python3 orchestrator.py --mode build --verbose
-        
-      - name: Integration test (ingest + validate)
-        run: python3 orchestrator.py --mode test --verbose
-
-  multi-arch:
-    needs: build-test
+  multi-arch-build-test:
     strategy:
       matrix:
         include:
           - platform: linux/amd64
             runner: ubuntu-latest
             arch: amd64
+            runner_size: standard
           - platform: linux/arm64
-            runner: ubuntu-24.04-arm64
+            runner: ubuntu-24.04-arm64-4core
             arch: arm64
+            runner_size: large
       fail-fast: false
       max-parallel: 2
     runs-on: ${{ matrix.runner }}
@@ -71,20 +47,17 @@ jobs:
           echo "Available cores: $(nproc)"
           echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
       
-      - name: Build and test for ${{ matrix.arch }} (native)
-        timeout-minutes: 20
-        run: |
-          set -e
-          
-          echo "🔨 Building and testing for ${{ matrix.arch }} on native hardware"
-          echo "Runner: ${{ matrix.runner }}"
-          echo "Platform: ${{ matrix.platform }}"
-          
-          # Run full test suite on native hardware
-          python3 orchestrator.py \
-            --mode full \
-            --platform ${{ matrix.platform }} \
-            --verbose
+      - name: Cargo test for ${{ matrix.arch }}
+        timeout-minutes: 15
+        run: cargo test --verbose
+      
+      - name: Build tool binary for ${{ matrix.arch }}
+        timeout-minutes: 10
+        run: python3 orchestrator.py --mode build --verbose
+      
+      - name: Integration test for ${{ matrix.arch }}
+        timeout-minutes: 10
+        run: python3 orchestrator.py --mode test --verbose
       
       - name: Upload build logs on failure
         if: failure()
@@ -100,6 +73,7 @@ jobs:
         run: |
           echo "## Build Metrics for ${{ matrix.arch }}"
           echo "Architecture: $(uname -m)"
+          echo "Runner: ${{ matrix.runner }}"
           echo "Available memory:"
           free -h
           echo "CPU info:"
