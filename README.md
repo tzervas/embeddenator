@@ -13,19 +13,21 @@
 - **Hierarchical Chunked Encoding**: Designed for TB-scale data
 - **CLI + Docker**: Complete toolchain with multi-arch container support
 - **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
-- **Production-Grade**: 23 comprehensive tests with zero clippy warnings
-- **Multi-Architecture**: Native support for amd64 and arm64
+- **Dual Versioning**: LTS stable releases + nightly bleeding-edge builds
+- **Production-Grade**: 33 comprehensive tests with zero clippy warnings
+- **Multi-Architecture**: Native support for amd64 and arm64 (no emulation)
 - **Test Runner**: Intelligent validation with debug logging (v0.2.0)
 
 ## What's New in v0.2.0
 
-- ✨ **5 comprehensive E2E regression tests** ensuring stability across updates
-- 🧪 **23 total tests** (5 e2e + 7 integration + 11 unit)
+- ✨ **6 comprehensive E2E regression tests** including critical engram modification test
+- 🧪 **33 total tests** (6 e2e + 7 integration + 11 unit + 9 doc tests)
 - 🔍 **Intelligent test runner** with accurate counting and debug mode
-- 📦 **Config-driven OS builder** with YAML configuration
+- 📦 **Dual versioning strategy** for OS builds (LTS + nightly)
 - 🎯 **Zero clippy warnings** (29 fixes applied)
-- 🐧 **Ubuntu support** added (stable + testing, amd64 + arm64)
-- 🚀 **Parameterized GitHub Actions** for flexible image builds
+- 🐧 **Extended OS support**: Debian 12 LTS, Debian Testing/Sid, Ubuntu 24.04 LTS, Ubuntu Devel/Rolling
+- 🚀 **Native multi-arch CI** with no emulation overhead
+- 📚 **Automated documentation** with rustdoc and 9 doc tests
 
 ## Core Concepts
 
@@ -250,6 +252,52 @@ cargo run --release -- ingest -i ./rootfs -e workspace/root.engram -m workspace/
 # Build the holographic container
 docker build -f Dockerfile.holographic -t my-holographic-os:latest .
 ```
+
+### Holographic OS Images - Dual Versioning Strategy
+
+Embeddenator provides pre-built holographic OS images with a dual versioning strategy:
+
+**LTS Stable Releases** (Long-Term Support):
+- **Debian 12 Bookworm** (amd64, arm64)
+- **Ubuntu 24.04 LTS Noble** (amd64, arm64)
+- Tagged with version numbers (e.g., `v0.2.0-lts`)
+- Updated on stable release cycles
+- Recommended for production use
+
+**Testing/Sid/Rolling Releases** (Bleeding Edge):
+- **Debian Testing** (amd64, arm64) - Static version + nightly
+- **Debian Sid** (amd64, arm64) - Static version + nightly
+- **Ubuntu Devel** (amd64, arm64) - Static version + nightly
+- **Ubuntu Rolling** (amd64, arm64) - Static version + nightly
+- Tagged with version + `-nightly` suffix (e.g., `v0.2.0-nightly-20250115`)
+- Built daily at 2 AM UTC with latest packages and Rust nightly
+- Recommended for testing and development
+
+**Pull images:**
+
+```bash
+# LTS stable images
+docker pull ghcr.io/tzervas/embeddenator-holographic-debian-stable-amd64:latest
+docker pull ghcr.io/tzervas/embeddenator-holographic-ubuntu-stable-arm64:latest
+
+# Nightly bleeding-edge images
+docker pull ghcr.io/tzervas/embeddenator-holographic-debian-testing-amd64:nightly
+docker pull ghcr.io/tzervas/embeddenator-holographic-ubuntu-rolling-arm64:nightly
+
+# Specific dated nightly
+docker pull ghcr.io/tzervas/embeddenator-holographic-debian-sid-amd64:v0.2.0-nightly-20250115
+```
+
+**Available OS Configurations:**
+
+| OS | Version | LTS | Nightly | Architectures |
+|----|---------|-----|---------|---------------|
+| Debian | 12 Bookworm | ✅ | ❌ | amd64, arm64 |
+| Debian | Testing | ❌ | ✅ | amd64, arm64 |
+| Debian | Sid | ❌ | ✅ | amd64, arm64 |
+| Ubuntu | 24.04 LTS | ✅ | ❌ | amd64, arm64 |
+| Ubuntu | Devel | ❌ | ✅ | amd64, arm64 |
+| Ubuntu | Rolling | ❌ | ✅ | amd64, arm64 |
 
 ## Validation Baseline
 
