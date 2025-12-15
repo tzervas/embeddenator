@@ -23,10 +23,13 @@ target
 # Embeddenator workspace
 workspace/
 input_ws/
+os_workspace/
+os_builds/
 
 # Engram files
 *.engram
 manifest.json
+*.manifest.json
 
 # Python cache
 __pycache__/
