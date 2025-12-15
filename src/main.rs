@@ -46,9 +46,11 @@ impl SparseVec {
         hasher.update(data);
         let hash = hasher.finalize();
         
-        let mut rng = rand::rngs::StdRng::from_seed(
-            hash[..32].try_into().unwrap()
-        );
+        // SHA256 always produces 32 bytes, use first 32 bytes as seed
+        let seed: [u8; 32] = hash[..32]
+            .try_into()
+            .expect("SHA256 output is always 32 bytes");
+        let mut rng = rand::rngs::StdRng::from_seed(seed);
         
         use rand::seq::SliceRandom;
         let mut indices: Vec<usize> = (0..DIM).collect();
@@ -236,7 +238,9 @@ impl EmbrFS {
         files_to_process.sort();
 
         for file_path in files_to_process {
-            let relative = file_path.strip_prefix(dir).unwrap_or(&file_path);
+            let relative = file_path
+                .strip_prefix(dir)
+                .unwrap_or_else(|_| file_path.as_path());
             self.ingest_file(&file_path, relative.to_string_lossy().to_string(), verbose)?;
         }
 
