@@ -1,8 +1,9 @@
 # Embeddenator — Holographic Computing Substrate
 
-Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+**Version 0.2.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
 
 [![CI](https://github.com/tzervas/embeddenator/workflows/CI/badge.svg)](https://github.com/tzervas/embeddenator/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Features
 
@@ -12,8 +13,19 @@ Production Rust implementation of sparse ternary VSA (Vector Symbolic Architectu
 - **Hierarchical Chunked Encoding**: Designed for TB-scale data
 - **CLI + Docker**: Complete toolchain with multi-arch container support
 - **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
-- **Production-Grade**: Full test coverage and CI/CD validation
+- **Production-Grade**: 23 comprehensive tests with zero clippy warnings
 - **Multi-Architecture**: Native support for amd64 and arm64
+- **Test Runner**: Intelligent validation with debug logging (v0.2.0)
+
+## What's New in v0.2.0
+
+- ✨ **5 comprehensive E2E regression tests** ensuring stability across updates
+- 🧪 **23 total tests** (5 e2e + 7 integration + 11 unit)
+- 🔍 **Intelligent test runner** with accurate counting and debug mode
+- 📦 **Config-driven OS builder** with YAML configuration
+- 🎯 **Zero clippy warnings** (29 fixes applied)
+- 🐧 **Ubuntu support** added (stable + testing, amd64 + arm64)
+- 🚀 **Parameterized GitHub Actions** for flexible image builds
 
 ## Core Concepts
 

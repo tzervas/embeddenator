@@ -7,16 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-12-15
+
+### Added
+- Comprehensive end-to-end regression test suite (5 tests)
+  - Comprehensive workflow test with multi-file types and nested directories
+  - Performance validation test (100 files with timing bounds)
+  - Query functionality test
+  - Data integrity test with bit-perfect byte-for-byte validation
+  - Directory structure preservation test
+- Intelligent test runner (`test_runner.py`) with debug logging
+  - Accurate test counting across all test suites
+  - Detection and reporting of 0-test blocks
+  - Debug mode for troubleshooting
+- Configuration-driven OS builder
+  - `os_config.yaml` for flexible OS build management
+  - Tag suffix support for dev/rc/custom builds
+  - Version auto-reading from Cargo.toml
+
 ### Changed
 - Extracted all tests from source files into organized `tests/` directory structure
-  - Unit tests moved to `tests/unit_tests.rs`
-  - Integration tests moved to `tests/integration_cli.rs`
+  - Unit tests moved to `tests/unit_tests.rs` (11 tests)
+  - Integration tests moved to `tests/integration_cli.rs` (7 tests)
+  - E2E regression tests in `tests/e2e_regression.rs` (5 tests)
   - Removed test modules from `src/vsa.rs` and `src/embrfs.rs`
 - Extended holographic OS container builder to support Ubuntu distributions
   - Added Ubuntu stable (amd64, arm64) support
   - Added Ubuntu testing/devel (amd64, arm64) support
   - Updated debian:testing to support both amd64 and arm64
-  - Removed debian:sid in favor of debian:testing
+  - Replaced debian:sid with debian:testing
+- Applied comprehensive clippy fixes (29 improvements)
+  - Zero clippy warnings remaining
+  - Fixed needless borrows in test files
+  - Fixed redundant closures
+  - Improved code documentation
+
+### Improved
+- Test coverage: 18 tests → 23 tests (27% increase)
+- Code quality: 20+ clippy warnings → 0 warnings
+- Test reporting: Now accurately counts all 3 test suites
+- Documentation: Enhanced with regression testing details
 
 ## [0.1.0] - 2025-12-15
 
@@ -80,4 +110,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - rand 0.8: Random vector generation
 - walkdir 2.5: Directory traversal
 
+[0.2.0]: https://github.com/tzervas/embeddenator/releases/tag/v0.2.0
 [0.1.0]: https://github.com/tzervas/embeddenator/releases/tag/v0.1.0
