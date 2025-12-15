@@ -9,10 +9,16 @@ repository = "https://github.com/tzervas/embeddenator"
 homepage = "https://github.com/tzervas/embeddenator"
 keywords = ["vsa", "holographic", "filesystem", "engram", "vector-symbolic"]
 categories = ["filesystem", "compression", "science"]
+documentation = "https://docs.rs/embeddenator"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "embeddenator"
 path = "src/lib.rs"
+doctest = true
 
 [[bin]]
 name = "embeddenator"

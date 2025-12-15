@@ -40,6 +40,18 @@ pub struct Engram {
 }
 
 /// EmbrFS - Holographic Filesystem
+///
+/// # Examples
+///
+/// ```
+/// use embeddenator::EmbrFS;
+/// use std::path::Path;
+///
+/// let mut fs = EmbrFS::new();
+/// // Ingest and extract would require actual files, so we just test creation
+/// assert_eq!(fs.manifest.total_chunks, 0);
+/// assert_eq!(fs.manifest.files.len(), 0);
+/// ```
 pub struct EmbrFS {
     pub manifest: Manifest,
     pub engram: Engram,
@@ -53,6 +65,16 @@ impl Default for EmbrFS {
 
 impl EmbrFS {
     /// Create a new empty EmbrFS instance
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::EmbrFS;
+    ///
+    /// let fs = EmbrFS::new();
+    /// assert_eq!(fs.manifest.files.len(), 0);
+    /// assert_eq!(fs.manifest.total_chunks, 0);
+    /// ```
     pub fn new() -> Self {
         EmbrFS {
             manifest: Manifest {

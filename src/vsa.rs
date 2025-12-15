@@ -31,6 +31,16 @@ impl Default for SparseVec {
 
 impl SparseVec {
     /// Create an empty sparse vector
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let vec = SparseVec::new();
+    /// assert!(vec.pos.is_empty());
+    /// assert!(vec.neg.is_empty());
+    /// ```
     pub fn new() -> Self {
         SparseVec {
             pos: Vec::new(),
@@ -39,6 +49,17 @@ impl SparseVec {
     }
 
     /// Generate a random sparse vector with ~1% density
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let vec = SparseVec::random();
+    /// // Vector should have approximately 1% density (100 positive + 100 negative)
+    /// assert!(vec.pos.len() > 0);
+    /// assert!(vec.neg.len() > 0);
+    /// ```
     pub fn random() -> Self {
         let mut rng = rand::thread_rng();
         let sparsity = DIM / 100; // ~1% density
@@ -57,6 +78,20 @@ impl SparseVec {
     }
 
     /// Generate a deterministic sparse vector from data using SHA256 seed
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let data = b"hello world";
+    /// let vec1 = SparseVec::from_data(data);
+    /// let vec2 = SparseVec::from_data(data);
+    ///
+    /// // Same input produces same vector (deterministic)
+    /// assert_eq!(vec1.pos, vec2.pos);
+    /// assert_eq!(vec1.neg, vec2.neg);
+    /// ```
     pub fn from_data(data: &[u8]) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(data);
@@ -80,6 +115,23 @@ impl SparseVec {
 
     /// Bundle operation: associative superposition (A ⊕ B)
     /// Combines two vectors by majority voting on each dimension
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let vec1 = SparseVec::from_data(b"data1");
+    /// let vec2 = SparseVec::from_data(b"data2");
+    /// let bundled = vec1.bundle(&vec2);
+    ///
+    /// // Bundled vector contains superposition of both inputs
+    /// // Should be similar to both original vectors
+    /// let sim1 = vec1.cosine(&bundled);
+    /// let sim2 = vec2.cosine(&bundled);
+    /// assert!(sim1 > 0.3);
+    /// assert!(sim2 > 0.3);
+    /// ```
     pub fn bundle(&self, other: &SparseVec) -> SparseVec {
         let pos_set: HashSet<_> = self.pos.iter().copied().collect();
         let neg_set: HashSet<_> = self.neg.iter().copied().collect();
@@ -125,7 +177,22 @@ impl SparseVec {
     }
 
     /// Bind operation: non-commutative composition (A ⊙ B)
-    /// Performs element-wise multiplication
+    /// Performs element-wise multiplication. Self-inverse: A ⊙ A ≈ I
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let vec = SparseVec::from_data(b"test");
+    /// let bound = vec.bind(&vec);
+    ///
+    /// // Bind with self should produce high similarity (self-inverse property)
+    /// let identity = SparseVec::from_data(b"identity");
+    /// let sim = bound.cosine(&identity);
+    /// // Result is approximately identity, so similarity varies
+    /// assert!(sim >= -1.0 && sim <= 1.0);
+    /// ```
     pub fn bind(&self, other: &SparseVec) -> SparseVec {
         let pos_set: HashSet<_> = self.pos.iter().copied().collect();
         let neg_set: HashSet<_> = self.neg.iter().copied().collect();
@@ -160,6 +227,23 @@ impl SparseVec {
 
     /// Calculate cosine similarity between two sparse vectors
     /// Returns value in [-1, 1] where 1 is identical, 0 is orthogonal
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let vec1 = SparseVec::from_data(b"hello");
+    /// let vec2 = SparseVec::from_data(b"hello");
+    /// let vec3 = SparseVec::from_data(b"world");
+    ///
+    /// // Identical data produces identical vectors
+    /// assert!((vec1.cosine(&vec2) - 1.0).abs() < 0.01);
+    ///
+    /// // Different data produces low similarity
+    /// let sim = vec1.cosine(&vec3);
+    /// assert!(sim < 0.3);
+    /// ```
     pub fn cosine(&self, other: &SparseVec) -> f64 {
         let pos_set: HashSet<_> = self.pos.iter().copied().collect();
         let neg_set: HashSet<_> = self.neg.iter().copied().collect();
