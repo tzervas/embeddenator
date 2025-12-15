@@ -1,0 +1,68 @@
+# Embeddenator OS Build Configuration
+# This file defines the operating system configurations for holographic container builds
+
+version: "1.0"
+
+# OS configurations for holographic container builds
+os_configs:
+  debian-stable-amd64:
+    base_image: "debian:stable"
+    platform: "linux/amd64"
+    description: "Debian Stable (amd64)"
+    enabled: true
+    
+  debian-stable-arm64:
+    base_image: "debian:stable"
+    platform: "linux/arm64"
+    description: "Debian Stable (arm64)"
+    enabled: true
+    
+  debian-testing-amd64:
+    base_image: "debian:testing"
+    platform: "linux/amd64"
+    description: "Debian Testing (amd64)"
+    enabled: true
+    
+  debian-testing-arm64:
+    base_image: "debian:testing"
+    platform: "linux/arm64"
+    description: "Debian Testing (arm64)"
+    enabled: true
+    
+  ubuntu-stable-amd64:
+    base_image: "ubuntu:latest"
+    platform: "linux/amd64"
+    description: "Ubuntu Stable (amd64)"
+    enabled: true
+    
+  ubuntu-stable-arm64:
+    base_image: "ubuntu:latest"
+    platform: "linux/arm64"
+    description: "Ubuntu Stable (arm64)"
+    enabled: true
+    
+  ubuntu-testing-amd64:
+    base_image: "ubuntu:devel"
+    platform: "linux/amd64"
+    description: "Ubuntu Testing/Devel (amd64)"
+    enabled: true
+    
+  ubuntu-testing-arm64:
+    base_image: "ubuntu:devel"
+    platform: "linux/arm64"
+    description: "Ubuntu Testing/Devel (arm64)"
+    enabled: true
+
+# Test commands to validate OS containers
+test_commands:
+  - "cat /etc/os-release"
+  - "ls -la /bin /usr/bin"
+  - "dpkg --version"
+  - "apt --version"
+
+# Build settings
+build:
+  skip_push: false
+  registry: "ghcr.io"
+  repo: "tzervas/embeddenator"
+  tag_suffix: ""  # Can be set to "-dev" for development builds

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Holographic OS Container Builder
-Generates fully holographic VSA-style OS containers for various Debian releases
+Generates fully holographic VSA-style OS containers for various Debian/Ubuntu releases
+Supports configuration file and CLI parameter overrides
 """
 
 import argparse
@@ -10,21 +11,24 @@ import os
 import subprocess
 import sys
 import time
+import yaml
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 
 class HolographicOSBuilder:
-    def __init__(self, verbose=False, registry="ghcr.io", repo="tzervas/embeddenator"):
+    def __init__(self, verbose=False, registry="ghcr.io", repo="tzervas/embeddenator", 
+                 config_file="os_config.yaml", tag_suffix=""):
         self.verbose = verbose
         self.registry = registry
         self.repo = repo
+        self.tag_suffix = tag_suffix
         self.root = Path(__file__).parent.absolute()
         self.workspace = self.root / "os_workspace"
         self.build_dir = self.root / "os_builds"
         
-        # OS configurations
-        self.os_configs = {
+        # Load OS configurations from file or use defaults
+        self.os_configs = self.load_config(config_file)
             "debian-stable-amd64": {
                 "base_image": "debian:stable",
                 "platform": "linux/amd64",
@@ -112,6 +116,93 @@ class HolographicOSBuilder:
                     "dpkg --version",
                     "apt --version",
                 ]
+            },
+        
+    def load_config(self, config_file: str) -> Dict:
+        """Load OS configurations from YAML file or use defaults"""
+        config_path = self.root / config_file
+        
+        if config_path.exists():
+            try:
+                with open(config_path, 'r') as f:
+                    config_data = yaml.safe_load(f)
+                    
+                # Extract OS configs and add test commands
+                os_configs = {}
+                test_commands = config_data.get('test_commands', [
+                    "cat /etc/os-release",
+                    "ls -la /bin /usr/bin",
+                    "dpkg --version",
+                    "apt --version",
+                ])
+                
+                for name, cfg in config_data.get('os_configs', {}).items():
+                    if cfg.get('enabled', True):
+                        os_configs[name] = {
+                            "base_image": cfg['base_image'],
+                            "platform": cfg['platform'],
+                            "description": cfg['description'],
+                            "test_commands": test_commands
+                        }
+                
+                self.log(f"Loaded {len(os_configs)} OS configs from {config_file}")
+                return os_configs
+            except Exception as e:
+                self.log(f"Warning: Could not load config file: {e}, using defaults")
+        
+        # Default configurations if file not found
+        return self._get_default_configs()
+    
+    def _get_default_configs(self) -> Dict:
+        """Return default OS configurations"""
+        return {
+            "debian-stable-amd64": {
+                "base_image": "debian:stable",
+                "platform": "linux/amd64",
+                "description": "Debian Stable (amd64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
+            },
+            "debian-stable-arm64": {
+                "base_image": "debian:stable",
+                "platform": "linux/arm64",
+                "description": "Debian Stable (arm64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
+            },
+            "debian-testing-amd64": {
+                "base_image": "debian:testing",
+                "platform": "linux/amd64",
+                "description": "Debian Testing (amd64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
+            },
+            "debian-testing-arm64": {
+                "base_image": "debian:testing",
+                "platform": "linux/arm64",
+                "description": "Debian Testing (arm64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
+            },
+            "ubuntu-stable-amd64": {
+                "base_image": "ubuntu:latest",
+                "platform": "linux/amd64",
+                "description": "Ubuntu Stable (amd64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
+            },
+            "ubuntu-stable-arm64": {
+                "base_image": "ubuntu:latest",
+                "platform": "linux/arm64",
+                "description": "Ubuntu Stable (arm64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
+            },
+            "ubuntu-testing-amd64": {
+                "base_image": "ubuntu:devel",
+                "platform": "linux/amd64",
+                "description": "Ubuntu Testing/Devel (amd64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
+            },
+            "ubuntu-testing-arm64": {
+                "base_image": "ubuntu:devel",
+                "platform": "linux/arm64",
+                "description": "Ubuntu Testing/Devel (arm64)",
+                "test_commands": ["cat /etc/os-release", "ls -la /bin", "dpkg --version", "apt --version"]
             },
         }
         
@@ -314,7 +405,8 @@ class HolographicOSBuilder:
                                    config_name: str) -> str:
         """Build a Docker container from engram"""
         config = self.os_configs[config_name]
-        image_name = f"embeddenator-holo-{config_name}:latest"
+        version = self.get_version()
+        image_name = f"embeddenator-holo-{config_name}:{version}{self.tag_suffix}"
         
         self.log(f"Building holographic container: {image_name}")
         
@@ -385,6 +477,17 @@ CMD ["/bin/sh"]
                 success = False
                 
         return success
+    
+    def get_version(self) -> str:
+        """Get version from Cargo.toml"""
+        cargo_toml = self.root / "Cargo.toml"
+        if cargo_toml.exists():
+            with open(cargo_toml, 'r') as f:
+                for line in f:
+                    if line.startswith('version ='):
+                        version = line.split('=')[1].strip().strip('"')
+                        return version
+        return "0.1.0"  # fallback
         
     def push_to_registry(self, image_name: str, config_name: str) -> bool:
         """Push image to container registry"""
