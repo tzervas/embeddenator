@@ -327,7 +327,7 @@ The documentation includes:
 ### Running Tests
 
 ```bash
-# All tests (32 total: 23 regular + 9 doc tests)
+# All tests (33 total: 24 regular + 9 doc tests)
 cargo test
 
 # Just unit/integration/e2e tests
@@ -343,21 +343,55 @@ python3 orchestrator.py --mode test --verbose
 python3 orchestrator.py --mode full --verbose
 ```
 
+### CI/CD and Build Monitoring
+
+The project includes intelligent CI/CD with hang detection and optimization:
+
+```bash
+# Test CI build locally with monitoring
+./ci_build_monitor.sh linux/amd64 build 300
+
+# Test arm64 build (emulated, slower)
+./ci_build_monitor.sh linux/arm64 build 600
+
+# Monitor for specific timeout (in seconds)
+./ci_build_monitor.sh linux/amd64 full 900
+```
+
+**CI Features:**
+- Automatic hang detection with CPU usage monitoring
+- Intelligent timeout management (30min per build step, 45min total)
+- Parallel builds using all available cores
+- Platform-specific optimization (native vs emulated)
+- Build artifact upload on failure
+- Performance metrics reporting
+
+**Multi-architecture Support:**
+- amd64: Full test suite on native hardware
+- arm64: Build validation on QEMU emulation
+- Optimized for CI performance while maintaining coverage
+
 ### Project Structure
 
 ```
 embeddenator/
-├── Cargo.toml              # Rust dependencies
+├── Cargo.toml                  # Rust dependencies
 ├── src/
-│   └── main.rs             # Complete implementation
-├── Dockerfile.tool         # Static binary packaging
-├── Dockerfile.holographic  # Holographic OS container
-├── orchestrator.py         # Unified build/test/deploy
+│   └── main.rs                 # Complete implementation
+├── tests/
+│   ├── e2e_regression.rs       # 6 E2E tests (includes critical engram modification test)
+│   ├── integration_cli.rs      # 7 integration tests
+│   └── unit_tests.rs           # 11 unit tests
+├── Dockerfile.tool             # Static binary packaging
+├── Dockerfile.holographic      # Holographic OS container
+├── orchestrator.py             # Unified build/test/deploy
+├── ci_build_monitor.sh         # CI hang detection and monitoring
+├── generate_docs.sh            # Documentation generation
 ├── .github/
 │   └── workflows/
-│       └── ci.yml          # GitHub Actions CI/CD
-├── input_ws/               # Example input (gitignored)
-├── workspace/              # Build artifacts (gitignored)
+│       └── ci.yml              # GitHub Actions CI/CD with intelligent timeouts
+├── input_ws/                   # Example input (gitignored)
+├── workspace/                  # Build artifacts (gitignored)
 └── README.md               # This file
 ```
 
