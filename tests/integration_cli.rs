@@ -58,7 +58,7 @@ fn test_cli_ingest_and_extract() {
     
     // Test ingest
     let ingest_output = Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(), 
+        .args(["ingest", "-i", input.to_str().unwrap(), 
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -71,7 +71,7 @@ fn test_cli_ingest_and_extract() {
     
     // Test extract
     let extract_output = Command::new(embeddenator_bin())
-        .args(&["extract", "-e", engram.to_str().unwrap(),
+        .args(["extract", "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(),
                 "-o", output.to_str().unwrap()])
         .output()
@@ -108,7 +108,7 @@ fn test_cli_query() {
     
     // Ingest first
     let ingest_output = Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -119,7 +119,7 @@ fn test_cli_query() {
     // Query with a file from the input
     let query_file = input.join("test.txt");
     let query_output = Command::new(embeddenator_bin())
-        .args(&["query", "-e", engram.to_str().unwrap(),
+        .args(["query", "-e", engram.to_str().unwrap(),
                 "-q", query_file.to_str().unwrap()])
         .output()
         .expect("Failed to run query");
@@ -178,7 +178,7 @@ fn test_bit_perfect_reconstruction() {
     
     // Ingest
     let ingest_output = Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -188,7 +188,7 @@ fn test_bit_perfect_reconstruction() {
     
     // Extract
     let extract_output = Command::new(embeddenator_bin())
-        .args(&["extract", "-e", engram.to_str().unwrap(),
+        .args(["extract", "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(),
                 "-o", output.to_str().unwrap()])
         .output()
@@ -213,7 +213,7 @@ fn test_empty_directory_handling() {
     
     // Ingest empty directory
     let ingest_output = Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -243,7 +243,7 @@ fn test_large_file_chunking() {
     
     // Ingest
     Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -255,7 +255,7 @@ fn test_large_file_chunking() {
     
     // Extract and verify
     Command::new(embeddenator_bin())
-        .args(&["extract", "-e", engram.to_str().unwrap(),
+        .args(["extract", "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(),
                 "-o", output.to_str().unwrap()])
         .output()

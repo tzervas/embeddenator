@@ -45,6 +45,12 @@ pub struct EmbrFS {
     pub engram: Engram,
 }
 
+impl Default for EmbrFS {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EmbrFS {
     /// Create a new empty EmbrFS instance
     pub fn new() -> Self {
@@ -81,7 +87,7 @@ impl EmbrFS {
         for file_path in files_to_process {
             let relative = file_path
                 .strip_prefix(dir)
-                .unwrap_or_else(|_| file_path.as_path());
+                .unwrap_or(file_path.as_path());
             self.ingest_file(&file_path, relative.to_string_lossy().to_string(), verbose)?;
         }
 
@@ -138,7 +144,7 @@ impl EmbrFS {
     /// Save engram to file
     pub fn save_engram<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
         let encoded = bincode::serialize(&self.engram)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
         fs::write(path, encoded)?;
         Ok(())
     }
@@ -147,7 +153,7 @@ impl EmbrFS {
     pub fn load_engram<P: AsRef<Path>>(path: P) -> io::Result<Engram> {
         let data = fs::read(path)?;
         bincode::deserialize(&data)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+            .map_err(io::Error::other)
     }
 
     /// Save manifest to JSON file

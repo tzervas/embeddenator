@@ -76,7 +76,7 @@ fn test_bind_self_inverse() {
     };
     
     let result = a.bind(&a);
-    assert!(result.pos.len() > 0 || result.neg.len() > 0);
+    assert!(!result.pos.is_empty() || !result.neg.is_empty());
 }
 
 #[test]

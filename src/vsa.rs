@@ -23,6 +23,12 @@ pub struct SparseVec {
     pub neg: Vec<usize>,
 }
 
+impl Default for SparseVec {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SparseVec {
     /// Create an empty sparse vector
     pub fn new() -> Self {

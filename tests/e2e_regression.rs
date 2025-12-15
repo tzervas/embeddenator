@@ -32,7 +32,7 @@ fn create_comprehensive_dataset(dir: &TempDir) -> std::io::Result<()> {
     fs::write(input.join("config.yaml"), "setting: true\nvalue: 123\n")?;
     
     // Binary files of various sizes
-    fs::write(input.join("tiny.bin"), &[0u8, 1, 2, 3, 4])?;
+    fs::write(input.join("tiny.bin"), [0u8, 1, 2, 3, 4])?;
     let medium_bin: Vec<u8> = (0..1000).map(|i| (i % 256) as u8).collect();
     fs::write(input.join("medium.bin"), medium_bin)?;
     
@@ -68,7 +68,7 @@ fn test_e2e_comprehensive_workflow() {
     
     // Step 1: Ingest
     let ingest_output = Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(), "-v"])
         .output()
@@ -87,7 +87,7 @@ fn test_e2e_comprehensive_workflow() {
     
     // Step 2: Extract
     let extract_output = Command::new(embeddenator_bin())
-        .args(&["extract", "-e", engram.to_str().unwrap(),
+        .args(["extract", "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(),
                 "-o", output.to_str().unwrap(), "-v"])
         .output()
@@ -149,7 +149,7 @@ fn test_e2e_large_dataset_performance() {
     // Ingest
     let start = std::time::Instant::now();
     let ingest_output = Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -162,7 +162,7 @@ fn test_e2e_large_dataset_performance() {
     // Extract
     let start = std::time::Instant::now();
     let extract_output = Command::new(embeddenator_bin())
-        .args(&["extract", "-e", engram.to_str().unwrap(),
+        .args(["extract", "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(),
                 "-o", output.to_str().unwrap()])
         .output()
@@ -196,7 +196,7 @@ fn test_e2e_query_functionality() {
     
     // Ingest
     Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -204,7 +204,7 @@ fn test_e2e_query_functionality() {
     
     // Query with a document that's in the engram
     let query_output = Command::new(embeddenator_bin())
-        .args(&["query", "-e", engram.to_str().unwrap(),
+        .args(["query", "-e", engram.to_str().unwrap(),
                 "-q", input.join("doc1.txt").to_str().unwrap()])
         .output()
         .expect("Failed to run query");
@@ -234,7 +234,7 @@ fn test_e2e_regression_data_integrity() {
     
     // Ingest
     Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
@@ -242,7 +242,7 @@ fn test_e2e_regression_data_integrity() {
     
     // Extract
     Command::new(embeddenator_bin())
-        .args(&["extract", "-e", engram.to_str().unwrap(),
+        .args(["extract", "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(),
                 "-o", output.to_str().unwrap()])
         .output()
@@ -279,14 +279,14 @@ fn test_e2e_regression_directory_structure() {
     
     // Ingest and extract
     Command::new(embeddenator_bin())
-        .args(&["ingest", "-i", input.to_str().unwrap(),
+        .args(["ingest", "-i", input.to_str().unwrap(),
                 "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap()])
         .output()
         .expect("Failed to run ingest");
     
     Command::new(embeddenator_bin())
-        .args(&["extract", "-e", engram.to_str().unwrap(),
+        .args(["extract", "-e", engram.to_str().unwrap(),
                 "-m", manifest.to_str().unwrap(),
                 "-o", output.to_str().unwrap()])
         .output()
