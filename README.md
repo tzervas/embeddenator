@@ -303,11 +303,38 @@ Typical performance characteristics:
 
 ## Development
 
+### API Documentation
+
+Comprehensive API documentation is available:
+
+```bash
+# Generate and open documentation locally
+cargo doc --open
+
+# Or use the automated script
+./generate_docs.sh
+
+# View online (after publishing)
+# https://docs.rs/embeddenator
+```
+
+The documentation includes:
+- Module-level overviews with examples
+- Function documentation with usage patterns
+- 9 runnable doc tests demonstrating API usage
+- VSA operation examples (bundle, bind, cosine)
+
 ### Running Tests
 
 ```bash
-# Unit tests
+# All tests (32 total: 23 regular + 9 doc tests)
 cargo test
+
+# Just unit/integration/e2e tests
+cargo test --lib --tests
+
+# Just documentation tests
+cargo test --doc
 
 # Integration tests via orchestrator
 python3 orchestrator.py --mode test --verbose
