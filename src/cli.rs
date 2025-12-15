@@ -89,7 +89,7 @@ pub fn run() -> io::Result<()> {
             verbose,
         } => {
             if verbose {
-                println!("Embeddenator v0.1.0 - Holographic Ingestion");
+                println!("Embeddenator v{} - Holographic Ingestion", env!("CARGO_PKG_VERSION"));
                 println!("=====================================");
             }
 
@@ -117,7 +117,7 @@ pub fn run() -> io::Result<()> {
             verbose,
         } => {
             if verbose {
-                println!("Embeddenator v0.1.0 - Holographic Extraction");
+                println!("Embeddenator v{} - Holographic Extraction", env!("CARGO_PKG_VERSION"));
                 println!("======================================");
             }
 
@@ -140,7 +140,7 @@ pub fn run() -> io::Result<()> {
             verbose,
         } => {
             if verbose {
-                println!("Embeddenator v0.1.0 - Holographic Query");
+                println!("Embeddenator v{} - Holographic Query", env!("CARGO_PKG_VERSION"));
                 println!("=================================");
             }
 

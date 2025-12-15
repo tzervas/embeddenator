@@ -1,7 +1,7 @@
 [package]
 name = "embeddenator"
 version = "0.2.0"
-edition = "2025"
+edition = "2021"
 authors = ["Tyler Zervas, and Agentic Embeddenator Contributors"]
 description = "Sparse ternary VSA holographic computing substrate"
 license = "MIT"
