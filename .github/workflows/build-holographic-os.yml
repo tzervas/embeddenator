@@ -1,0 +1,75 @@
+name: Build Holographic OS Containers
+
+on:
+  workflow_dispatch:
+    inputs:
+      os_target:
+        description: 'OS to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - debian-stable-amd64
+          - debian-stable-arm64
+          - debian-testing-amd64
+          - debian-testing-arm64
+          - ubuntu-stable-amd64
+          - ubuntu-stable-arm64
+          - ubuntu-testing-amd64
+          - ubuntu-testing-arm64
+      skip_push:
+        description: 'Skip pushing to registry'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-holographic-os:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - uses: docker/setup-qemu-action@v3
+        
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Log in to GitHub Container Registry
+        if: ${{ !inputs.skip_push }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build Embeddenator tool
+        run: cargo build --release --verbose
+        
+      - name: Build holographic OS containers
+        run: |
+          python3 build_holographic_os.py \
+            --os ${{ inputs.os_target }} \
+            --registry ghcr.io \
+            --repo ${{ github.repository_owner }}/embeddenator \
+            ${{ inputs.skip_push && '--skip-push' || '' }} \
+            --verbose
+            
+      - name: Display build summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: ${{ inputs.os_target }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Skip Push: ${{ inputs.skip_push }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Registry: ghcr.io/${{ github.repository_owner }}/embeddenator" >> $GITHUB_STEP_SUMMARY

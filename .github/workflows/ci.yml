@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Cargo test
+        run: cargo test --verbose
+        
+      - name: Build tool binary
+        run: python3 orchestrator.py --mode build --verbose
+        
+      - name: Integration test (ingest + validate)
+        run: python3 orchestrator.py --mode test --verbose
+
+  multi-arch:
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - uses: docker/setup-qemu-action@v3
+      
+      - uses: docker/setup-buildx-action@v3
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Build & test ${{ matrix.platform }}
+        run: |
+          python3 orchestrator.py --mode full --platform ${{ matrix.platform }} --verbose
