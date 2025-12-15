@@ -359,17 +359,18 @@ The project includes intelligent CI/CD with hang detection and optimization:
 ```
 
 **CI Features:**
-- Automatic hang detection with CPU usage monitoring
-- Intelligent timeout management (30min per build step, 45min total)
+- Native builds on platform-specific runners (no emulation overhead)
 - Parallel builds using all available cores
-- Platform-specific optimization (native vs emulated)
+- Intelligent timeout management (20min per build, 30min total)
 - Build artifact upload on failure
 - Performance metrics reporting
+- Automatic parallelization with `CARGO_BUILD_JOBS`
 
 **Multi-architecture Support:**
-- amd64: Full test suite on native hardware
-- arm64: Build validation on QEMU emulation
-- Optimized for CI performance while maintaining coverage
+- **amd64**: Full test suite on ubuntu-latest (x86_64 native)
+- **arm64**: Full test suite on ubuntu-24.04-arm64 (ARM64 native)
+- Both platforms run complete validation on native hardware
+- Eliminates emulation overhead for faster, more reliable builds
 
 ### Project Structure
 
