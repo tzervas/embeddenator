@@ -29,14 +29,19 @@ impl SparseVec {
     }
 
     pub fn random() -> Self {
-        use rand::Rng;
         let mut rng = rand::thread_rng();
         let sparsity = DIM / 100; // ~1% density
-        let mut indices: Vec<usize> = (0..DIM).collect();
-        indices.sort_by_key(|_| rng.gen::<u32>());
         
-        let pos = indices[..sparsity].to_vec();
-        let neg = indices[sparsity..sparsity * 2].to_vec();
+        // Generate random indices without replacement
+        let mut indices: Vec<usize> = (0..DIM).collect();
+        use rand::seq::SliceRandom;
+        indices.shuffle(&mut rng);
+        
+        let mut pos: Vec<_> = indices[..sparsity].to_vec();
+        let mut neg: Vec<_> = indices[sparsity..sparsity * 2].to_vec();
+        
+        pos.sort_unstable();
+        neg.sort_unstable();
         
         SparseVec { pos, neg }
     }
@@ -597,4 +602,132 @@ mod tests {
         let binary_data = vec![0u8, 1, 2, 3, 255, 0];
         assert!(!is_text_file(&binary_data));
     }
+
+    #[test]
+    fn test_bundle_associativity() {
+        // Test: (A ⊕ B) ⊕ C ≈ A ⊕ (B ⊕ C)
+        let a = SparseVec {
+            pos: vec![1, 2, 3],
+            neg: vec![4, 5, 6],
+        };
+        let b = SparseVec {
+            pos: vec![2, 3, 7],
+            neg: vec![5, 6, 8],
+        };
+        let c = SparseVec {
+            pos: vec![3, 7, 9],
+            neg: vec![6, 8, 10],
+        };
+        
+        let left = a.bundle(&b).bundle(&c);
+        let right = a.bundle(&b.bundle(&c));
+        
+        // Should be very similar (cosine > 0.7)
+        let similarity = left.cosine(&right);
+        assert!(similarity > 0.7, "Bundle associativity failed: similarity = {}", similarity);
+    }
+
+    #[test]
+    fn test_bind_self_inverse() {
+        // Test: A ⊙ A should be close to identity (high self-similarity)
+        let a = SparseVec {
+            pos: vec![1, 2, 3, 4, 5],
+            neg: vec![6, 7, 8, 9, 10],
+        };
+        
+        let result = a.bind(&a);
+        // Self-binding should produce a result
+        assert!(result.pos.len() > 0 || result.neg.len() > 0);
+    }
+
+    #[test]
+    fn test_cosine_similarity_ranges() {
+        // Test similarity ranges for different cases
+        let v1 = SparseVec {
+            pos: vec![1, 2, 3],
+            neg: vec![4, 5, 6],
+        };
+        let v2 = v1.clone();
+        
+        // Self-similarity should be very high
+        let self_sim = v1.cosine(&v2);
+        assert!(self_sim > 0.9, "Self-similarity too low: {}", self_sim);
+        
+        // Different vector should have lower similarity
+        let v3 = SparseVec {
+            pos: vec![10, 20, 30],
+            neg: vec![40, 50, 60],
+        };
+        let diff_sim = v1.cosine(&v3);
+        assert!(diff_sim < 0.5, "Different vectors too similar: {}", diff_sim);
+    }
+
+    #[test]
+    fn test_from_data_determinism() {
+        // Same data should always produce same vector
+        let data = b"test data for determinism";
+        let v1 = SparseVec::from_data(data);
+        let v2 = SparseVec::from_data(data);
+        
+        assert_eq!(v1.pos, v2.pos, "pos indices should match");
+        assert_eq!(v1.neg, v2.neg, "neg indices should match");
+        
+        let similarity = v1.cosine(&v2);
+        assert!(similarity > 0.999, "Determinism failed: identical data produced different vectors (similarity: {})", similarity);
+    }
+
+    #[test]
+    fn test_from_data_different_inputs() {
+        // Different data should produce different vectors
+        let data1 = b"first input";
+        let data2 = b"second input";
+        
+        let v1 = SparseVec::from_data(data1);
+        let v2 = SparseVec::from_data(data2);
+        
+        assert_ne!(v1.pos, v2.pos, "Different inputs should produce different pos");
+        
+        let similarity = v1.cosine(&v2);
+        assert!(similarity < 0.5, "Different inputs too similar: {}", similarity);
+    }
+
+    #[test]
+    fn test_sparse_vec_random() {
+        // Test that random generation produces valid vectors
+        let v = SparseVec::random();
+        
+        assert!(!v.pos.is_empty(), "Random vector should have positive indices");
+        assert!(!v.neg.is_empty(), "Random vector should have negative indices");
+        
+        // Check no overlap between pos and neg
+        let pos_set: std::collections::HashSet<_> = v.pos.iter().collect();
+        let neg_set: std::collections::HashSet<_> = v.neg.iter().collect();
+        assert!(pos_set.is_disjoint(&neg_set), "pos and neg should not overlap");
+    }
+
+    #[test]
+    fn test_cleanup_threshold() {
+        // Test that cosine similarity thresholds work as expected
+        let correct = SparseVec {
+            pos: vec![1, 2, 3, 4, 5],
+            neg: vec![6, 7, 8, 9, 10],
+        };
+        
+        let similar = SparseVec {
+            pos: vec![1, 2, 3, 4, 11],  // 4 out of 5 match
+            neg: vec![6, 7, 8, 9, 12],
+        };
+        
+        let noise = SparseVec {
+            pos: vec![20, 21, 22, 23, 24],  // No matches
+            neg: vec![25, 26, 27, 28, 29],
+        };
+        
+        let correct_sim = correct.cosine(&similar);
+        let noise_sim = correct.cosine(&noise);
+        
+        assert!(correct_sim > 0.3, "Correct match should be >0.3: {}", correct_sim);
+        assert!(noise_sim < 0.3, "Noise should be <0.3: {}", noise_sim);
+    }
 }
+

@@ -5,9 +5,14 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       
@@ -31,6 +36,9 @@ jobs:
 
   multi-arch:
     needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         platform: [linux/amd64, linux/arm64]
