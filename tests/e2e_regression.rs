@@ -306,3 +306,145 @@ fn test_e2e_regression_directory_structure() {
     assert_eq!(fs::read_to_string(output.join("a/b/c/d/file4.txt")).unwrap(), "File 4");
     assert_eq!(fs::read_to_string(output.join("x/y/z/file5.txt")).unwrap(), "File 5");
 }
+
+#[test]
+fn test_e2e_engram_modification_persistence() {
+    // **Critical Test**: Validates that filesystem can be converted to engram,
+    // modified while in engram-extractable state, and changes persist correctly.
+    // This is a KEY FEATURE of Embeddenator - proving engrams are functional filesystems.
+    
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let input = temp_dir.path().join("input");
+    fs::create_dir(&input).unwrap();
+    
+    // Phase 1: Create initial filesystem
+    fs::write(input.join("original.txt"), "Original content v1").unwrap();
+    fs::write(input.join("to_modify.txt"), "Will be modified").unwrap();
+    fs::write(input.join("to_delete.txt"), "Will be deleted").unwrap();
+    fs::create_dir(input.join("original_dir")).unwrap();
+    fs::write(input.join("original_dir/nested.txt"), "Nested original").unwrap();
+    
+    let engram1 = temp_dir.path().join("v1.engram");
+    let manifest1 = temp_dir.path().join("v1.manifest.json");
+    let extract1 = temp_dir.path().join("extract_v1");
+    
+    // Phase 2: Convert to engram (v1)
+    let ingest1 = Command::new(embeddenator_bin())
+        .args(["ingest", "-i", input.to_str().unwrap(),
+                "-e", engram1.to_str().unwrap(),
+                "-m", manifest1.to_str().unwrap()])
+        .output()
+        .expect("Failed to ingest v1");
+    
+    assert!(ingest1.status.success(), 
+            "Initial engram creation failed: {}", 
+            String::from_utf8_lossy(&ingest1.stderr));
+    
+    // Phase 3: Extract from engram (v1)
+    let extract_cmd1 = Command::new(embeddenator_bin())
+        .args(["extract", "-e", engram1.to_str().unwrap(),
+                "-m", manifest1.to_str().unwrap(),
+                "-o", extract1.to_str().unwrap()])
+        .output()
+        .expect("Failed to extract v1");
+    
+    assert!(extract_cmd1.status.success(), 
+            "Extract v1 failed: {}",
+            String::from_utf8_lossy(&extract_cmd1.stderr));
+    
+    // Phase 4: Verify initial extraction matches original
+    assert_eq!(fs::read_to_string(extract1.join("original.txt")).unwrap(),
+               "Original content v1");
+    assert_eq!(fs::read_to_string(extract1.join("to_modify.txt")).unwrap(),
+               "Will be modified");
+    assert!(extract1.join("to_delete.txt").exists());
+    
+    // Phase 5: MODIFY the extracted filesystem (simulating usage while in engram state)
+    // This is the KEY TEST - can we modify the extracted engram and re-ingest?
+    fs::write(extract1.join("to_modify.txt"), "MODIFIED content v2").unwrap();
+    fs::remove_file(extract1.join("to_delete.txt")).unwrap();
+    fs::write(extract1.join("new_file.txt"), "Newly created file").unwrap();
+    fs::create_dir(extract1.join("new_dir")).unwrap();
+    fs::write(extract1.join("new_dir/new_nested.txt"), "New nested content").unwrap();
+    fs::write(extract1.join("original_dir/nested.txt"), "Nested MODIFIED").unwrap();
+    
+    // Phase 6: Re-ingest the MODIFIED filesystem to create v2 engram
+    let engram2 = temp_dir.path().join("v2.engram");
+    let manifest2 = temp_dir.path().join("v2.manifest.json");
+    
+    let ingest2 = Command::new(embeddenator_bin())
+        .args(["ingest", "-i", extract1.to_str().unwrap(),
+                "-e", engram2.to_str().unwrap(),
+                "-m", manifest2.to_str().unwrap()])
+        .output()
+        .expect("Failed to ingest v2");
+    
+    assert!(ingest2.status.success(),
+            "Re-ingestion of modified filesystem failed: {}",
+            String::from_utf8_lossy(&ingest2.stderr));
+    
+    // Phase 7: Extract from v2 engram to verify modifications persisted
+    let extract2 = temp_dir.path().join("extract_v2");
+    
+    let extract_cmd2 = Command::new(embeddenator_bin())
+        .args(["extract", "-e", engram2.to_str().unwrap(),
+                "-m", manifest2.to_str().unwrap(),
+                "-o", extract2.to_str().unwrap()])
+        .output()
+        .expect("Failed to extract v2");
+    
+    assert!(extract_cmd2.status.success(),
+            "Extract v2 failed: {}",
+            String::from_utf8_lossy(&extract_cmd2.stderr));
+    
+    // Phase 8: VALIDATE ALL MODIFICATIONS PERSISTED CORRECTLY
+    
+    // Verify modified file has new content
+    assert_eq!(fs::read_to_string(extract2.join("to_modify.txt")).unwrap(),
+               "MODIFIED content v2",
+               "Modified file content did not persist!");
+    
+    // Verify deleted file is gone
+    assert!(!extract2.join("to_delete.txt").exists(),
+            "Deleted file should not exist in v2 extract!");
+    
+    // Verify new file was added
+    assert_eq!(fs::read_to_string(extract2.join("new_file.txt")).unwrap(),
+               "Newly created file",
+               "New file not persisted correctly!");
+    
+    // Verify new directory and nested file
+    assert!(extract2.join("new_dir").is_dir(),
+            "New directory not persisted!");
+    assert_eq!(fs::read_to_string(extract2.join("new_dir/new_nested.txt")).unwrap(),
+               "New nested content",
+               "New nested file not persisted!");
+    
+    // Verify modifications to nested files
+    assert_eq!(fs::read_to_string(extract2.join("original_dir/nested.txt")).unwrap(),
+               "Nested MODIFIED",
+               "Nested file modifications not persisted!");
+    
+    // Verify unmodified file remained unchanged
+    assert_eq!(fs::read_to_string(extract2.join("original.txt")).unwrap(),
+               "Original content v1",
+               "Unmodified file should remain unchanged!");
+    
+    // Phase 9: Verify manifest reflects the changes
+    let manifest2_content = fs::read_to_string(&manifest2).unwrap();
+    assert!(manifest2_content.contains("new_file.txt"),
+            "Manifest should contain new_file.txt");
+    assert!(manifest2_content.contains("new_dir"),
+            "Manifest should contain new_dir");
+    assert!(!manifest2_content.contains("to_delete.txt") || 
+            manifest2_content.matches("to_delete.txt").count() == 0,
+            "Manifest should not reference deleted file");
+    
+    println!("✅ CRITICAL TEST PASSED: Engram modification persistence validated!");
+    println!("   - Filesystem converted to engram (v1)");
+    println!("   - Extracted and modified (added/changed/deleted files)");
+    println!("   - Re-ingested to create new engram (v2)");
+    println!("   - All modifications persisted correctly after extraction");
+    println!("   - Proves engrams are fully functional, modifiable filesystems!");
+}
+
