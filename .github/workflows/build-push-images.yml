@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os_config: ${{ fromJson(format('[{0}]', inputs.os_selections)) }}
+        os_config: ${{ inputs.os_selections && inputs.os_selections != '' && split(inputs.os_selections, ',') || [] }}
       fail-fast: false
     
     steps:
