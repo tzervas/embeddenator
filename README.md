@@ -409,7 +409,6 @@ The project includes intelligent CI/CD with hang detection and optimization:
 **CI Features:**
 - Native builds on platform-specific runners (no emulation overhead)
 - Parallel builds using all available cores
-- Optimized runner sizes: standard for amd64, large (4-core) for arm64
 - Single unified workflow (no duplicate runs)
 - Intelligent timeout management (15min tests, 10min builds, 30min total)
 - Build artifact upload on failure
@@ -417,11 +416,11 @@ The project includes intelligent CI/CD with hang detection and optimization:
 - Automatic parallelization with `CARGO_BUILD_JOBS`
 
 **Multi-architecture Support:**
-- **amd64**: Full test suite on ubuntu-latest (x86_64 native, standard runner)
-- **arm64**: Full test suite on ubuntu-24.04-arm64-4core (ARM64 native, large runner)
-- Both platforms run complete validation in parallel
-- Optimized for cost-benefit: larger arm64 runners reduce total CI time
-- No duplicate pipeline runs - single job matrix for both architectures
+- **amd64**: Full test suite on ubuntu-latest (x86_64 native, standard runner) - ACTIVE
+- **arm64**: Temporarily disabled pending investigation
+  - Will be re-enabled with ubuntu-24.04-arm64-4core (ARM64 native, large runner)
+  - Future: Complete validation in parallel with optimized performance
+- No duplicate pipeline runs - single job matrix
 - Eliminates emulation overhead for faster, more reliable builds
 
 ### Project Structure

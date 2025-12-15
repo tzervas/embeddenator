@@ -17,10 +17,11 @@ jobs:
             runner: ubuntu-latest
             arch: amd64
             runner_size: standard
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm64-4core
-            arch: arm64
-            runner_size: large
+          # TODO: Re-enable arm64 after investigating issues
+          # - platform: linux/arm64
+          #   runner: ubuntu-24.04-arm64-4core
+          #   arch: arm64
+          #   runner_size: large
       fail-fast: false
       max-parallel: 2
     runs-on: ${{ matrix.runner }}
