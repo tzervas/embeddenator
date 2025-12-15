@@ -436,8 +436,7 @@ fn test_e2e_engram_modification_persistence() {
             "Manifest should contain new_file.txt");
     assert!(manifest2_content.contains("new_dir"),
             "Manifest should contain new_dir");
-    assert!(!manifest2_content.contains("to_delete.txt") || 
-            manifest2_content.matches("to_delete.txt").count() == 0,
+    assert!(!manifest2_content.contains("to_delete.txt"),
             "Manifest should not reference deleted file");
     
     println!("✅ CRITICAL TEST PASSED: Engram modification persistence validated!");
