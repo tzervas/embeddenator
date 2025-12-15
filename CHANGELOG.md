@@ -5,6 +5,19 @@ All notable changes to Embeddenator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Extracted all tests from source files into organized `tests/` directory structure
+  - Unit tests moved to `tests/unit_tests.rs`
+  - Integration tests moved to `tests/integration_cli.rs`
+  - Removed test modules from `src/vsa.rs` and `src/embrfs.rs`
+- Extended holographic OS container builder to support Ubuntu distributions
+  - Added Ubuntu stable (amd64, arm64) support
+  - Added Ubuntu testing/devel (amd64, arm64) support
+  - Updated debian:testing to support both amd64 and arm64
+  - Removed debian:sid in favor of debian:testing
+
 ## [0.1.0] - 2025-12-15
 
 ### Added
@@ -26,9 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dockerfile.tool for static binary packaging
   - Dockerfile.holographic for OS container reconstruction
 - Python orchestrator for unified build/test/deploy workflows
-- Holographic OS container builder for Debian distributions
+- Holographic OS container builder for Debian and Ubuntu distributions
   - Support for debian:stable (amd64, arm64)
-  - Support for debian:testing and debian:sid (amd64)
+  - Support for debian:testing (amd64, arm64)
+  - Support for ubuntu:latest (amd64, arm64)
+  - Support for ubuntu:devel (amd64, arm64)
 - GitHub Actions CI/CD
   - Multi-architecture testing
   - Automated builds and validation

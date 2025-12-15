@@ -227,16 +227,3 @@ pub fn is_text_file(data: &[u8]) -> bool {
     null_count == 0 && control_count < sample_size / 10
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_text_file() {
-        let text_data = b"Hello, world!";
-        assert!(is_text_file(text_data));
-        
-        let binary_data = vec![0u8, 1, 2, 3, 255, 0];
-        assert!(!is_text_file(&binary_data));
-    }
-}

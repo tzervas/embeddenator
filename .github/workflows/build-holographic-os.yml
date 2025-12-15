@@ -13,7 +13,11 @@ on:
           - debian-stable-amd64
           - debian-stable-arm64
           - debian-testing-amd64
-          - debian-sid-amd64
+          - debian-testing-arm64
+          - ubuntu-stable-amd64
+          - ubuntu-stable-arm64
+          - ubuntu-testing-amd64
+          - ubuntu-testing-arm64
       skip_push:
         description: 'Skip pushing to registry'
         required: false

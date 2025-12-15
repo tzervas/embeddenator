@@ -11,7 +11,7 @@ Production Rust implementation of sparse ternary VSA (Vector Symbolic Architectu
 - **Pure Algebraic Mutations**: Bundle/bind/scalar operations on single root engram
 - **Hierarchical Chunked Encoding**: Designed for TB-scale data
 - **CLI + Docker**: Complete toolchain with multi-arch container support
-- **Holographic OS Containers**: Full Debian distributions encoded as engrams
+- **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
 - **Production-Grade**: Full test coverage and CI/CD validation
 - **Multi-Architecture**: Native support for amd64 and arm64
 

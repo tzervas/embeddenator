@@ -55,15 +55,62 @@ class HolographicOSBuilder:
                     "cat /etc/os-release",
                     "ls -la /bin /usr/bin",
                     "dpkg --version",
+                    "apt --version",
                 ]
             },
-            "debian-sid-amd64": {
-                "base_image": "debian:sid",
-                "platform": "linux/amd64",
-                "description": "Debian Sid/Unstable (amd64)",
+            "debian-testing-arm64": {
+                "base_image": "debian:testing",
+                "platform": "linux/arm64",
+                "description": "Debian Testing (arm64)",
                 "test_commands": [
                     "cat /etc/os-release",
                     "ls -la /bin /usr/bin",
+                    "dpkg --version",
+                    "apt --version",
+                ]
+            },
+            "ubuntu-stable-amd64": {
+                "base_image": "ubuntu:latest",
+                "platform": "linux/amd64",
+                "description": "Ubuntu Stable (amd64)",
+                "test_commands": [
+                    "cat /etc/os-release",
+                    "ls -la /bin /usr/bin",
+                    "dpkg --version",
+                    "apt --version",
+                ]
+            },
+            "ubuntu-stable-arm64": {
+                "base_image": "ubuntu:latest",
+                "platform": "linux/arm64",
+                "description": "Ubuntu Stable (arm64)",
+                "test_commands": [
+                    "cat /etc/os-release",
+                    "ls -la /bin /usr/bin",
+                    "dpkg --version",
+                    "apt --version",
+                ]
+            },
+            "ubuntu-testing-amd64": {
+                "base_image": "ubuntu:devel",
+                "platform": "linux/amd64",
+                "description": "Ubuntu Testing/Devel (amd64)",
+                "test_commands": [
+                    "cat /etc/os-release",
+                    "ls -la /bin /usr/bin",
+                    "dpkg --version",
+                    "apt --version",
+                ]
+            },
+            "ubuntu-testing-arm64": {
+                "base_image": "ubuntu:devel",
+                "platform": "linux/arm64",
+                "description": "Ubuntu Testing/Devel (arm64)",
+                "test_commands": [
+                    "cat /etc/os-release",
+                    "ls -la /bin /usr/bin",
+                    "dpkg --version",
+                    "apt --version",
                 ]
             },
         }
@@ -434,8 +481,11 @@ def main():
     )
     parser.add_argument(
         "--os",
-        choices=["all", "debian-stable-amd64", "debian-stable-arm64", 
-                 "debian-testing-amd64", "debian-sid-amd64"],
+        choices=["all", 
+                 "debian-stable-amd64", "debian-stable-arm64",
+                 "debian-testing-amd64", "debian-testing-arm64",
+                 "ubuntu-stable-amd64", "ubuntu-stable-arm64",
+                 "ubuntu-testing-amd64", "ubuntu-testing-arm64"],
         default="all",
         help="OS to build (default: all)"
     )
