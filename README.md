@@ -97,40 +97,125 @@ python3 orchestrator.py --mode clean
 
 ## CLI Reference
 
-### `ingest` - Create Engram
+Embeddenator provides three main commands for working with holographic engrams:
+
+### `embeddenator --help`
+
+Get comprehensive help information:
 
 ```bash
-embeddenator ingest [OPTIONS]
+# Show main help with examples
+embeddenator --help
+
+# Show detailed help for a specific command
+embeddenator ingest --help
+embeddenator extract --help
+embeddenator query --help
+```
+
+### `ingest` - Create Holographic Engram
+
+Recursively process files and encode them into a holographic engram.
+
+```bash
+embeddenator ingest [OPTIONS] --input <DIR>
+
+Required:
+  -i, --input <DIR>       Input directory to ingest (recursively processes all files)
 
 Options:
-  -i, --input <PATH>      Input directory to ingest
-  -e, --engram <PATH>     Output engram file (default: root.engram)
-  -m, --manifest <PATH>   Output manifest file (default: manifest.json)
-  -v, --verbose           Verbose output
+  -e, --engram <FILE>     Output engram file [default: root.engram]
+  -m, --manifest <FILE>   Output manifest file [default: manifest.json]
+  -v, --verbose           Enable verbose output with progress and statistics
+  -h, --help             Print help information
+
+Examples:
+  # Basic ingestion
+  embeddenator ingest -i ./myproject -e project.engram -m project.json
+
+  # With verbose output
+  embeddenator ingest -i ~/Documents -e docs.engram -v
+
+  # Custom filenames
+  embeddenator ingest --input ./data --engram backup.engram --manifest backup.json
 ```
+
+**What it does:**
+- Recursively scans the input directory
+- Chunks files (4KB default)
+- Encodes chunks using sparse ternary VSA
+- Creates holographic superposition in root vector
+- Saves engram (holographic data) and manifest (metadata)
 
 ### `extract` - Reconstruct Files
 
-```bash
-embeddenator extract [OPTIONS]
-
-Options:
-  -e, --engram <PATH>     Input engram file (default: root.engram)
-  -m, --manifest <PATH>   Input manifest file (default: manifest.json)
-  -o, --output-dir <PATH> Output directory
-  -v, --verbose           Verbose output
-```
-
-### `query` - Check Similarity
+Bit-perfect reconstruction of all files from an engram.
 
 ```bash
-embeddenator query [OPTIONS]
+embeddenator extract [OPTIONS] --output-dir <DIR>
+
+Required:
+  -o, --output-dir <DIR>  Output directory for reconstructed files
 
 Options:
-  -e, --engram <PATH>     Engram file to query (default: root.engram)
-  -q, --query <PATH>      Query file or pattern
-  -v, --verbose           Verbose output
+  -e, --engram <FILE>     Input engram file [default: root.engram]
+  -m, --manifest <FILE>   Input manifest file [default: manifest.json]
+  -v, --verbose           Enable verbose output with progress
+  -h, --help             Print help information
+
+Examples:
+  # Basic extraction
+  embeddenator extract -e project.engram -m project.json -o ./restored
+
+  # With default filenames
+  embeddenator extract -o ./output -v
+
+  # From backup
+  embeddenator extract --engram backup.engram --manifest backup.json --output-dir ~/restored
 ```
+
+**What it does:**
+- Loads engram and manifest
+- Reconstructs directory structure
+- Algebraically unbinds chunks from root vector
+- Writes bit-perfect copies of all files
+- Preserves file hierarchy and metadata
+
+### `query` - Similarity Search
+
+Compute cosine similarity between a query file and engram contents.
+
+```bash
+embeddenator query [OPTIONS] --query <FILE>
+
+Required:
+  -q, --query <FILE>      Query file or pattern to search for
+
+Options:
+  -e, --engram <FILE>     Engram file to query [default: root.engram]
+  -v, --verbose           Enable verbose output with similarity details
+  -h, --help             Print help information
+
+Examples:
+  # Query similarity
+  embeddenator query -e archive.engram -q search.txt
+
+  # With verbose output
+  embeddenator query -e data.engram -q pattern.bin -v
+
+  # Using default engram
+  embeddenator query --query testfile.txt -v
+```
+
+**What it does:**
+- Encodes query file using VSA
+- Computes cosine similarity with engram
+- Returns similarity score
+
+**Similarity interpretation:**
+- **>0.75**: Strong match, likely contains similar content
+- **0.3-0.75**: Moderate similarity, some shared patterns  
+- **<0.3**: Low similarity, likely unrelated content
 
 ## Docker Usage
 
@@ -251,11 +336,112 @@ embeddenator/
 
 ### Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Run `python3 orchestrator.py --mode full --verbose`
-5. Submit a pull request
+We welcome contributions to Embeddenator! Here's how you can help:
+
+#### Getting Started
+
+1. **Fork the repository** on GitHub
+2. **Clone your fork** locally:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/embeddenator.git
+   cd embeddenator
+   ```
+3. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/my-new-feature
+   ```
+
+#### Development Workflow
+
+1. **Make your changes** with clear, focused commits
+2. **Add tests** for new functionality:
+   - Unit tests in `src/` modules
+   - Integration tests in `tests/integration_*.rs`
+   - End-to-end tests in `tests/e2e_*.rs`
+3. **Run the full test suite**:
+   ```bash
+   # Run all Rust tests
+   cargo test
+   
+   # Run integration tests via orchestrator
+   python3 orchestrator.py --mode test --verbose
+   
+   # Run full validation suite
+   python3 orchestrator.py --mode full --verbose
+   ```
+4. **Check code quality**:
+   ```bash
+   # Run Clippy linter (zero warnings required)
+   cargo clippy -- -D warnings
+   
+   # Format code
+   cargo fmt
+   
+   # Check Python syntax
+   python3 -m py_compile *.py
+   ```
+5. **Test cross-platform** (if applicable):
+   ```bash
+   # Build Docker images
+   docker build -f Dockerfile.tool -t embeddenator-tool:test .
+   
+   # Test on different architectures
+   python3 orchestrator.py --platform linux/arm64 --mode test
+   ```
+
+#### Pull Request Guidelines
+
+- **Write clear commit messages** describing what and why
+- **Reference issues** in commit messages (e.g., "Fixes #123")
+- **Keep PRs focused** - one feature or fix per PR
+- **Update documentation** if you change CLI options or add features
+- **Ensure all tests pass** before submitting
+- **Maintain code coverage** - aim for >80% test coverage
+
+#### Code Style
+
+- **Rust**: Follow standard Rust conventions (use `cargo fmt`)
+- **Python**: Follow PEP 8 style guide
+- **Comments**: Document complex algorithms, especially VSA operations
+- **Error handling**: Use proper error types, avoid `.unwrap()` in library code
+
+#### Areas for Contribution
+
+We especially welcome contributions in these areas:
+
+- 🔬 **Performance optimizations** for VSA operations
+- 📊 **Benchmarking tools** and performance analysis
+- 🧪 **Additional test cases** covering edge cases
+- 📚 **Documentation improvements** and examples
+- 🐛 **Bug fixes** and error handling improvements
+- 🌐 **Multi-platform support** (Windows, macOS testing)
+- 🔧 **New features** (incremental updates, compression options, etc.)
+
+#### Reporting Issues
+
+When reporting bugs, please include:
+
+- Embeddenator version (`embeddenator --version`)
+- Operating system and architecture
+- Rust version (`rustc --version`)
+- Minimal reproduction steps
+- Expected vs. actual behavior
+- Relevant log output (use `--verbose` flag)
+
+#### Questions and Discussions
+
+- **Issues**: Bug reports and feature requests
+- **Discussions**: Questions, ideas, and general discussion
+- **Pull Requests**: Code contributions with tests
+
+#### Code of Conduct
+
+- Be respectful and inclusive
+- Provide constructive feedback
+- Focus on the technical merits
+- Help others learn and grow
+
+Thank you for contributing to Embeddenator! 🎉
 
 ## Advanced Usage
 
@@ -330,8 +516,44 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-- Issues: https://github.com/tzervas/embeddenator/issues
-- Discussions: https://github.com/tzervas/embeddenator/discussions
+### Getting Help
+
+- **Documentation**: This README and built-in help (`embeddenator --help`)
+- **Issues**: Report bugs or request features at https://github.com/tzervas/embeddenator/issues
+- **Discussions**: Ask questions and share ideas at https://github.com/tzervas/embeddenator/discussions
+- **Examples**: See `examples/` directory (coming soon) for usage patterns
+
+### Common Questions
+
+**Q: What file types are supported?**  
+A: All file types - text, binary, executables, images, etc. Embeddenator is file-format agnostic.
+
+**Q: Is the reconstruction really bit-perfect?**  
+A: Yes! All files are reconstructed exactly byte-for-byte. We have 23 tests verifying this.
+
+**Q: Can I combine multiple engrams?**  
+A: Yes! Use VSA bundle operations to create holographic superpositions. See "Algebraic Operations" in the README.
+
+**Q: What's the maximum data size?**  
+A: Theoretically unlimited with hierarchical encoding. Tested with datasets up to 1M+ tokens.
+
+**Q: How does this compare to compression?**  
+A: Embeddenator focuses on holographic representation, not compression. Engram sizes are typically 40-50% of original data, but the key benefit is algebraic operations on encoded data.
+
+### Reporting Issues
+
+When reporting bugs, please include:
+
+- Embeddenator version: `embeddenator --version`
+- Operating system and architecture
+- Rust version: `rustc --version`
+- Minimal reproduction steps
+- Expected vs. actual behavior
+- Relevant log output (use `--verbose` flag)
+
+### Security
+
+If you discover a security vulnerability, please email security@embeddenator.dev (or create a private security advisory on GitHub) rather than opening a public issue.
 
 ---
 
