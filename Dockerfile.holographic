@@ -1,0 +1,14 @@
+FROM embeddenator-tool:latest AS extractor
+COPY workspace/root.engram /root.engram
+COPY workspace/manifest.json /manifest.json
+RUN embeddenator extract --output-dir / \
+    --engram /root.engram \
+    --manifest /manifest.json \
+    --verbose > /workspace/extract.log 2>&1 && \
+    rm /bin/embeddenator /root.engram /manifest.json
+
+FROM scratch
+COPY --from=extractor / /
+VOLUME /workspace
+COPY --from=extractor /workspace/extract.log /workspace/extract.log
+CMD ["/bin/sh"]
