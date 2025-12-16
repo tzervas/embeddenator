@@ -1,71 +1,59 @@
 name: CI arm64 Build and Test
 
-# NOTE: This workflow is currently DISABLED because ARM64 runner labels need verification
+# CONFIGURED FOR SELF-HOSTED ARM64 RUNNERS
 # 
-# ISSUE ANALYSIS:
-# The workflow was hanging during startup because the runner label specified
-# (ubuntu-24.04-arm64-4core or ubuntu-24.04-arm64) doesn't exist in GitHub's
-# runner pool. This caused jobs to queue indefinitely waiting for a runner
-# that would never become available.
+# This workflow is READY for self-hosted ARM64 runners but currently DISABLED
+# pending runner setup. Once self-hosted ARM64 runners are configured with the
+# required labels, this workflow can be enabled.
 #
-# ROOT CAUSE:
-# - GitHub Actions does NOT provide standard hosted ARM64 runners
-# - Labels like "ubuntu-24.04-arm64" or "ubuntu-24.04-arm64-4core" are INVALID
-# - Workflow hung in "Queued" or "Waiting for runner" state
+# REQUIRED SETUP:
+# 1. Set up self-hosted GitHub Actions runner(s) on ARM64 hardware
+# 2. Configure runners with labels: ["self-hosted", "linux", "ARM64"]
+# 3. Verify runner is registered: Settings → Actions → Runners
+# 4. Test with manual trigger first (workflow_dispatch)
+# 5. Once verified working, uncomment the push/pull_request triggers below
 #
-# SOLUTIONS (choose one):
-# 
-# Option 1: Self-hosted ARM64 Runner (RECOMMENDED for production)
-#   - Setup: Install GitHub Actions runner on ARM64 hardware
-#   - Labels: Use custom labels like ["self-hosted", "linux", "ARM64"]
-#   - Change `runs-on:` below to: [self-hosted, linux, ARM64]
-#   - Pros: Fast, native execution, full control
-#   - Cons: Requires infrastructure setup
+# RUNNER SETUP INSTRUCTIONS:
+# - Download runner: https://github.com/actions/runner/releases
+# - Install on ARM64 hardware (physical/VM/cloud instance)
+# - Register with labels: self-hosted,linux,ARM64
+# - Start runner service
+# - Monitor runner status in GitHub repo settings
 #
-# Option 2: GitHub Larger Runners (if available with Team/Enterprise)
-#   - Check available runners: gh api /repos/OWNER/REPO/actions/runners
-#   - Possible labels: "ubuntu-24.04-arm" or similar
-#   - Verify label exists before uncommenting
-#   - Pros: Managed by GitHub
-#   - Cons: May not be available, requires paid plan
+# FUTURE CONFIGURATION (when ARM64 is working):
+# After successful self-hosted ARM64 testing, this workflow will be updated
+# to trigger only on merge to main (not on every PR commit) to reduce costs
+# while still validating the build on ARM64 architecture post-merge.
 #
-# Option 3: QEMU Emulation (fallback, works but slow)
-#   - Use ubuntu-latest (amd64) with QEMU setup
-#   - See commented section below for implementation
-#   - Pros: Works everywhere, no setup needed
-#   - Cons: 5-10x slower than native
-#
-# TO RE-ENABLE THIS WORKFLOW:
-# 1. Verify ARM64 runner availability in your organization
-# 2. Update `runs-on:` line below with correct label
-# 3. Test with minimal workflow first (just echo commands)
-# 4. Uncomment the `on:` triggers at the top
-# 5. Remove this file from .gitignore if it was added
+# See .github/workflows/README.md for detailed troubleshooting and setup guide.
 
 on:
-  # Uncomment these when ready to enable
+  # DISABLED: Uncomment these when self-hosted ARM64 runners are ready
   # push:
   #   branches: [ main ]
   # pull_request:
-  workflow_dispatch:  # Manual trigger only for now
+  #   types: [opened, synchronize, reopened]
+  
+  # Manual trigger for testing self-hosted runners
+  workflow_dispatch:
     inputs:
       runner_type:
-        description: 'Runner type to use'
+        description: 'Runner type to use (for testing only)'
         required: true
         default: 'self-hosted'
         type: choice
         options:
           - self-hosted
-          - emulation
-          - test-only
+          - emulation-test
 
 permissions:
   contents: read
 
 jobs:
   arm64-build-test:
-    # CRITICAL: Verify this runner label exists before enabling
-    # Current label is PLACEHOLDER and will cause hanging if used
+    name: ARM64 Build and Test (Self-Hosted)
+    # Configured for self-hosted ARM64 runners
+    # Labels: ["self-hosted", "linux", "ARM64"]
     runs-on: ${{ github.event.inputs.runner_type == 'self-hosted' && fromJSON('["self-hosted", "linux", "ARM64"]') || 'ubuntu-latest' }}
     timeout-minutes: 45  # Increased for potential emulation
     permissions:

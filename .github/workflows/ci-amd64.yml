@@ -1,9 +1,12 @@
 name: CI amd64 Build and Test
 
+# This workflow runs as a required pre-merge check
+# It must pass before code can be merged to main
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
   push:
     branches: [ main ]
-  pull_request:
   workflow_run:
     workflows: ["CI Pre-Checks"]
     types:
@@ -11,9 +14,13 @@ on:
 
 permissions:
   contents: read
+  # Required for status checks
+  checks: write
+  statuses: write
 
 jobs:
   amd64-build-test:
+    name: AMD64 Build and Test (Required for Merge)
     # Only run if pre-checks passed or if triggered directly
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest

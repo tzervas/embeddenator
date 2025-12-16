@@ -15,7 +15,7 @@
 - **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
 - **Dual Versioning**: LTS stable releases + nightly bleeding-edge builds
 - **Production-Grade**: 33 comprehensive tests with zero clippy warnings
-- **Multi-Architecture**: Native support for amd64 and arm64 (no emulation)
+- **Multi-Architecture**: Native amd64 support (arm64 via self-hosted runners - coming soon)
 - **Test Runner**: Intelligent validation with debug logging (v0.2.0)
 
 ## What's New in v0.2.0
@@ -26,7 +26,7 @@
 - 📦 **Dual versioning strategy** for OS builds (LTS + nightly)
 - 🎯 **Zero clippy warnings** (29 fixes applied)
 - 🐧 **Extended OS support**: Debian 12 LTS, Debian Testing/Sid, Ubuntu 24.04 LTS, Ubuntu Devel/Rolling
-- 🚀 **Native multi-arch CI** with no emulation overhead
+- 🚀 **Native amd64 CI** (required pre-merge check) + arm64 ready for self-hosted runners
 - 📚 **Automated documentation** with rustdoc and 9 doc tests
 
 ## Core Concepts
@@ -393,35 +393,54 @@ python3 orchestrator.py --mode full --verbose
 
 ### CI/CD and Build Monitoring
 
-The project includes intelligent CI/CD with hang detection and optimization:
+The project uses separated CI/CD workflows for optimal performance and reliability:
 
 ```bash
 # Test CI build locally with monitoring
 ./ci_build_monitor.sh linux/amd64 build 300
 
-# Test arm64 build (emulated, slower)
-./ci_build_monitor.sh linux/arm64 build 600
-
 # Monitor for specific timeout (in seconds)
 ./ci_build_monitor.sh linux/amd64 full 900
 ```
 
+**CI Workflow Structure:**
+
+Three separate workflows eliminate duplication and provide clear responsibilities:
+
+1. **ci-pre-checks.yml** - Fast validation (fmt, clippy, unit tests, doc tests)
+2. **ci-amd64.yml** - Full AMD64 build and test (**REQUIRED PRE-MERGE CHECK**)
+3. **ci-arm64.yml** - ARM64 build and test (configured for self-hosted runners)
+
 **CI Features:**
-- Native builds on platform-specific runners (no emulation overhead)
+- Separated workflows prevent duplicate runs
+- AMD64 workflow is a **required status check** - PRs cannot merge until it passes
 - Parallel builds using all available cores
-- Single unified workflow (no duplicate runs)
 - Intelligent timeout management (15min tests, 10min builds, 30min total)
 - Build artifact upload on failure
 - Performance metrics reporting
 - Automatic parallelization with `CARGO_BUILD_JOBS`
 
-**Multi-architecture Support:**
-- **amd64**: Full test suite on ubuntu-latest (x86_64 native, standard runner) - ACTIVE
-- **arm64**: Temporarily disabled pending investigation
-  - Will be re-enabled with ubuntu-24.04-arm64-4core (ARM64 native, large runner)
-  - Future: Complete validation in parallel with optimized performance
-- No duplicate pipeline runs - single job matrix
-- Eliminates emulation overhead for faster, more reliable builds
+**Architecture Support:**
+
+| Architecture | Status | Runner Type | Trigger | Notes |
+|--------------|--------|-------------|---------|-------|
+| **amd64 (x86_64)** | ✅ Production | GitHub-hosted (ubuntu-latest) | Every PR (required check) | Stable, 5-7min |
+| **arm64 (aarch64)** | 🚧 Ready | Self-hosted (pending deployment) | Manual only | Will enable on merge to main |
+
+**ARM64 Deployment Roadmap:**
+- ✅ **Phase 1**: Root cause analysis completed - GitHub doesn't provide standard ARM64 runners
+- ✅ **Phase 2**: Workflow configured for self-hosted runners with labels `["self-hosted", "linux", "ARM64"]`
+- 🚧 **Phase 3**: Deploy self-hosted ARM64 infrastructure (in progress)
+- ⏳ **Phase 4**: Manual testing and validation
+- ⏳ **Phase 5**: Enable automatic trigger on merge to main only
+
+**Why Self-Hosted for ARM64?**
+- GitHub Actions doesn't provide standard hosted ARM64 runners
+- Self-hosted provides native execution (no emulation overhead)
+- Cost-effective for frequent builds
+- Ready to deploy when infrastructure is available
+
+See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 setup guide.
 
 ### Project Structure
 
@@ -441,7 +460,13 @@ embeddenator/
 ├── generate_docs.sh            # Documentation generation
 ├── .github/
 │   └── workflows/
-│       └── ci.yml              # GitHub Actions CI/CD with intelligent timeouts
+│       ├── ci-pre-checks.yml       # Pre-build validation (every PR)
+│       ├── ci-amd64.yml            # AMD64 build (required for merge)
+│       ├── ci-arm64.yml            # ARM64 build (self-hosted, pending)
+│       ├── build-holographic-os.yml# OS container builds
+│       ├── build-push-images.yml   # Multi-OS image pipeline
+│       ├── nightly-builds.yml      # Nightly bleeding-edge builds
+│       └── README.md               # Complete CI/CD documentation
 ├── input_ws/                   # Example input (gitignored)
 ├── workspace/                  # Build artifacts (gitignored)
 └── README.md               # This file
