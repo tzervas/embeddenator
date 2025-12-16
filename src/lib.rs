@@ -1,8 +1,8 @@
 //! Embeddenator - Holographic Computing Substrate
-//! 
+//!
 //! Copyright (c) 2025 Embeddenator Contributors
 //! Licensed under MIT License
-//! 
+//!
 //! Production Rust implementation of sparse ternary VSA (Vector Symbolic
 //! Architecture) holographic filesystem and computing substrate.
 //!
@@ -56,10 +56,10 @@
 //! - [`embrfs`]: Holographic filesystem layer
 //! - [`cli`]: Command-line interface
 
-pub mod vsa;
-pub mod embrfs;
 pub mod cli;
+pub mod embrfs;
+pub mod vsa;
 
 // Re-export main types for convenience
+pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
 pub use vsa::{SparseVec, DIM};
-pub use embrfs::{EmbrFS, Engram, Manifest, FileEntry, DEFAULT_CHUNK_SIZE};

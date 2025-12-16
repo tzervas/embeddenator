@@ -1,5 +1,5 @@
 //! CLI interface for Embeddenator
-//! 
+//!
 //! Provides command-line interface for:
 //! - Ingesting files/directories into engrams
 //! - Extracting files from engrams
@@ -16,7 +16,8 @@ use std::path::PathBuf;
 #[command(name = "embeddenator")]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "Holographic computing substrate using sparse ternary VSA")]
-#[command(long_about = "Embeddenator - A production-grade holographic computing substrate using Vector Symbolic Architecture (VSA)\n\n\
+#[command(
+    long_about = "Embeddenator - A production-grade holographic computing substrate using Vector Symbolic Architecture (VSA)\n\n\
     Embeddenator encodes entire filesystems into holographic 'engrams' using sparse ternary vectors,\n\
     enabling bit-perfect reconstruction and algebraic operations on data.\n\n\
     Key Features:\n\
@@ -28,7 +29,8 @@ use std::path::PathBuf;
     Examples:\n\
       embeddenator ingest -i ./mydata -e data.engram -m data.json -v\n\
       embeddenator extract -e data.engram -m data.json -o ./restored -v\n\
-      embeddenator query -e data.engram -q ./testfile.txt -v")]
+      embeddenator query -e data.engram -q ./testfile.txt -v"
+)]
 #[command(author = "Embeddenator Contributors")]
 pub struct Cli {
     #[command(subcommand)]
@@ -38,7 +40,8 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Ingest files/directories into a holographic engram
-    #[command(long_about = "Ingest files and directories into a holographic engram\n\n\
+    #[command(
+        long_about = "Ingest files and directories into a holographic engram\n\n\
         This command recursively processes all files in the input directory, chunks them,\n\
         and encodes them into a holographic VSA engram. The result is a single .engram file\n\
         containing the superposition of all data, plus a manifest tracking file metadata.\n\n\
@@ -48,27 +51,29 @@ pub enum Commands {
         • Reconstruction is bit-perfect for all file types\n\n\
         Example:\n\
           embeddenator ingest -i ./myproject -e project.engram -m project.json -v\n\
-          embeddenator ingest --input ~/Documents --engram docs.engram --verbose")]
+          embeddenator ingest --input ~/Documents --engram docs.engram --verbose"
+    )]
     Ingest {
         /// Input directory to ingest (will recursively process all files)
         #[arg(short, long, value_name = "DIR", help_heading = "Required")]
         input: PathBuf,
-        
+
         /// Output engram file containing holographic encoding
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
         engram: PathBuf,
-        
+
         /// Output manifest file containing file metadata and chunk mappings
         #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
         manifest: PathBuf,
-        
+
         /// Enable verbose output showing ingestion progress and statistics
         #[arg(short, long)]
         verbose: bool,
     },
-    
+
     /// Extract and reconstruct files from a holographic engram
-    #[command(long_about = "Extract and reconstruct files from a holographic engram\n\n\
+    #[command(
+        long_about = "Extract and reconstruct files from a holographic engram\n\n\
         This command performs bit-perfect reconstruction of all files from an engram.\n\
         It uses the manifest to locate chunks in the codebook and algebraically unbinds\n\
         them from the holographic root vector to recover the original data.\n\n\
@@ -79,27 +84,29 @@ pub enum Commands {
         • Writes bit-perfect copies of all original files\n\n\
         Example:\n\
           embeddenator extract -e project.engram -m project.json -o ./restored -v\n\
-          embeddenator extract --engram backup.engram --output-dir ~/restored")]
+          embeddenator extract --engram backup.engram --output-dir ~/restored"
+    )]
     Extract {
         /// Input engram file to extract from
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
         engram: PathBuf,
-        
+
         /// Input manifest file with metadata and chunk mappings
         #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
         manifest: PathBuf,
-        
+
         /// Output directory where files will be reconstructed
         #[arg(short, long, value_name = "DIR", help_heading = "Required")]
         output_dir: PathBuf,
-        
+
         /// Enable verbose output showing extraction progress
         #[arg(short, long)]
         verbose: bool,
     },
-    
+
     /// Query similarity between a file and engram contents
-    #[command(long_about = "Query cosine similarity between a file and engram contents\n\n\
+    #[command(
+        long_about = "Query cosine similarity between a file and engram contents\n\n\
         This command computes the similarity between a query file and the data encoded\n\
         in an engram using VSA cosine similarity. This enables holographic search and\n\
         content-based retrieval without full extraction.\n\n\
@@ -109,16 +116,17 @@ pub enum Commands {
         • <0.3: Low similarity, likely unrelated content\n\n\
         Example:\n\
           embeddenator query -e archive.engram -q search.txt -v\n\
-          embeddenator query --engram data.engram --query pattern.bin")]
+          embeddenator query --engram data.engram --query pattern.bin"
+    )]
     Query {
         /// Engram file to query
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
         engram: PathBuf,
-        
+
         /// Query file or pattern to search for
         #[arg(short, long, value_name = "FILE", help_heading = "Required")]
         query: PathBuf,
-        
+
         /// Enable verbose output showing similarity scores and details
         #[arg(short, long)]
         verbose: bool,
@@ -136,7 +144,10 @@ pub fn run() -> io::Result<()> {
             verbose,
         } => {
             if verbose {
-                println!("Embeddenator v{} - Holographic Ingestion", env!("CARGO_PKG_VERSION"));
+                println!(
+                    "Embeddenator v{} - Holographic Ingestion",
+                    env!("CARGO_PKG_VERSION")
+                );
                 println!("=====================================");
             }
 
@@ -164,7 +175,10 @@ pub fn run() -> io::Result<()> {
             verbose,
         } => {
             if verbose {
-                println!("Embeddenator v{} - Holographic Extraction", env!("CARGO_PKG_VERSION"));
+                println!(
+                    "Embeddenator v{} - Holographic Extraction",
+                    env!("CARGO_PKG_VERSION")
+                );
                 println!("======================================");
             }
 
@@ -187,7 +201,10 @@ pub fn run() -> io::Result<()> {
             verbose,
         } => {
             if verbose {
-                println!("Embeddenator v{} - Holographic Query", env!("CARGO_PKG_VERSION"));
+                println!(
+                    "Embeddenator v{} - Holographic Query",
+                    env!("CARGO_PKG_VERSION")
+                );
                 println!("=================================");
             }
 
