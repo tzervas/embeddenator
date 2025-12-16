@@ -1,0 +1,172 @@
+name: CI arm64 Build and Test
+
+# NOTE: This workflow is currently DISABLED because ARM64 runner labels need verification
+# 
+# ISSUE ANALYSIS:
+# The workflow was hanging during startup because the runner label specified
+# (ubuntu-24.04-arm64-4core or ubuntu-24.04-arm64) doesn't exist in GitHub's
+# runner pool. This caused jobs to queue indefinitely waiting for a runner
+# that would never become available.
+#
+# ROOT CAUSE:
+# - GitHub Actions does NOT provide standard hosted ARM64 runners
+# - Labels like "ubuntu-24.04-arm64" or "ubuntu-24.04-arm64-4core" are INVALID
+# - Workflow hung in "Queued" or "Waiting for runner" state
+#
+# SOLUTIONS (choose one):
+# 
+# Option 1: Self-hosted ARM64 Runner (RECOMMENDED for production)
+#   - Setup: Install GitHub Actions runner on ARM64 hardware
+#   - Labels: Use custom labels like ["self-hosted", "linux", "ARM64"]
+#   - Change `runs-on:` below to: [self-hosted, linux, ARM64]
+#   - Pros: Fast, native execution, full control
+#   - Cons: Requires infrastructure setup
+#
+# Option 2: GitHub Larger Runners (if available with Team/Enterprise)
+#   - Check available runners: gh api /repos/OWNER/REPO/actions/runners
+#   - Possible labels: "ubuntu-24.04-arm" or similar
+#   - Verify label exists before uncommenting
+#   - Pros: Managed by GitHub
+#   - Cons: May not be available, requires paid plan
+#
+# Option 3: QEMU Emulation (fallback, works but slow)
+#   - Use ubuntu-latest (amd64) with QEMU setup
+#   - See commented section below for implementation
+#   - Pros: Works everywhere, no setup needed
+#   - Cons: 5-10x slower than native
+#
+# TO RE-ENABLE THIS WORKFLOW:
+# 1. Verify ARM64 runner availability in your organization
+# 2. Update `runs-on:` line below with correct label
+# 3. Test with minimal workflow first (just echo commands)
+# 4. Uncomment the `on:` triggers at the top
+# 5. Remove this file from .gitignore if it was added
+
+on:
+  # Uncomment these when ready to enable
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  workflow_dispatch:  # Manual trigger only for now
+    inputs:
+      runner_type:
+        description: 'Runner type to use'
+        required: true
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - emulation
+          - test-only
+
+permissions:
+  contents: read
+
+jobs:
+  arm64-build-test:
+    # CRITICAL: Verify this runner label exists before enabling
+    # Current label is PLACEHOLDER and will cause hanging if used
+    runs-on: ${{ github.event.inputs.runner_type == 'self-hosted' && fromJSON('["self-hosted", "linux", "ARM64"]') || 'ubuntu-latest' }}
+    timeout-minutes: 45  # Increased for potential emulation
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Only needed if using emulation (Option 3)
+      - name: Set up QEMU (emulation mode only)
+        if: ${{ github.event.inputs.runner_type == 'emulation' }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      
+      - name: Verify architecture
+        run: |
+          echo "🔍 Verifying runner architecture"
+          echo "Architecture: $(uname -m)"
+          echo "Runner: ${{ runner.name }}"
+          echo "OS: $(uname -s)"
+          
+          # For self-hosted, should show aarch64 or arm64
+          # For emulation, will show x86_64 but QEMU provides arm64
+          
+          if [ "$(uname -m)" = "x86_64" ] && [ "${{ github.event.inputs.runner_type }}" = "self-hosted" ]; then
+            echo "❌ ERROR: Expected ARM64 but got x86_64"
+            echo "This means the runner is NOT actually ARM64 native"
+            exit 1
+          fi
+          
+          echo "✅ Architecture check passed"
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: arm64-${{ github.event.inputs.runner_type }}
+      
+      - name: Configure build parallelism
+        run: |
+          # Increase parallelism for faster builds
+          echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+          echo "Architecture: $(uname -m)"
+          echo "Available cores: $(nproc)"
+          echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
+      
+      - name: Build tool binary (arm64)
+        timeout-minutes: 20  # Longer for emulation
+        run: |
+          echo "🔨 Building embeddenator for ARM64"
+          echo "Runner type: ${{ github.event.inputs.runner_type }}"
+          cargo build --release --verbose
+      
+      - name: Run full test suite (arm64)
+        if: ${{ github.event.inputs.runner_type != 'test-only' }}
+        timeout-minutes: 25  # Longer for emulation
+        run: |
+          echo "🧪 Running full test suite on ARM64"
+          cargo test --verbose
+      
+      - name: Run integration tests via orchestrator (arm64)
+        if: ${{ github.event.inputs.runner_type != 'test-only' }}
+        timeout-minutes: 15
+        run: |
+          echo "🔧 Running orchestrator integration tests"
+          python3 orchestrator.py --mode build --verbose
+          python3 orchestrator.py --mode test --verbose
+      
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-arm64-${{ github.event.inputs.runner_type }}
+          path: |
+            /tmp/*.log
+          retention-days: 7
+      
+      - name: Report build metrics
+        if: always()
+        run: |
+          echo "## ARM64 Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Architecture:** $(uname -m)" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner Type:** ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner Name:** ${{ runner.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### System Resources" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Memory:" >> $GITHUB_STEP_SUMMARY
+          free -h >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "CPU:" >> $GITHUB_STEP_SUMMARY
+          lscpu | grep -E "^CPU\(s\)|Model name|Thread|Core|Architecture" >> $GITHUB_STEP_SUMMARY || echo "lscpu not available" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Load:" >> $GITHUB_STEP_SUMMARY
+          uptime >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.runner_type }}" = "emulation" ]; then
+            echo "⚠️ **Note:** Running in emulation mode (slower performance)" >> $GITHUB_STEP_SUMMARY
+          fi
