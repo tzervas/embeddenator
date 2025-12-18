@@ -543,7 +543,16 @@ embeddenator/
 ├── Dockerfile.tool             # Static binary packaging
 ├── Dockerfile.holographic      # Holographic OS container
 ├── orchestrator.py             # Unified build/test/deploy
-├── runner_manager.py           # Self-hosted runner automation (NEW)
+├── runner_manager.py           # Self-hosted runner automation entry point (NEW)
+├── runner_automation/          # Runner automation package (NEW)
+│   ├── __init__.py            # Package initialization
+│   ├── config.py              # Configuration management
+│   ├── github_api.py          # GitHub API client
+│   ├── installer.py           # Runner installation
+│   ├── runner.py              # Individual runner lifecycle
+│   ├── manager.py             # Multi-runner orchestration
+│   ├── cli.py                 # Command-line interface
+│   └── README.md              # Package documentation
 ├── .env.example                # Runner configuration template (NEW)
 ├── ci_build_monitor.sh         # CI hang detection and monitoring
 ├── generate_docs.sh            # Documentation generation

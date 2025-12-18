@@ -35,6 +35,7 @@ manifest.json
 __pycache__/
 *.py[cod]
 *$py.class
+runner_automation/__pycache__/
 
 # Environment and secrets
 .env
