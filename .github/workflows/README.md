@@ -173,6 +173,15 @@ sudo ./svc.sh status
 
 **Purpose:** Build and push multiple OS configurations to GHCR
 
+**Default Targets:** AMD64 only (debian-stable, debian-testing, ubuntu-stable)
+- ARM64 builds available via manual input but not recommended in CI (emulation too slow)
+
+**Features:**
+- Matrix-based parallel builds
+- Configurable via comma-separated input
+- Optional test execution before build
+- GHCR push with proper tagging
+
 **Status:** ✅ Active (manual trigger)
 
 ---
@@ -182,9 +191,11 @@ sudo ./svc.sh status
 
 **Purpose:** Build bleeding-edge images with nightly Rust and latest OS packages
 
-**Targets:**
-- Debian Testing/Sid
-- Ubuntu Devel/Rolling
+**Targets:** AMD64 only (ARM64 emulation too slow for CI)
+- Debian Testing/Sid (amd64)
+- Ubuntu Devel/Rolling (amd64)
+
+**Note:** ARM64 builds should be done locally or on self-hosted ARM64 runners
 
 **Status:** ✅ Active (scheduled)
 
