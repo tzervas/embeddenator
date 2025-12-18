@@ -444,7 +444,7 @@ See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 set
 
 ### Self-Hosted Runner Automation
 
-Embeddenator includes a comprehensive Python-based automation system for managing GitHub Actions self-hosted runners with complete lifecycle management:
+Embeddenator includes a comprehensive Python-based automation system for managing GitHub Actions self-hosted runners with complete lifecycle management and **multi-architecture support**:
 
 **Features:**
 - ✨ Automated registration with short-lived tokens
@@ -452,9 +452,16 @@ Embeddenator includes a comprehensive Python-based automation system for managin
 - ⏱️ Configurable auto-deregistration after idle timeout
 - 🎯 Manual mode for persistent runners
 - 🚀 Multi-runner deployment support
+- 🏗️ **Multi-architecture support (x64, ARM64, RISC-V)**
+- 🔧 **QEMU emulation for cross-architecture runners**
 - 📊 Health monitoring and status reporting
 - 🧹 Automatic cleanup of Docker resources
 - ⚙️ Flexible configuration via .env file or CLI arguments
+
+**Supported Architectures:**
+- **x64 (AMD64)** - Native x86_64 runners
+- **ARM64 (aarch64)** - ARM64 runners (native or emulated via QEMU)
+- **RISC-V (riscv64)** - RISC-V runners (native or emulated via QEMU)
 
 **Quick Start:**
 
@@ -468,6 +475,19 @@ python3 runner_manager.py run
 
 # 3. Or use manual mode (keeps running until stopped)
 RUNNER_MODE=manual python3 runner_manager.py run
+```
+
+**Multi-Architecture Examples:**
+
+```bash
+# Deploy ARM64 runners on x86_64 hardware (with emulation)
+RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Deploy runners for all architectures
+RUNNER_TARGET_ARCHITECTURES=x64,arm64,riscv64 RUNNER_COUNT=6 python3 runner_manager.py run
+
+# Deploy with automatic QEMU installation (requires sudo)
+RUNNER_EMULATION_AUTO_INSTALL=true RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
 ```
 
 **Individual Commands:**
@@ -512,6 +532,9 @@ Key environment variables (see `.env.example` for full list):
 - `RUNNER_COUNT` - Number of runners to deploy (default: 1)
 - `RUNNER_LABELS` - Comma-separated runner labels
 - `RUNNER_EPHEMERAL` - Enable ephemeral runners (deregister after one job)
+- `RUNNER_TARGET_ARCHITECTURES` - Target architectures: `x64`, `arm64`, `riscv64` (comma-separated)
+- `RUNNER_ENABLE_EMULATION` - Enable QEMU emulation for cross-architecture (default: true)
+- `RUNNER_EMULATION_AUTO_INSTALL` - Auto-install QEMU if missing (default: false, requires sudo)
 
 See `.env.example` for complete configuration documentation.
 
@@ -545,12 +568,13 @@ embeddenator/
 ├── orchestrator.py             # Unified build/test/deploy
 ├── runner_manager.py           # Self-hosted runner automation entry point (NEW)
 ├── runner_automation/          # Runner automation package (NEW)
-│   ├── __init__.py            # Package initialization
+│   ├── __init__.py            # Package initialization (v1.1.0)
 │   ├── config.py              # Configuration management
 │   ├── github_api.py          # GitHub API client
 │   ├── installer.py           # Runner installation
 │   ├── runner.py              # Individual runner lifecycle
 │   ├── manager.py             # Multi-runner orchestration
+│   ├── emulation.py           # QEMU emulation for cross-arch (NEW)
 │   ├── cli.py                 # Command-line interface
 │   └── README.md              # Package documentation
 ├── .env.example                # Runner configuration template (NEW)
