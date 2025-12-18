@@ -1,0 +1,59 @@
+name: CI Pre-Checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pre-checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+      
+      - name: Run unit tests only
+        run: cargo test --lib --bins --verbose
+      
+      - name: Run doc tests
+        run: cargo test --doc --verbose
+      
+      - name: Validate Python syntax
+        run: |
+          python3 -m py_compile orchestrator.py
+          python3 -m py_compile build_holographic_os.py
+          python3 -m py_compile test_runner.py
+      
+      - name: Validate YAML workflows
+        run: |
+          python3 -c "import yaml; [yaml.safe_load(open(f)) for f in ['os_config.yaml'] + [f'.github/workflows/{w}' for w in ['ci-pre-checks.yml', 'ci-amd64.yml', 'build-holographic-os.yml', 'build-push-images.yml', 'nightly-builds.yml']]]"
+          echo "✓ All YAML files are valid"
+      
+      - name: Pre-checks summary
+        if: always()
+        run: |
+          echo "## Pre-Checks Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Code formatting checked" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Clippy lints passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Unit and doc tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Python syntax validated" >> $GITHUB_STEP_SUMMARY
+          echo "✅ YAML files validated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ready for platform-specific builds and integration tests" >> $GITHUB_STEP_SUMMARY

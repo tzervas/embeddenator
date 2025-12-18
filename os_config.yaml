@@ -1,0 +1,160 @@
+# Embeddenator OS Build Configuration
+# This file defines the operating system configurations for holographic container builds
+# Dual versioning strategy: LTS for stable, Testing/Sid for bleeding edge, with nightly builds
+
+version: "2.0"
+
+# OS configurations for holographic container builds
+os_configs:
+  # Debian Stable (LTS) - Debian 12 Bookworm
+  debian-stable-amd64:
+    base_image: "debian:12"  # Debian 12 Bookworm (current stable)
+    base_image_tag: "bookworm"
+    platform: "linux/amd64"
+    description: "Debian 12 Bookworm LTS (amd64)"
+    enabled: true
+    is_lts: true
+    
+  debian-stable-arm64:
+    base_image: "debian:12"
+    base_image_tag: "bookworm"
+    platform: "linux/arm64"
+    description: "Debian 12 Bookworm LTS (arm64)"
+    enabled: true
+    is_lts: true
+  
+  # Debian Testing (Rolling) - Static version and nightly
+  debian-testing-amd64:
+    base_image: "debian:testing"
+    base_image_tag: "testing"
+    nightly_image: "debian:testing"  # Nightly updated
+    platform: "linux/amd64"
+    description: "Debian Testing (amd64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+    
+  debian-testing-arm64:
+    base_image: "debian:testing"
+    base_image_tag: "testing"
+    nightly_image: "debian:testing"
+    platform: "linux/arm64"
+    description: "Debian Testing (arm64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+  
+  # Debian Sid (Unstable) - Always bleeding edge with nightly
+  debian-sid-amd64:
+    base_image: "debian:sid"
+    base_image_tag: "sid"
+    nightly_image: "debian:sid"
+    platform: "linux/amd64"
+    description: "Debian Sid Unstable (amd64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+    
+  debian-sid-arm64:
+    base_image: "debian:sid"
+    base_image_tag: "sid"
+    nightly_image: "debian:sid"
+    platform: "linux/arm64"
+    description: "Debian Sid Unstable (arm64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+    
+  # Ubuntu Stable (LTS) - Ubuntu 24.04 LTS (Noble Numbat)
+  ubuntu-stable-amd64:
+    base_image: "ubuntu:24.04"  # Ubuntu 24.04 LTS
+    base_image_tag: "noble"
+    platform: "linux/amd64"
+    description: "Ubuntu 24.04 LTS Noble (amd64)"
+    enabled: true
+    is_lts: true
+    
+  ubuntu-stable-arm64:
+    base_image: "ubuntu:24.04"
+    base_image_tag: "noble"
+    platform: "linux/arm64"
+    description: "Ubuntu 24.04 LTS Noble (arm64)"
+    enabled: true
+    is_lts: true
+  
+  # Ubuntu Testing (Devel) - Current development release with nightly
+  ubuntu-testing-amd64:
+    base_image: "ubuntu:devel"  # Current development release
+    base_image_tag: "devel"
+    nightly_image: "ubuntu:devel"
+    platform: "linux/amd64"
+    description: "Ubuntu Development Release (amd64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+    
+  ubuntu-testing-arm64:
+    base_image: "ubuntu:devel"
+    base_image_tag: "devel"
+    nightly_image: "ubuntu:devel"
+    platform: "linux/arm64"
+    description: "Ubuntu Development Release (arm64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+  
+  # Ubuntu Rolling - Always latest development
+  ubuntu-rolling-amd64:
+    base_image: "ubuntu:rolling"
+    base_image_tag: "rolling"
+    nightly_image: "ubuntu:rolling"
+    platform: "linux/amd64"
+    description: "Ubuntu Rolling Release (amd64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+    
+  ubuntu-rolling-arm64:
+    base_image: "ubuntu:rolling"
+    base_image_tag: "rolling"
+    nightly_image: "ubuntu:rolling"
+    platform: "linux/arm64"
+    description: "Ubuntu Rolling Release (arm64)"
+    enabled: true
+    is_lts: false
+    supports_nightly: true
+
+# Test commands to validate OS containers
+test_commands:
+  - "cat /etc/os-release"
+  - "ls -la /bin /usr/bin"
+  - "dpkg --version"
+  - "apt --version"
+
+# Build settings
+build:
+  skip_push: false
+  registry: "ghcr.io"
+  repo: "tzervas/embeddenator"
+  tag_suffix: ""  # Can be set to "-dev" for development builds
+  
+  # Versioning strategy
+  versioning:
+    lts_suffix: "-lts"       # Suffix for LTS builds
+    stable_suffix: ""         # No suffix for stable builds
+    nightly_suffix: "-nightly"  # Suffix for nightly builds
+    testing_suffix: "-testing"  # Suffix for testing builds
+
+# Nightly build schedule (for CI/CD workflows)
+nightly:
+  enabled: true
+  schedule: "0 2 * * *"  # Run at 2 AM UTC daily
+  targets:
+    - debian-testing-amd64
+    - debian-testing-arm64
+    - debian-sid-amd64
+    - debian-sid-arm64
+    - ubuntu-testing-amd64
+    - ubuntu-testing-arm64
+    - ubuntu-rolling-amd64
+    - ubuntu-rolling-arm64
