@@ -127,6 +127,72 @@ Self-hosted ARM64 runners are the **only practical solution** because:
 - ❌ GitHub doesn't provide standard hosted ARM64 runners
 - ❌ QEMU emulation is 5-10x slower and unreliable
 
+---
+
+## Automated Runner Management System
+
+🎉 **NEW**: Embeddenator now includes a comprehensive Python-based automation system for managing self-hosted runners!
+
+### Overview
+
+The `runner_manager.py` script provides complete lifecycle automation:
+- ✨ Automated registration with short-lived tokens
+- 🔄 Complete lifecycle management (register → run → deregister)
+- ⏱️ Auto-deregistration after configurable idle timeout
+- 🎯 Manual mode for persistent runners
+- 🚀 Multi-runner deployment support
+- 📊 Health monitoring and status reporting
+
+### Quick Start
+
+```bash
+# 1. Configure (required: GITHUB_REPOSITORY and GITHUB_TOKEN)
+cp .env.example .env
+# Edit .env with your repository and GitHub PAT
+
+# 2. Run in auto mode (registers, starts, monitors, auto-deregisters when idle)
+python3 runner_manager.py run
+
+# 3. Or run in manual mode (keeps running until stopped)
+RUNNER_MODE=manual python3 runner_manager.py run
+```
+
+### Key Features
+
+**Auto Mode** (Cost Optimized):
+- Registers runner automatically
+- Monitors job queue
+- Auto-deregisters after idle timeout (default: 5 minutes)
+- Perfect for sporadic CI/CD builds
+
+**Manual Mode** (Persistent):
+- Keeps runner alive until explicitly stopped
+- Ideal for development environments
+- Full control over lifecycle
+
+**Multi-Runner Support**:
+```bash
+# Deploy 4 runners for parallel builds
+python3 runner_manager.py run --runner-count 4
+```
+
+### Documentation
+
+For complete documentation, see: [`docs/RUNNER_AUTOMATION.md`](../../docs/RUNNER_AUTOMATION.md)
+
+Topics covered:
+- Configuration options (50+ environment variables)
+- Deployment modes and strategies
+- Advanced features (ephemeral runners, resource management)
+- Troubleshooting and security best practices
+- Integration examples (systemd, Docker, cron)
+
+---
+
+## Manual Self-Hosted Runner Setup
+
+If you prefer manual setup instead of using the automation system:
+
 **Self-Hosted Runner Setup Guide:**
 
 ```bash
