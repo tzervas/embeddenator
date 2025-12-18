@@ -1,0 +1,312 @@
+name: Build and Push ARM64 Images (Self-Hosted)
+
+# This workflow is designed for self-hosted ARM64 runners
+# Can be either native ARM64 hardware or QEMU-emulated on powerful x86_64 hosts
+# 
+# RUNNER OPTIONS:
+# 1. One large runner: 10 cores, 16GB RAM, 100GB disk
+#    - Labels: ["self-hosted", "linux", "ARM64", "large"]
+#    - Build all configs in parallel with max-parallel: 4
+#
+# 2. Multiple runners: 4x runners with 4 cores, 6GB RAM each
+#    - Labels: ["self-hosted", "linux", "ARM64"]
+#    - Distribute builds across runners automatically
+#
+# DISK MANAGEMENT:
+# - Cleanup Docker cache after each build
+# - Remove old images before building new ones
+# - Use build cache strategically
+
+on:
+  workflow_dispatch:
+    inputs:
+      os_selections:
+        description: 'ARM64 OS configurations to build (comma-separated)'
+        required: true
+        default: 'debian-stable-arm64,debian-testing-arm64,ubuntu-stable-arm64'
+        type: string
+      tag_suffix:
+        description: 'Tag suffix (e.g., -dev, -rc1, empty for release)'
+        required: false
+        default: '-dev'
+        type: string
+      push_to_ghcr:
+        description: 'Push images to GHCR'
+        required: true
+        default: true
+        type: boolean
+      run_tests:
+        description: 'Run full test suite before building'
+        required: true
+        default: true
+        type: boolean
+      runner_type:
+        description: 'Runner configuration'
+        required: true
+        default: 'multi'
+        type: choice
+        options:
+          - multi     # Multiple small runners (4 cores, 6GB each)
+          - large     # One large runner (10 cores, 16GB)
+          - native    # Native ARM64 hardware
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    if: ${{ inputs.run_tests }}
+    runs-on: ${{ inputs.runner_type == 'large' && fromJSON('["self-hosted", "linux", "ARM64", "large"]') || fromJSON('["self-hosted", "linux", "ARM64"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Verify architecture
+        run: |
+          echo "Architecture: $(uname -m)"
+          if [[ "$(uname -m)" != "aarch64" && "$(uname -m)" != "arm64" ]]; then
+            echo "⚠️ Running on $(uname -m), expecting ARM64 emulation or native"
+          fi
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Run test suite
+        run: python3 test_runner.py
+      
+      - name: Verify test count
+        run: |
+          OUTPUT=$(python3 test_runner.py)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "Total Tests:   24"; then
+            echo "✅ All 24 tests accounted for"
+          else
+            echo "❌ Test count mismatch"
+            exit 1
+          fi
+
+  # Generate matrix from comma-separated input
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate matrix from input
+        id: set-matrix
+        run: |
+          # Convert comma-separated string to JSON array
+          INPUT="${{ inputs.os_selections }}"
+          if [ -z "$INPUT" ]; then
+            echo "matrix=[]" >> $GITHUB_OUTPUT
+          else
+            # Use jq to properly format as JSON array
+            echo "$INPUT" | jq -R 'split(",")' | jq -c '.' > matrix.json
+            MATRIX=$(cat matrix.json)
+            echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+            echo "Generated matrix: $MATRIX"
+          fi
+
+  build-and-push-arm64:
+    needs: [test, prepare-matrix]
+    if: ${{ always() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
+    runs-on: ${{ inputs.runner_type == 'large' && fromJSON('["self-hosted", "linux", "ARM64", "large"]') || fromJSON('["self-hosted", "linux", "ARM64"]') }}
+    strategy:
+      matrix:
+        os_config: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
+      fail-fast: false
+      # For large runner: allow more parallelism
+      # For multi runners: limit to avoid overwhelming individual runners
+      max-parallel: ${{ inputs.runner_type == 'large' && 4 || 2 }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check available disk space
+        run: |
+          echo "=== Disk Space Before Build ==="
+          df -h
+          echo "=== Docker Disk Usage ==="
+          docker system df || true
+      
+      - name: Cleanup old Docker resources (disk management)
+        run: |
+          echo "🧹 Cleaning up Docker to free disk space..."
+          # Remove stopped containers
+          docker container prune -f || true
+          # Remove dangling images
+          docker image prune -f || true
+          # Remove unused build cache (keep last 24h)
+          docker builder prune -f --filter "until=24h" || true
+          echo "=== Disk Space After Cleanup ==="
+          df -h
+      
+      - name: Set up QEMU (if needed for emulation)
+        if: ${{ inputs.runner_type != 'native' }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+            image=moby/buildkit:latest
+          buildkitd-flags: --debug
+      
+      - name: Login to GitHub Container Registry
+        if: ${{ inputs.push_to_ghcr }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Parse OS configuration
+        id: parse
+        run: |
+          # Parse: debian-stable-arm64 -> os=debian, version=stable, arch=arm64
+          CONFIG="${{ matrix.os_config }}"
+          IFS='-' read -r os version arch <<< "$CONFIG"
+          echo "os=$os" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "arch=$arch" >> $GITHUB_OUTPUT
+          echo "config=$CONFIG" >> $GITHUB_OUTPUT
+          echo "Parsed: os=$os, version=$version, arch=$arch"
+          
+          # Verify this is actually an ARM64 config
+          if [[ "$arch" != "arm64" ]]; then
+            echo "❌ Error: This workflow is for ARM64 builds only, got: $arch"
+            exit 1
+          fi
+      
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Build holographic OS image (ARM64)
+        run: |
+          echo "🔨 Building ARM64 image: ${{ matrix.os_config }}"
+          python3 build_holographic_os.py \
+            --os "${{ steps.parse.outputs.os }}" \
+            --version "${{ steps.parse.outputs.version }}" \
+            --arch "${{ steps.parse.outputs.arch }}" \
+            --tag-suffix "${{ inputs.tag_suffix }}" \
+            --verbose
+      
+      - name: Tag image for GHCR
+        if: ${{ inputs.push_to_ghcr }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}${{ inputs.tag_suffix }}"
+          CONFIG="${{ steps.parse.outputs.config }}"
+          
+          # Tag the built image
+          docker tag "embeddenator-holographic-${CONFIG}:latest" \
+            "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:${VERSION}"
+          
+          docker tag "embeddenator-holographic-${CONFIG}:latest" \
+            "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:latest"
+      
+      - name: Push to GHCR
+        if: ${{ inputs.push_to_ghcr }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}${{ inputs.tag_suffix }}"
+          CONFIG="${{ steps.parse.outputs.config }}"
+          
+          echo "📦 Pushing ARM64 image to GHCR..."
+          docker push "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:${VERSION}"
+          docker push "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:latest"
+      
+      - name: Cleanup after build (disk management)
+        if: always()
+        run: |
+          echo "🧹 Post-build cleanup to free disk space..."
+          # Remove the local image we just built (it's pushed to GHCR)
+          docker rmi "embeddenator-holographic-${{ steps.parse.outputs.config }}:latest" || true
+          docker rmi "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${{ steps.parse.outputs.config }}:${{ steps.version.outputs.version }}${{ inputs.tag_suffix }}" || true
+          docker rmi "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${{ steps.parse.outputs.config }}:latest" || true
+          
+          # Prune dangling images
+          docker image prune -f || true
+          
+          echo "=== Final Disk Space ==="
+          df -h
+      
+      - name: Generate image manifest
+        run: |
+          VERSION="${{ steps.version.outputs.version }}${{ inputs.tag_suffix }}"
+          CONFIG="${{ steps.parse.outputs.config }}"
+          
+          cat > "manifest-${CONFIG}.json" <<EOF
+          {
+            "image": "embeddenator-holographic-${CONFIG}",
+            "version": "${VERSION}",
+            "os": "${{ steps.parse.outputs.os }}",
+            "os_version": "${{ steps.parse.outputs.version }}",
+            "arch": "${{ steps.parse.outputs.arch }}",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "repository": "${{ github.repository }}",
+            "commit": "${{ github.sha }}",
+            "runner_type": "${{ inputs.runner_type }}",
+            "runner_name": "${{ runner.name }}"
+          }
+          EOF
+      
+      - name: Upload manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifest-${{ steps.parse.outputs.config }}
+          path: manifest-*.json
+          retention-days: 30
+
+  summary:
+    needs: [prepare-matrix, build-and-push-arm64]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all manifests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: manifest-*
+          merge-multiple: true
+      
+      - name: Generate build summary
+        run: |
+          echo "# ARM64 Holographic OS Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner Type:** ${{ inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pushed to GHCR:** ${{ inputs.push_to_ghcr }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Built ARM64 Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          for manifest in manifest-*.json; do
+            if [ -f "$manifest" ]; then
+              CONFIG=$(jq -r '.image' "$manifest" | sed 's/embeddenator-holographic-//')
+              OS=$(jq -r '.os' "$manifest")
+              VERSION=$(jq -r '.os_version' "$manifest")
+              ARCH=$(jq -r '.arch' "$manifest")
+              RUNNER=$(jq -r '.runner_name' "$manifest")
+              
+              echo "- ✅ **${CONFIG}** (${OS}:${VERSION} ${ARCH})" >> $GITHUB_STEP_SUMMARY
+              echo "  - Runner: ${RUNNER}" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Images are available at: \`ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-*-arm64\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Runner Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.runner_type }}" = "large" ]; then
+            echo "- 🖥️ Single large runner (10 cores, 16GB RAM)" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚡ Max parallel builds: 4" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ inputs.runner_type }}" = "multi" ]; then
+            echo "- 🖥️ Multiple runners (4 cores, 6GB RAM each)" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚡ Max parallel builds: 2 per runner" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🖥️ Native ARM64 hardware" >> $GITHUB_STEP_SUMMARY
+          fi
