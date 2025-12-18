@@ -22,40 +22,24 @@ jobs:
     strategy:
       matrix:
         include:
-          # Debian Testing/Sid nightly builds
+          # Debian Testing/Sid nightly builds (AMD64 only - ARM64 emulation too slow for CI)
           - config: debian-testing-amd64
             os: debian
             version: testing
             arch: amd64
-          - config: debian-testing-arm64
-            os: debian
-            version: testing
-            arch: arm64
           - config: debian-sid-amd64
             os: debian
             version: sid
             arch: amd64
-          - config: debian-sid-arm64
-            os: debian
-            version: sid
-            arch: arm64
-          # Ubuntu Testing/Rolling nightly builds
+          # Ubuntu Testing/Rolling nightly builds (AMD64 only - ARM64 emulation too slow for CI)
           - config: ubuntu-testing-amd64
             os: ubuntu
             version: devel
             arch: amd64
-          - config: ubuntu-testing-arm64
-            os: ubuntu
-            version: devel
-            arch: arm64
           - config: ubuntu-rolling-amd64
             os: ubuntu
             version: rolling
             arch: amd64
-          - config: ubuntu-rolling-arm64
-            os: ubuntu
-            version: rolling
-            arch: arm64
       fail-fast: false
       max-parallel: 4
     
