@@ -1,0 +1,96 @@
+name: CI amd64 Build and Test
+
+# This workflow runs as a required pre-merge check
+# It must pass before code can be merged to main
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main ]
+  workflow_run:
+    workflows: ["CI Pre-Checks"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  # Required for status checks
+  checks: write
+  statuses: write
+
+jobs:
+  amd64-build-test:
+    name: AMD64 Build and Test (Required for Merge)
+    # Only run if pre-checks passed or if triggered directly
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: amd64
+      
+      - name: Configure build parallelism
+        run: |
+          # Increase parallelism for faster builds
+          echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+          echo "Architecture: $(uname -m)"
+          echo "Available cores: $(nproc)"
+          echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
+      
+      - name: Build tool binary (amd64)
+        timeout-minutes: 10
+        run: |
+          echo "🔨 Building embeddenator for amd64"
+          cargo build --release --verbose
+      
+      - name: Run full test suite (amd64)
+        timeout-minutes: 15
+        run: |
+          echo "🧪 Running full test suite on amd64"
+          cargo test --verbose
+      
+      - name: Run integration tests via orchestrator (amd64)
+        timeout-minutes: 10
+        run: |
+          echo "🔧 Running orchestrator integration tests"
+          python3 orchestrator.py --mode build --verbose
+          python3 orchestrator.py --mode test --verbose
+      
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-amd64
+          path: |
+            /tmp/*.log
+          retention-days: 7
+      
+      - name: Report build metrics
+        if: always()
+        run: |
+          echo "## amd64 Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Architecture:** $(uname -m)" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner:** ubuntu-latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### System Resources" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Memory:" >> $GITHUB_STEP_SUMMARY
+          free -h >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "CPU:" >> $GITHUB_STEP_SUMMARY
+          lscpu | grep -E "^CPU\(s\)|Model name|Thread|Core" >> $GITHUB_STEP_SUMMARY || echo "lscpu not available" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Load:" >> $GITHUB_STEP_SUMMARY
+          uptime >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
