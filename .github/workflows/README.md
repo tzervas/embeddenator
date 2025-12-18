@@ -173,6 +173,15 @@ sudo ./svc.sh status
 
 **Purpose:** Build and push multiple OS configurations to GHCR
 
+**Default Targets:** AMD64 only (debian-stable, debian-testing, ubuntu-stable)
+- ARM64 builds available via manual input but not recommended in CI (emulation too slow)
+
+**Features:**
+- Matrix-based parallel builds
+- Configurable via comma-separated input
+- Optional test execution before build
+- GHCR push with proper tagging
+
 **Status:** ✅ Active (manual trigger)
 
 ---
@@ -182,11 +191,37 @@ sudo ./svc.sh status
 
 **Purpose:** Build bleeding-edge images with nightly Rust and latest OS packages
 
-**Targets:**
-- Debian Testing/Sid
-- Ubuntu Devel/Rolling
+**Targets:** AMD64 only (ARM64 emulation too slow for CI)
+- Debian Testing/Sid (amd64)
+- Ubuntu Devel/Rolling (amd64)
+
+**Note:** ARM64 builds should be done locally or on self-hosted ARM64 runners
 
 **Status:** ✅ Active (scheduled)
+
+---
+
+### 7. **build-push-arm64.yml** - ARM64 Image Builds (Self-Hosted)
+**Triggers:** Manual (`workflow_dispatch`)
+
+**Purpose:** Build and push ARM64 images using self-hosted runners (local or QEMU-emulated)
+
+**Runner Options:**
+- **Large runner:** 10 cores, 16GB RAM - builds 4 configs in parallel
+- **Multi runners:** 4x runners with 4 cores, 6GB RAM each - distributed builds
+- **Native ARM64:** Physical ARM64 hardware
+
+**Features:**
+- Disk space management (automatic cleanup)
+- Configurable parallelism based on runner type
+- GHCR push with proper tagging
+- Build metrics and monitoring
+
+**Default Targets:** debian-stable-arm64, debian-testing-arm64, ubuntu-stable-arm64
+
+**Setup:** See [ARM64_RUNNER_SETUP.md](./ARM64_RUNNER_SETUP.md) for detailed instructions
+
+**Status:** ✅ Active (manual trigger, requires self-hosted runner)
 
 ---
 
@@ -207,9 +242,10 @@ On Push to Main:
   └─ ci-arm64.yml (will be enabled post-deployment)
 
 Manual/Scheduled:
-  ├─ build-holographic-os.yml
-  ├─ build-push-images.yml
-  └─ nightly-builds.yml
+  ├─ build-holographic-os.yml (manual)
+  ├─ build-push-images.yml (manual - AMD64 only)
+  ├─ build-push-arm64.yml (manual - ARM64 only, self-hosted)
+  └─ nightly-builds.yml (scheduled daily at 2 AM UTC - AMD64 only)
 ```
 
 **Key Points:**
