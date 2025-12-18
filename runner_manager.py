@@ -72,6 +72,7 @@ class RunnerConfig:
         # Installation
         self.install_dir = Path(os.getenv('RUNNER_INSTALL_DIR', './actions-runner'))
         self.version = os.getenv('RUNNER_VERSION', 'latest')
+        self.fallback_version = os.getenv('RUNNER_FALLBACK_VERSION', '2.319.0')
         self.arch = os.getenv('RUNNER_ARCH', '') or self.detect_architecture()
         
         # Logging
@@ -79,6 +80,10 @@ class RunnerConfig:
         self.log_file = Path(os.getenv('LOG_FILE', './runner_manager.log'))
         self.enable_metrics = os.getenv('ENABLE_METRICS', 'false').lower() == 'true'
         self.metrics_file = Path(os.getenv('METRICS_FILE', './runner_metrics.json'))
+        
+        # Timeouts
+        self.api_timeout = int(os.getenv('GITHUB_API_TIMEOUT', '30'))
+        self.version_check_timeout = int(os.getenv('GITHUB_VERSION_CHECK_TIMEOUT', '10'))
         
         # Advanced
         self.ephemeral = os.getenv('RUNNER_EPHEMERAL', 'false').lower() == 'true'
@@ -165,7 +170,7 @@ class GitHubAPI:
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
         
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=self.config.api_timeout) as response:
                 return json.loads(response.read().decode('utf-8'))
         except urllib.error.HTTPError as e:
             error_msg = e.read().decode('utf-8') if e.fp else str(e)
@@ -237,12 +242,12 @@ class RunnerInstaller:
         try:
             url = 'https://api.github.com/repos/actions/runner/releases/latest'
             req = urllib.request.Request(url, headers={'User-Agent': 'embeddenator-runner-manager'})
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=self.config.version_check_timeout) as response:
                 data = json.loads(response.read().decode('utf-8'))
                 return data['tag_name'].lstrip('v')
         except Exception as e:
-            self.logger.warning(f"Failed to get latest version: {e}, using 2.311.0")
-            return '2.311.0'
+            self.logger.warning(f"Failed to get latest version: {e}, using {self.config.fallback_version}")
+            return self.config.fallback_version
     
     def install(self, install_dir: Path) -> bool:
         """Install GitHub Actions runner"""
