@@ -442,6 +442,123 @@ Three separate workflows eliminate duplication and provide clear responsibilitie
 
 See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 setup guide.
 
+### Self-Hosted Runner Automation
+
+Embeddenator includes a comprehensive Python-based automation system for managing GitHub Actions self-hosted runners with complete lifecycle management and **multi-architecture support**:
+
+**Features:**
+- ✨ Automated registration with short-lived tokens
+- 🔄 Complete lifecycle management (register → run → deregister)
+- ⏱️ Configurable auto-deregistration after idle timeout
+- 🎯 Manual mode for persistent runners
+- 🚀 Multi-runner deployment support
+- 🏗️ **Multi-architecture support (x64, ARM64, RISC-V)**
+- 🔧 **QEMU emulation for cross-architecture runners**
+- 📊 Health monitoring and status reporting
+- 🧹 Automatic cleanup of Docker resources
+- ⚙️ Flexible configuration via .env file or CLI arguments
+
+**Supported Architectures:**
+- **x64 (AMD64)** - Native x86_64 runners
+- **ARM64 (aarch64)** - ARM64 runners (native or emulated via QEMU)
+- **RISC-V (riscv64)** - RISC-V runners (native or emulated via QEMU)
+
+**Quick Start:**
+
+```bash
+# 1. Copy and configure environment file
+cp .env.example .env
+# Edit .env and set GITHUB_REPOSITORY and GITHUB_TOKEN
+
+# 2. Run in auto mode (registers, starts, monitors, auto-deregisters when idle)
+python3 runner_manager.py run
+
+# 3. Or use manual mode (keeps running until stopped)
+RUNNER_MODE=manual python3 runner_manager.py run
+```
+
+**Multi-Architecture Examples:**
+
+```bash
+# Deploy ARM64 runners on x86_64 hardware (with emulation, auto-detect runtime)
+RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Deploy runners for all architectures
+RUNNER_TARGET_ARCHITECTURES=x64,arm64,riscv64 RUNNER_COUNT=6 python3 runner_manager.py run
+
+# Deploy with automatic QEMU installation (requires sudo)
+RUNNER_EMULATION_AUTO_INSTALL=true RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Use specific emulation method (docker, podman, or qemu)
+RUNNER_EMULATION_METHOD=podman RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Use Docker for emulation
+RUNNER_EMULATION_METHOD=docker RUNNER_TARGET_ARCHITECTURES=arm64,riscv64 python3 runner_manager.py run
+```
+
+**Individual Commands:**
+
+```bash
+# Register runner(s)
+python3 runner_manager.py register
+
+# Start runner service(s)
+python3 runner_manager.py start
+
+# Monitor and manage lifecycle
+python3 runner_manager.py monitor
+
+# Check status
+python3 runner_manager.py status
+
+# Stop and deregister
+python3 runner_manager.py stop
+```
+
+**Advanced Usage:**
+
+```bash
+# Deploy multiple runners
+python3 runner_manager.py run --runner-count 4
+
+# Custom labels
+python3 runner_manager.py register --labels self-hosted,linux,ARM64,large
+
+# Auto-deregister after 10 minutes of inactivity
+RUNNER_IDLE_TIMEOUT=600 python3 runner_manager.py run
+```
+
+**Configuration Options:**
+
+Key environment variables (see `.env.example` for full list):
+- `GITHUB_REPOSITORY` - Repository to register runners for (required)
+- `GITHUB_TOKEN` - Personal access token with repo scope (required)
+- `RUNNER_MODE` - Deployment mode: `auto` (default) or `manual`
+- `RUNNER_IDLE_TIMEOUT` - Auto-deregister timeout in seconds (default: 300)
+- `RUNNER_COUNT` - Number of runners to deploy (default: 1)
+- `RUNNER_LABELS` - Comma-separated runner labels
+- `RUNNER_EPHEMERAL` - Enable ephemeral runners (deregister after one job)
+- `RUNNER_TARGET_ARCHITECTURES` - Target architectures: `x64`, `arm64`, `riscv64` (comma-separated)
+- `RUNNER_ENABLE_EMULATION` - Enable QEMU emulation for cross-architecture (default: true)
+- `RUNNER_EMULATION_METHOD` - Emulation method: `auto`, `qemu`, `docker`, `podman` (default: auto)
+- `RUNNER_EMULATION_AUTO_INSTALL` - Auto-install QEMU if missing (default: false, requires sudo)
+
+See `.env.example` for complete configuration documentation.
+
+**Deployment Modes:**
+
+1. **Auto Mode** (default): Runners automatically deregister after being idle for a specified timeout
+   - Perfect for cost optimization
+   - Ideal for CI/CD pipelines with sporadic builds
+   - Runners terminate when queue is empty
+
+2. **Manual Mode**: Runners keep running until manually stopped
+   - Best for development environments
+   - Useful for persistent infrastructure
+   - Explicit control over runner lifecycle
+
+See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 setup guide.
+
 ### Project Structure
 
 ```
@@ -456,6 +573,18 @@ embeddenator/
 ├── Dockerfile.tool             # Static binary packaging
 ├── Dockerfile.holographic      # Holographic OS container
 ├── orchestrator.py             # Unified build/test/deploy
+├── runner_manager.py           # Self-hosted runner automation entry point (NEW)
+├── runner_automation/          # Runner automation package (NEW)
+│   ├── __init__.py            # Package initialization (v1.1.0)
+│   ├── config.py              # Configuration management
+│   ├── github_api.py          # GitHub API client
+│   ├── installer.py           # Runner installation
+│   ├── runner.py              # Individual runner lifecycle
+│   ├── manager.py             # Multi-runner orchestration
+│   ├── emulation.py           # QEMU emulation for cross-arch (NEW)
+│   ├── cli.py                 # Command-line interface
+│   └── README.md              # Package documentation
+├── .env.example                # Runner configuration template (NEW)
 ├── ci_build_monitor.sh         # CI hang detection and monitoring
 ├── generate_docs.sh            # Documentation generation
 ├── .github/
