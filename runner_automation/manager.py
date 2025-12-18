@@ -14,6 +14,8 @@ from typing import Dict, List
 
 from .runner import Runner
 from .emulation import EmulationManager
+from .gpu_detection import GPUDetector
+from .resource_optimizer import ResourceOptimizer
 
 
 class RunnerManager:
@@ -34,6 +36,38 @@ class RunnerManager:
         self.runners: List[Runner] = []
         self.shutdown_requested = False
         self.emulation_mgr = EmulationManager(self.logger, config.emulation_method)
+        
+        # Initialize GPU detection if enabled
+        self.gpu_detector = None
+        self.available_gpus = []
+        if config.enable_gpu:
+            self.gpu_detector = GPUDetector(self.logger)
+            self.available_gpus = self.gpu_detector.detect_all_gpus()
+            if self.available_gpus:
+                self.logger.info(f"Detected {len(self.available_gpus)} GPU(s)")
+                for gpu in self.available_gpus:
+                    self.logger.info(f"  - {gpu}")
+        
+        # Initialize resource optimizer if enabled
+        self.resource_optimizer = None
+        self.resource_allocation = None
+        if config.enable_resource_optimization:
+            self.resource_optimizer = ResourceOptimizer(self.logger)
+            gpu_count = len(self.available_gpus) if self.available_gpus else 0
+            self.resource_allocation = self.resource_optimizer.calculate_optimal_resources(
+                config.runner_count,
+                enable_optimization=True,
+                gpu_count=gpu_count
+            )
+            
+            # Validate allocation
+            is_valid, warnings = self.resource_optimizer.validate_allocation(
+                self.resource_allocation,
+                config.runner_count
+            )
+            if warnings:
+                for warning in warnings:
+                    self.logger.warning(f"Resource allocation: {warning}")
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self._handle_shutdown)
@@ -102,6 +136,25 @@ class RunnerManager:
         runners_per_arch = self.config.runner_count // len(archs_to_deploy)
         remainder = self.config.runner_count % len(archs_to_deploy)
         
+        # Prepare GPU assignments if GPUs are available
+        gpu_assignments = []
+        if self.available_gpus:
+            # Filter GPUs based on inference-only setting
+            usable_gpus = self.available_gpus
+            if self.config.inference_only:
+                usable_gpus = self.gpu_detector.get_inference_gpus()
+                self.logger.info(f"Inference-only mode: Using {len(usable_gpus)} inference-capable GPUs")
+            
+            # Distribute GPUs across runners
+            for i in range(self.config.runner_count):
+                if i < len(usable_gpus):
+                    gpu_assignments.append(usable_gpus[i])
+                else:
+                    # Round-robin if more runners than GPUs
+                    gpu_assignments.append(usable_gpus[i % len(usable_gpus)] if usable_gpus else None)
+        else:
+            gpu_assignments = [None] * self.config.runner_count
+        
         runner_id = 1
         for arch_idx, arch in enumerate(archs_to_deploy):
             # Distribute remainder across first architectures
@@ -110,8 +163,39 @@ class RunnerManager:
             self.logger.info(f"Deploying {count_for_arch} runner(s) for {arch}")
             
             for i in range(count_for_arch):
-                # Create runner with specific architecture
-                runner = Runner(self.config, self.github, self.logger, runner_id=runner_id, target_arch=arch)
+                # Get GPU assignment for this runner
+                gpu = gpu_assignments[runner_id - 1] if runner_id <= len(gpu_assignments) else None
+                
+                # Get resource allocation if optimization is enabled
+                resource_limits = None
+                if self.resource_allocation:
+                    resource_limits = {
+                        'cpu_cores': self.resource_allocation['cpu_cores_per_runner'],
+                        'memory_gb': self.resource_allocation['memory_gb_per_runner'],
+                        'cpu_affinity': self.resource_optimizer.get_cpu_affinity(
+                            runner_id,
+                            self.resource_allocation['cpu_cores_per_runner']
+                        ) if self.config.use_cpu_affinity else None
+                    }
+                
+                # Add GPU-specific labels if GPU is assigned
+                custom_labels = self.config.labels.copy()
+                if gpu:
+                    gpu_labels = self.gpu_detector.get_gpu_labels(gpu)
+                    custom_labels.extend(gpu_labels)
+                    self.logger.info(f"Runner {runner_id} assigned to {gpu} with labels: {gpu_labels}")
+                
+                # Create runner with specific architecture and GPU
+                runner = Runner(
+                    self.config, 
+                    self.github, 
+                    self.logger, 
+                    runner_id=runner_id, 
+                    target_arch=arch,
+                    gpu_info=gpu,
+                    resource_limits=resource_limits,
+                    custom_labels=custom_labels
+                )
                 
                 if not runner.register():
                     self.logger.error(f"Failed to register runner {runner_id} ({arch})")

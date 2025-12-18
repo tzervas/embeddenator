@@ -17,7 +17,9 @@ from .installer import RunnerInstaller
 class Runner:
     """Manage individual runner lifecycle"""
     
-    def __init__(self, config, github_api, logger: logging.Logger, runner_id: int = 1, target_arch: Optional[str] = None):
+    def __init__(self, config, github_api, logger: logging.Logger, runner_id: int = 1, 
+                 target_arch: Optional[str] = None, gpu_info=None, resource_limits: Optional[Dict] = None,
+                 custom_labels: Optional[list] = None):
         """
         Initialize runner
         
@@ -27,13 +29,21 @@ class Runner:
             logger: Logger instance
             runner_id: Unique ID for this runner
             target_arch: Target architecture (overrides config.arch if provided)
+            gpu_info: GPUInfo object if GPU is assigned
+            resource_limits: Dict with cpu_cores, memory_gb, cpu_affinity
+            custom_labels: Custom labels list (overrides config labels)
         """
         self.config = config
         self.github = github_api
         self.logger = logger
         self.runner_id = runner_id
         self.target_arch = target_arch or config.arch
+        self.gpu_info = gpu_info
+        self.resource_limits = resource_limits
+        self.custom_labels = custom_labels if custom_labels is not None else config.labels
         self.name = f"{config.name_prefix}-{self.target_arch}-{runner_id}"
+        if gpu_info:
+            self.name += f"-{gpu_info.vendor}"
         self.install_dir = config.install_dir.parent / f"{config.install_dir.name}-{self.target_arch}-{runner_id}"
         self.process = None
         self.start_time = None
@@ -77,7 +87,7 @@ class Runner:
             '--url', f'https://github.com/{self.config.repository}',
             '--token', token,
             '--name', self.name,
-            '--labels', ','.join(self.config.labels),
+            '--labels', ','.join(self.custom_labels),
             '--work', self.config.work_dir,
             '--unattended'
         ]
@@ -98,7 +108,12 @@ class Runner:
         try:
             result = subprocess.run(cmd, cwd=self.install_dir, capture_output=True, text=True)
             if result.returncode == 0:
-                self.logger.info(f"Runner {self.name} registered successfully")
+                info_msg = f"Runner {self.name} registered successfully"
+                if self.gpu_info:
+                    info_msg += f" with GPU: {self.gpu_info}"
+                if self.resource_limits:
+                    info_msg += f" (CPU: {self.resource_limits['cpu_cores']} cores, Memory: {self.resource_limits['memory_gb']} GB)"
+                self.logger.info(info_msg)
                 return True
             else:
                 self.logger.error(f"Registration failed: {result.stderr}")

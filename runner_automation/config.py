@@ -78,6 +78,18 @@ class RunnerConfig:
         self.clean_docker = os.getenv('RUNNER_CLEAN_DOCKER', 'true').lower() == 'true'
         self.docker_cleanup_threshold_gb = int(os.getenv('DOCKER_CLEANUP_THRESHOLD_GB', '10'))
         
+        # GPU configuration
+        self.enable_gpu = os.getenv('RUNNER_ENABLE_GPU', 'false').lower() == 'true'
+        self.gpu_vendor = os.getenv('RUNNER_GPU_VENDOR', 'auto').lower()  # auto, nvidia, amd, intel, apple
+        self.gpu_per_runner = os.getenv('RUNNER_GPU_PER_RUNNER', 'auto')  # auto, or specific allocation
+        self.inference_only = os.getenv('RUNNER_INFERENCE_ONLY', 'false').lower() == 'true'
+        
+        # Resource optimization
+        self.enable_resource_optimization = os.getenv('RUNNER_ENABLE_RESOURCE_OPTIMIZATION', 'false').lower() == 'true'
+        self.host_cpu_reserve_percent = int(os.getenv('RUNNER_HOST_CPU_RESERVE_PERCENT', '20'))
+        self.host_memory_reserve_percent = int(os.getenv('RUNNER_HOST_MEMORY_RESERVE_PERCENT', '15'))
+        self.use_cpu_affinity = os.getenv('RUNNER_USE_CPU_AFFINITY', 'false').lower() == 'true'
+        
     def load_env_file(self):
         """Load environment variables from .env file if it exists"""
         env_file = Path('.env')
