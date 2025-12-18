@@ -480,7 +480,7 @@ RUNNER_MODE=manual python3 runner_manager.py run
 **Multi-Architecture Examples:**
 
 ```bash
-# Deploy ARM64 runners on x86_64 hardware (with emulation)
+# Deploy ARM64 runners on x86_64 hardware (with emulation, auto-detect runtime)
 RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
 
 # Deploy runners for all architectures
@@ -488,6 +488,12 @@ RUNNER_TARGET_ARCHITECTURES=x64,arm64,riscv64 RUNNER_COUNT=6 python3 runner_mana
 
 # Deploy with automatic QEMU installation (requires sudo)
 RUNNER_EMULATION_AUTO_INSTALL=true RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Use specific emulation method (docker, podman, or qemu)
+RUNNER_EMULATION_METHOD=podman RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Use Docker for emulation
+RUNNER_EMULATION_METHOD=docker RUNNER_TARGET_ARCHITECTURES=arm64,riscv64 python3 runner_manager.py run
 ```
 
 **Individual Commands:**
@@ -534,6 +540,7 @@ Key environment variables (see `.env.example` for full list):
 - `RUNNER_EPHEMERAL` - Enable ephemeral runners (deregister after one job)
 - `RUNNER_TARGET_ARCHITECTURES` - Target architectures: `x64`, `arm64`, `riscv64` (comma-separated)
 - `RUNNER_ENABLE_EMULATION` - Enable QEMU emulation for cross-architecture (default: true)
+- `RUNNER_EMULATION_METHOD` - Emulation method: `auto`, `qemu`, `docker`, `podman` (default: auto)
 - `RUNNER_EMULATION_AUTO_INSTALL` - Auto-install QEMU if missing (default: false, requires sudo)
 
 See `.env.example` for complete configuration documentation.

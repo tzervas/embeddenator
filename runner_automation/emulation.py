@@ -3,11 +3,54 @@ Emulation Module
 
 Handles QEMU emulation setup for cross-architecture runner support.
 Enables ARM64 and RISC-V runners on x86_64 hardware.
+Supports multiple container runtimes: Docker, Podman, or standalone QEMU.
 """
 
 import logging
 import subprocess
-from typing import List, Optional
+from typing import List, Optional, Tuple
+
+
+class ContainerRuntime:
+    """Container runtime detection and abstraction"""
+    
+    SUPPORTED_RUNTIMES = ['docker', 'podman']
+    
+    @staticmethod
+    def detect_available_runtime() -> Optional[str]:
+        """
+        Detect which container runtime is available
+        
+        Returns:
+            Runtime name ('docker' or 'podman') if available, None otherwise
+        """
+        for runtime in ContainerRuntime.SUPPORTED_RUNTIMES:
+            try:
+                result = subprocess.run(
+                    ['which', runtime],
+                    capture_output=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    return runtime
+            except Exception:
+                continue
+        return None
+    
+    @staticmethod
+    def get_runtime_command(runtime: str) -> str:
+        """
+        Get the command for the container runtime
+        
+        Args:
+            runtime: Runtime name ('docker' or 'podman')
+            
+        Returns:
+            Command string
+        """
+        if runtime in ContainerRuntime.SUPPORTED_RUNTIMES:
+            return runtime
+        return 'docker'  # Default fallback
 
 
 class EmulationManager:
@@ -34,17 +77,80 @@ class EmulationManager:
         }
     }
     
-    def __init__(self, logger: logging.Logger):
+class EmulationManager:
+    """Manages QEMU emulation for cross-architecture support"""
+    
+    # Supported architectures and their emulation requirements
+    SUPPORTED_ARCHITECTURES = {
+        'x64': {
+            'native': ['x86_64', 'amd64'],
+            'emulation_required': False,
+            'qemu_arch': None
+        },
+        'arm64': {
+            'native': ['arm64', 'aarch64'],
+            'emulation_required': True,
+            'qemu_arch': 'aarch64',
+            'qemu_package': 'qemu-user-static'
+        },
+        'riscv64': {
+            'native': ['riscv64'],
+            'emulation_required': True,
+            'qemu_arch': 'riscv64',
+            'qemu_package': 'qemu-user-static'
+        }
+    }
+    
+    # Emulation methods
+    EMULATION_METHODS = ['qemu', 'docker', 'podman']
+    
+    def __init__(self, logger: logging.Logger, emulation_method: Optional[str] = None):
         """
         Initialize emulation manager
         
         Args:
             logger: Logger instance
+            emulation_method: Preferred emulation method ('qemu', 'docker', 'podman', or None for auto-detect)
         """
         self.logger = logger
         self._emulation_enabled = {}
+        self.emulation_method = self._determine_emulation_method(emulation_method)
+        self.container_runtime = None
+        
+        # If using container-based emulation, detect runtime
+        if self.emulation_method in ('docker', 'podman'):
+            self.container_runtime = self.emulation_method
+        elif self.emulation_method == 'auto':
+            # Try to detect container runtime
+            self.container_runtime = ContainerRuntime.detect_available_runtime()
+            if self.container_runtime:
+                self.emulation_method = self.container_runtime
+            else:
+                self.emulation_method = 'qemu'
+        
+        self.logger.info(f"Emulation method: {self.emulation_method}")
+        if self.container_runtime:
+            self.logger.info(f"Container runtime: {self.container_runtime}")
     
-    def check_qemu_installed(self) -> bool:
+    def _determine_emulation_method(self, preferred: Optional[str]) -> str:
+        """
+        Determine which emulation method to use
+        
+        Args:
+            preferred: User's preferred method or None
+            
+        Returns:
+            Emulation method to use
+        """
+        if preferred and preferred in self.EMULATION_METHODS:
+            return preferred
+        
+        # Auto-detect: prefer container runtimes, fallback to QEMU
+        runtime = ContainerRuntime.detect_available_runtime()
+        if runtime:
+            return runtime
+        
+        return 'qemu'
         """
         Check if QEMU user-static is installed
         
@@ -134,7 +240,64 @@ class EmulationManager:
         Returns:
             True if successful, False otherwise
         """
-        self.logger.info(f"Enabling binfmt_misc for {arch}...")
+        self.logger.info(f"Enabling binfmt_misc for {arch} using {self.emulation_method}...")
+        
+        # Method 1: Try container-based setup (works best)
+        if self.emulation_method in ('docker', 'podman') and self.container_runtime:
+            return self._enable_binfmt_container(arch)
+        
+        # Method 2: Try native QEMU setup
+        return self._enable_binfmt_native(arch)
+    
+    def _enable_binfmt_container(self, arch: str) -> bool:
+        """
+        Enable binfmt using container runtime
+        
+        Args:
+            arch: QEMU architecture
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        runtime = self.container_runtime
+        self.logger.info(f"Using {runtime} for binfmt setup...")
+        
+        try:
+            # Use multiarch/qemu-user-static image for setup
+            cmd = [
+                runtime, 'run', '--rm', '--privileged',
+                'multiarch/qemu-user-static', '--reset', '-p', 'yes'
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            
+            if result.returncode == 0:
+                self.logger.info(f"Container-based binfmt setup successful for {arch}")
+                return True
+            else:
+                self.logger.error(f"Container setup failed: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to enable binfmt via {runtime}: {e}")
+            return False
+    
+    def _enable_binfmt_native(self, arch: str) -> bool:
+        """
+        Enable binfmt using native QEMU
+        
+        Args:
+            arch: QEMU architecture
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        self.logger.info(f"Using native QEMU for binfmt setup...")
         
         try:
             # Try to enable via update-binfmts
@@ -145,26 +308,13 @@ class EmulationManager:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"binfmt_misc enabled for {arch}")
-                return True
-            
-            # If that fails, try Docker's binfmt setup (works without sudo in containers)
-            self.logger.info(f"Trying Docker binfmt setup for {arch}...")
-            result = subprocess.run(
-                ['docker', 'run', '--rm', '--privileged',
-                 'multiarch/qemu-user-static', '--reset', '-p', 'yes'],
-                capture_output=True,
-                timeout=60
-            )
-            
-            if result.returncode == 0:
-                self.logger.info(f"Docker binfmt setup successful for {arch}")
+                self.logger.info(f"Native binfmt setup successful for {arch}")
                 return True
             
             return False
             
         except Exception as e:
-            self.logger.error(f"Failed to enable binfmt for {arch}: {e}")
+            self.logger.error(f"Failed to enable binfmt natively: {e}")
             return False
     
     def setup_emulation(self, target_arch: str, host_arch: str) -> bool:
@@ -252,7 +402,7 @@ class EmulationManager:
         Returns:
             True if emulation works, False otherwise
         """
-        # Map our arch names to Docker platform names
+        # Map our arch names to platform names
         platform_map = {
             'x64': 'linux/amd64',
             'arm64': 'linux/arm64',
@@ -263,16 +413,28 @@ class EmulationManager:
         if not platform:
             return False
         
+        # Determine which container runtime to use for verification
+        runtime = self.container_runtime if self.container_runtime else 'docker'
+        
+        # Check if runtime is available
+        if not self._is_runtime_available(runtime):
+            self.logger.warning(f"{runtime} not available, skipping verification")
+            # If no container runtime, assume QEMU is working if binfmt is enabled
+            arch_info = self.SUPPORTED_ARCHITECTURES.get(arch)
+            if arch_info and arch_info['qemu_arch']:
+                return self.check_binfmt_support(arch_info['qemu_arch'])
+            return True
+        
         try:
-            self.logger.info(f"Verifying emulation for {arch} ({platform})...")
+            self.logger.info(f"Verifying emulation for {arch} ({platform}) using {runtime}...")
             
             # Try to run a simple command in the target architecture
             result = subprocess.run(
-                ['docker', 'run', '--rm', '--platform', platform,
+                [runtime, 'run', '--rm', '--platform', platform,
                  'alpine:latest', 'uname', '-m'],
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=90
             )
             
             if result.returncode == 0:
@@ -285,6 +447,26 @@ class EmulationManager:
                 
         except Exception as e:
             self.logger.error(f"Emulation verification failed: {e}")
+            return False
+    
+    def _is_runtime_available(self, runtime: str) -> bool:
+        """
+        Check if container runtime is available
+        
+        Args:
+            runtime: Runtime name ('docker' or 'podman')
+            
+        Returns:
+            True if available, False otherwise
+        """
+        try:
+            result = subprocess.run(
+                ['which', runtime],
+                capture_output=True,
+                timeout=5
+            )
+            return result.returncode == 0
+        except Exception:
             return False
     
     def get_supported_architectures(self) -> List[str]:

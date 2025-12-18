@@ -33,7 +33,7 @@ class RunnerManager:
         self.github.logger = self.logger  # Update GitHub API logger
         self.runners: List[Runner] = []
         self.shutdown_requested = False
-        self.emulation_mgr = EmulationManager(self.logger)
+        self.emulation_mgr = EmulationManager(self.logger, config.emulation_method)
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self._handle_shutdown)

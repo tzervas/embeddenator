@@ -54,6 +54,7 @@ class RunnerConfig:
         self.target_archs = self._parse_target_architectures()
         self.enable_emulation = os.getenv('RUNNER_ENABLE_EMULATION', 'true').lower() == 'true'
         self.emulation_auto_install = os.getenv('RUNNER_EMULATION_AUTO_INSTALL', 'false').lower() == 'true'
+        self.emulation_method = os.getenv('RUNNER_EMULATION_METHOD', 'auto').lower()  # auto, qemu, docker, podman
         
         # Logging
         self.log_level = os.getenv('LOG_LEVEL', 'INFO')
