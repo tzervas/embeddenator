@@ -26,11 +26,17 @@ class RunnerConfig:
         
         # Dynamic runner manager configuration
         self.enable_dynamic_scaling = os.getenv('RUNNER_ENABLE_DYNAMIC_SCALING', 'false').lower() == 'true'
+        self.scaling_mode = os.getenv('RUNNER_SCALING_MODE', 'balanced').lower()  # lazy, balanced, aggressive
         self.min_runners = int(os.getenv('RUNNER_MIN_COUNT', '1'))
         self.max_runners = int(os.getenv('RUNNER_MAX_COUNT', '10'))
+        
+        # Scaling thresholds - can be overridden by scaling_mode presets
         self.scale_up_threshold = int(os.getenv('RUNNER_SCALE_UP_THRESHOLD', '2'))
         self.scale_down_threshold = int(os.getenv('RUNNER_SCALE_DOWN_THRESHOLD', '0'))
         self.scale_cooldown = int(os.getenv('RUNNER_SCALE_COOLDOWN', '60'))
+        
+        # Apply scaling mode presets if not explicitly overridden
+        self._apply_scaling_mode_presets()
         
         # Runner configuration
         self.name_prefix = os.getenv('RUNNER_NAME_PREFIX', 'embeddenator-runner')
@@ -116,6 +122,37 @@ class RunnerConfig:
                             # Only set if not already in environment
                             if key not in os.environ:
                                 os.environ[key] = value
+    
+    def _apply_scaling_mode_presets(self):
+        """Apply scaling mode presets if thresholds not explicitly set"""
+        # Only apply presets if using default threshold values
+        using_defaults = (
+            os.getenv('RUNNER_SCALE_UP_THRESHOLD') is None and
+            os.getenv('RUNNER_SCALE_DOWN_THRESHOLD') is None and
+            os.getenv('RUNNER_SCALE_COOLDOWN') is None
+        )
+        
+        if not using_defaults:
+            return  # User has explicitly set thresholds
+        
+        if self.scaling_mode == 'lazy':
+            # Lazy: Wait longer, scale up slowly, keep runners longer
+            self.scale_up_threshold = 5  # Wait for 5 jobs before scaling
+            self.scale_down_threshold = 0  # Only scale down when completely idle
+            self.scale_cooldown = 120  # 2 minute cooldown
+            self.min_runners = max(1, self.min_runners)  # At least 1 runner
+            
+        elif self.scaling_mode == 'aggressive':
+            # Aggressive: React quickly, scale up fast, scale down fast
+            self.scale_up_threshold = 1  # Scale up with just 1 pending job
+            self.scale_down_threshold = 0  # Scale down quickly
+            self.scale_cooldown = 30  # 30 second cooldown
+            
+        else:  # balanced (default)
+            # Balanced: Moderate response, good for general use
+            self.scale_up_threshold = 2  # Scale up with 2 pending jobs
+            self.scale_down_threshold = 0  # Scale down when idle
+            self.scale_cooldown = 60  # 1 minute cooldown
     
     def _get_default_api_url(self) -> str:
         """Get default API URL based on platform"""

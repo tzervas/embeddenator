@@ -91,18 +91,25 @@ class ResourceOptimizer:
     RECOMMENDED_HOST_CPU_PERCENT = 20  # Reserve 20% for host
     RECOMMENDED_HOST_MEMORY_PERCENT = 15  # Reserve 15% for host
     
-    # Intel Xeon E5-26xx Haswell (14-core) specific optimizations
-    XEON_E5_26XX_HASWELL_CORES = 14  # per CPU (E5-2680 v3, E5-2697 v3, etc.)
-    XEON_E5_26XX_HASWELL_THREADS = 28  # with HT
+    # Intel Xeon E5/E7 specific optimizations
+    # Broadwell (v4) - 2016
+    XEON_BROADWELL_MODELS = [
+        'E5-2699 v4', 'E5-2698 v4', 'E5-2697 v4', 'E5-2695 v4', 'E5-2690 v4',
+        'E5-2683 v4', 'E5-2680 v4', 'E5-2660 v4', 'E5-2650 v4', 'E5-2640 v4',
+        'E7-8890 v4', 'E7-8880 v4'
+    ]
     
-    # Common Haswell Xeon E5-26xx models
-    HASWELL_XEON_MODELS = [
-        'E5-2680 v3',  # 12-core
-        'E5-2683 v3',  # 14-core
-        'E5-2695 v3',  # 14-core
-        'E5-2697 v3',  # 14-core
-        'E5-2698 v3',  # 16-core
-        'E5-2699 v3',  # 18-core
+    # Haswell (v3) - 2014
+    XEON_HASWELL_MODELS = [
+        'E5-2699 v3', 'E5-2698 v3', 'E5-2697 v3', 'E5-2695 v3', 'E5-2690 v3',
+        'E5-2683 v3', 'E5-2680 v3', 'E5-2670 v3', 'E5-2660 v3', 'E5-2650 v3',
+        'E5-2640 v3', 'E7-8890 v3', 'E7-8880 v3'
+    ]
+    
+    # Ivy Bridge (v2) - 2013
+    XEON_IVY_BRIDGE_MODELS = [
+        'E5-2697 v2', 'E5-2695 v2', 'E5-2690 v2', 'E5-2680 v2', 'E5-2670 v2',
+        'E5-2660 v2', 'E5-2650 v2', 'E7-8890 v2', 'E7-8870 v2'
     ]
     
     def __init__(self, logger: logging.Logger):

@@ -117,7 +117,10 @@ class DynamicRunnerManager:
         self.available_capabilities = self._detect_capabilities()
         
         self.logger.info("Dynamic Runner Manager initialized")
+        self.logger.info(f"Scaling mode: {config.scaling_mode}")
         self.logger.info(f"Auto-scaling: min={self.min_runners}, max={self.max_runners}")
+        self.logger.info(f"Scale thresholds: up={self.scale_up_threshold}, down={self.scale_down_threshold}")
+        self.logger.info(f"Scale cooldown: {self.scale_cooldown}s")
         self.logger.info(f"Available capabilities: {', '.join(self.available_capabilities)}")
     
     def _detect_capabilities(self) -> List[str]:

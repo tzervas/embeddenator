@@ -75,7 +75,7 @@ CPU_CONFIGURATIONS = {
         },
         # Xeon Scalable (Ice Lake and newer)
         'xeon_ice_lake': {
-            'models': ['Xeon Gold 6338', 'Xeon Platinum 8380', 'Xeon Silver 4314'],
+            'models': ['Xeon Gold 6338', 'Xeon Platinum 8380', 'Xeon Silver 4314', 'Xeon Gold 6330'],
             'microarchitecture': 'Ice Lake',
             'max_cores': 40,
             'hyperthreading': True,
@@ -85,7 +85,7 @@ CPU_CONFIGURATIONS = {
             'training_capable': True,
         },
         'xeon_sapphire_rapids': {
-            'models': ['Xeon Platinum 8480', 'Xeon Gold 6448Y'],
+            'models': ['Xeon Platinum 8480', 'Xeon Gold 6448Y', 'Xeon Platinum 8468', 'Xeon Gold 6438Y'],
             'microarchitecture': 'Sapphire Rapids',
             'max_cores': 60,
             'hyperthreading': True,
@@ -94,6 +94,76 @@ CPU_CONFIGURATIONS = {
             'release_year': 2023,
             'inference_capable': True,
             'training_capable': True,
+        },
+        # Xeon E5/E7 v4 (Broadwell) - 2016
+        'xeon_broadwell_v4': {
+            'models': [
+                'E5-2699 v4',  # 22-core
+                'E5-2698 v4',  # 20-core
+                'E5-2697 v4',  # 18-core
+                'E5-2695 v4',  # 18-core
+                'E5-2690 v4',  # 14-core
+                'E5-2683 v4',  # 16-core
+                'E5-2680 v4',  # 14-core
+                'E5-2660 v4',  # 14-core
+                'E5-2650 v4',  # 12-core
+                'E5-2640 v4',  # 10-core
+                'E7-8890 v4',  # 24-core
+                'E7-8880 v4',  # 22-core
+            ],
+            'microarchitecture': 'Broadwell',
+            'max_cores': 24,
+            'hyperthreading': True,
+            'avx2': True,
+            'release_year': 2016,
+            'inference_capable': True,
+            'training_capable': False,
+        },
+        # Xeon E5/E7 v3 (Haswell) - 2014
+        'xeon_haswell_v3': {
+            'models': [
+                'E5-2699 v3',  # 18-core
+                'E5-2698 v3',  # 16-core
+                'E5-2697 v3',  # 14-core
+                'E5-2695 v3',  # 14-core
+                'E5-2690 v3',  # 12-core
+                'E5-2683 v3',  # 14-core
+                'E5-2680 v3',  # 12-core
+                'E5-2670 v3',  # 12-core
+                'E5-2660 v3',  # 10-core
+                'E5-2650 v3',  # 10-core
+                'E5-2640 v3',  # 8-core
+                'E7-8890 v3',  # 18-core
+                'E7-8880 v3',  # 18-core
+            ],
+            'microarchitecture': 'Haswell',
+            'max_cores': 18,
+            'hyperthreading': True,
+            'avx2': True,
+            'release_year': 2014,
+            'inference_capable': True,
+            'training_capable': False,
+        },
+        # Xeon E5/E7 v2 (Ivy Bridge) - 2013
+        'xeon_ivy_bridge_v2': {
+            'models': [
+                'E5-2697 v2',  # 12-core
+                'E5-2695 v2',  # 12-core
+                'E5-2690 v2',  # 10-core
+                'E5-2680 v2',  # 10-core
+                'E5-2670 v2',  # 10-core
+                'E5-2660 v2',  # 10-core
+                'E5-2650 v2',  # 8-core
+                'E7-8890 v2',  # 15-core
+                'E7-8870 v2',  # 15-core
+            ],
+            'microarchitecture': 'Ivy Bridge',
+            'max_cores': 15,
+            'hyperthreading': True,
+            'avx': True,
+            'release_year': 2013,
+            'inference_capable': True,
+            'training_capable': False,
         },
     },
     
