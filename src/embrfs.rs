@@ -1,5 +1,5 @@
 //! EmbrFS - Holographic Filesystem Implementation
-//! 
+//!
 //! Provides engram-based storage for entire filesystem trees with:
 //! - Chunked encoding for efficient storage
 //! - Manifest for file metadata
@@ -40,6 +40,18 @@ pub struct Engram {
 }
 
 /// EmbrFS - Holographic Filesystem
+///
+/// # Examples
+///
+/// ```
+/// use embeddenator::EmbrFS;
+/// use std::path::Path;
+///
+/// let mut fs = EmbrFS::new();
+/// // Ingest and extract would require actual files, so we just test creation
+/// assert_eq!(fs.manifest.total_chunks, 0);
+/// assert_eq!(fs.manifest.files.len(), 0);
+/// ```
 pub struct EmbrFS {
     pub manifest: Manifest,
     pub engram: Engram,
@@ -53,6 +65,16 @@ impl Default for EmbrFS {
 
 impl EmbrFS {
     /// Create a new empty EmbrFS instance
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::EmbrFS;
+    ///
+    /// let fs = EmbrFS::new();
+    /// assert_eq!(fs.manifest.files.len(), 0);
+    /// assert_eq!(fs.manifest.total_chunks, 0);
+    /// ```
     pub fn new() -> Self {
         EmbrFS {
             manifest: Manifest {
@@ -74,7 +96,7 @@ impl EmbrFS {
         }
 
         let mut files_to_process = Vec::new();
-        
+
         for entry in WalkDir::new(dir).follow_links(false) {
             let entry = entry?;
             if entry.file_type().is_file() {
@@ -85,9 +107,7 @@ impl EmbrFS {
         files_to_process.sort();
 
         for file_path in files_to_process {
-            let relative = file_path
-                .strip_prefix(dir)
-                .unwrap_or(file_path.as_path());
+            let relative = file_path.strip_prefix(dir).unwrap_or(file_path.as_path());
             self.ingest_file(&file_path, relative.to_string_lossy().to_string(), verbose)?;
         }
 
@@ -107,7 +127,7 @@ impl EmbrFS {
         file.read_to_end(&mut data)?;
 
         let is_text = is_text_file(&data);
-        
+
         if verbose {
             println!(
                 "Ingesting {}: {} bytes ({})",
@@ -119,11 +139,11 @@ impl EmbrFS {
 
         let chunk_size = DEFAULT_CHUNK_SIZE;
         let mut chunks = Vec::new();
-        
+
         for (i, chunk) in data.chunks(chunk_size).enumerate() {
             let chunk_id = self.manifest.total_chunks + i;
             let chunk_vec = SparseVec::from_data(chunk);
-            
+
             self.engram.root = self.engram.root.bundle(&chunk_vec);
             self.engram.codebook.insert(chunk_id, chunk.to_vec());
             chunks.push(chunk_id);
@@ -143,8 +163,7 @@ impl EmbrFS {
 
     /// Save engram to file
     pub fn save_engram<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
-        let encoded = bincode::serialize(&self.engram)
-            .map_err(io::Error::other)?;
+        let encoded = bincode::serialize(&self.engram).map_err(io::Error::other)?;
         fs::write(path, encoded)?;
         Ok(())
     }
@@ -152,8 +171,7 @@ impl EmbrFS {
     /// Load engram from file
     pub fn load_engram<P: AsRef<Path>>(path: P) -> io::Result<Engram> {
         let data = fs::read(path)?;
-        bincode::deserialize(&data)
-            .map_err(io::Error::other)
+        bincode::deserialize(&data).map_err(io::Error::other)
     }
 
     /// Save manifest to JSON file
@@ -178,14 +196,18 @@ impl EmbrFS {
         verbose: bool,
     ) -> io::Result<()> {
         let output_dir = output_dir.as_ref();
-        
+
         if verbose {
-            println!("Extracting {} files to {}", manifest.files.len(), output_dir.display());
+            println!(
+                "Extracting {} files to {}",
+                manifest.files.len(),
+                output_dir.display()
+            );
         }
 
         for file_entry in &manifest.files {
             let file_path = output_dir.join(&file_entry.path);
-            
+
             if let Some(parent) = file_path.parent() {
                 fs::create_dir_all(parent)?;
             }
@@ -200,7 +222,7 @@ impl EmbrFS {
             reconstructed.truncate(file_entry.size);
 
             fs::write(&file_path, reconstructed)?;
-            
+
             if verbose {
                 println!("Extracted: {}", file_entry.path);
             }
@@ -215,13 +237,13 @@ pub fn is_text_file(data: &[u8]) -> bool {
     if data.is_empty() {
         return true;
     }
-    
+
     let sample_size = data.len().min(8192);
     let sample = &data[..sample_size];
-    
+
     let mut null_count = 0;
     let mut control_count = 0;
-    
+
     for &byte in sample {
         if byte == 0 {
             null_count += 1;
@@ -229,7 +251,6 @@ pub fn is_text_file(data: &[u8]) -> bool {
             control_count += 1;
         }
     }
-    
+
     null_count == 0 && control_count < sample_size / 10
 }
-

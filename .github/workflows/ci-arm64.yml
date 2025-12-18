@@ -1,0 +1,160 @@
+name: CI arm64 Build and Test
+
+# CONFIGURED FOR SELF-HOSTED ARM64 RUNNERS
+# 
+# This workflow is READY for self-hosted ARM64 runners but currently DISABLED
+# pending runner setup. Once self-hosted ARM64 runners are configured with the
+# required labels, this workflow can be enabled.
+#
+# REQUIRED SETUP:
+# 1. Set up self-hosted GitHub Actions runner(s) on ARM64 hardware
+# 2. Configure runners with labels: ["self-hosted", "linux", "ARM64"]
+# 3. Verify runner is registered: Settings → Actions → Runners
+# 4. Test with manual trigger first (workflow_dispatch)
+# 5. Once verified working, uncomment the push/pull_request triggers below
+#
+# RUNNER SETUP INSTRUCTIONS:
+# - Download runner: https://github.com/actions/runner/releases
+# - Install on ARM64 hardware (physical/VM/cloud instance)
+# - Register with labels: self-hosted,linux,ARM64
+# - Start runner service
+# - Monitor runner status in GitHub repo settings
+#
+# FUTURE CONFIGURATION (when ARM64 is working):
+# After successful self-hosted ARM64 testing, this workflow will be updated
+# to trigger only on merge to main (not on every PR commit) to reduce costs
+# while still validating the build on ARM64 architecture post-merge.
+#
+# See .github/workflows/README.md for detailed troubleshooting and setup guide.
+
+on:
+  # DISABLED: Uncomment these when self-hosted ARM64 runners are ready
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  
+  # Manual trigger for testing self-hosted runners
+  workflow_dispatch:
+    inputs:
+      runner_type:
+        description: 'Runner type to use (for testing only)'
+        required: true
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - emulation-test
+
+permissions:
+  contents: read
+
+jobs:
+  arm64-build-test:
+    name: ARM64 Build and Test (Self-Hosted)
+    # Configured for self-hosted ARM64 runners
+    # Labels: ["self-hosted", "linux", "ARM64"]
+    runs-on: ${{ github.event.inputs.runner_type == 'self-hosted' && fromJSON('["self-hosted", "linux", "ARM64"]') || 'ubuntu-latest' }}
+    timeout-minutes: 45  # Increased for potential emulation
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Only needed if using emulation (Option 3)
+      - name: Set up QEMU (emulation mode only)
+        if: ${{ github.event.inputs.runner_type == 'emulation' }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+      
+      - name: Verify architecture
+        run: |
+          echo "🔍 Verifying runner architecture"
+          echo "Architecture: $(uname -m)"
+          echo "Runner: ${{ runner.name }}"
+          echo "OS: $(uname -s)"
+          
+          # For self-hosted, should show aarch64 or arm64
+          # For emulation, will show x86_64 but QEMU provides arm64
+          
+          if [ "$(uname -m)" = "x86_64" ] && [ "${{ github.event.inputs.runner_type }}" = "self-hosted" ]; then
+            echo "❌ ERROR: Expected ARM64 but got x86_64"
+            echo "This means the runner is NOT actually ARM64 native"
+            exit 1
+          fi
+          
+          echo "✅ Architecture check passed"
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: arm64-${{ github.event.inputs.runner_type }}
+      
+      - name: Configure build parallelism
+        run: |
+          # Increase parallelism for faster builds
+          echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+          echo "Architecture: $(uname -m)"
+          echo "Available cores: $(nproc)"
+          echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
+      
+      - name: Build tool binary (arm64)
+        timeout-minutes: 20  # Longer for emulation
+        run: |
+          echo "🔨 Building embeddenator for ARM64"
+          echo "Runner type: ${{ github.event.inputs.runner_type }}"
+          cargo build --release --verbose
+      
+      - name: Run full test suite (arm64)
+        if: ${{ github.event.inputs.runner_type != 'test-only' }}
+        timeout-minutes: 25  # Longer for emulation
+        run: |
+          echo "🧪 Running full test suite on ARM64"
+          cargo test --verbose
+      
+      - name: Run integration tests via orchestrator (arm64)
+        if: ${{ github.event.inputs.runner_type != 'test-only' }}
+        timeout-minutes: 15
+        run: |
+          echo "🔧 Running orchestrator integration tests"
+          python3 orchestrator.py --mode build --verbose
+          python3 orchestrator.py --mode test --verbose
+      
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-arm64-${{ github.event.inputs.runner_type }}
+          path: |
+            /tmp/*.log
+          retention-days: 7
+      
+      - name: Report build metrics
+        if: always()
+        run: |
+          echo "## ARM64 Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Architecture:** $(uname -m)" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner Type:** ${{ github.event.inputs.runner_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Runner Name:** ${{ runner.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### System Resources" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Memory:" >> $GITHUB_STEP_SUMMARY
+          free -h >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "CPU:" >> $GITHUB_STEP_SUMMARY
+          lscpu | grep -E "^CPU\(s\)|Model name|Thread|Core|Architecture" >> $GITHUB_STEP_SUMMARY || echo "lscpu not available" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Load:" >> $GITHUB_STEP_SUMMARY
+          uptime >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.runner_type }}" = "emulation" ]; then
+            echo "⚠️ **Note:** Running in emulation mode (slower performance)" >> $GITHUB_STEP_SUMMARY
+          fi

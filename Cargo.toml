@@ -1,7 +1,7 @@
 [package]
 name = "embeddenator"
 version = "0.2.0"
-edition = "2025"
+edition = "2021"
 authors = ["Tyler Zervas, and Agentic Embeddenator Contributors"]
 description = "Sparse ternary VSA holographic computing substrate"
 license = "MIT"
@@ -9,10 +9,16 @@ repository = "https://github.com/tzervas/embeddenator"
 homepage = "https://github.com/tzervas/embeddenator"
 keywords = ["vsa", "holographic", "filesystem", "engram", "vector-symbolic"]
 categories = ["filesystem", "compression", "science"]
+documentation = "https://docs.rs/embeddenator"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "embeddenator"
 path = "src/lib.rs"
+doctest = true
 
 [[bin]]
 name = "embeddenator"
