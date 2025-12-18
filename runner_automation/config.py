@@ -17,10 +17,20 @@ class RunnerConfig:
         """Initialize configuration from environment and .env file"""
         self.load_env_file()
         
-        # GitHub configuration
-        self.repository = os.getenv('GITHUB_REPOSITORY', '')
-        self.api_url = os.getenv('GITHUB_API_URL', 'https://api.github.com')
-        self.token = os.getenv('GITHUB_TOKEN', '')
+        # Git platform configuration
+        self.platform = os.getenv('GIT_PLATFORM', 'github').lower()  # github, gitlab, gitea
+        self.repository = os.getenv('GITHUB_REPOSITORY', '')  # For GitHub/Gitea
+        self.project_id = os.getenv('GITLAB_PROJECT_ID', '')  # For GitLab
+        self.api_url = os.getenv('GIT_API_URL', self._get_default_api_url())
+        self.token = os.getenv('GIT_TOKEN', '') or os.getenv('GITHUB_TOKEN', '')
+        
+        # Dynamic runner manager configuration
+        self.enable_dynamic_scaling = os.getenv('RUNNER_ENABLE_DYNAMIC_SCALING', 'false').lower() == 'true'
+        self.min_runners = int(os.getenv('RUNNER_MIN_COUNT', '1'))
+        self.max_runners = int(os.getenv('RUNNER_MAX_COUNT', '10'))
+        self.scale_up_threshold = int(os.getenv('RUNNER_SCALE_UP_THRESHOLD', '2'))
+        self.scale_down_threshold = int(os.getenv('RUNNER_SCALE_DOWN_THRESHOLD', '0'))
+        self.scale_cooldown = int(os.getenv('RUNNER_SCALE_COOLDOWN', '60'))
         
         # Runner configuration
         self.name_prefix = os.getenv('RUNNER_NAME_PREFIX', 'embeddenator-runner')
@@ -106,6 +116,16 @@ class RunnerConfig:
                             # Only set if not already in environment
                             if key not in os.environ:
                                 os.environ[key] = value
+    
+    def _get_default_api_url(self) -> str:
+        """Get default API URL based on platform"""
+        platform = os.getenv('GIT_PLATFORM', 'github').lower()
+        if platform == 'github':
+            return 'https://api.github.com'
+        elif platform == 'gitlab':
+            return 'https://gitlab.com'
+        else:
+            return ''  # Must be specified for Gitea/self-hosted
     
     def detect_architecture(self) -> str:
         """Detect system architecture"""
