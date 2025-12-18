@@ -39,8 +39,28 @@ class GPUDetector:
     INFERENCE_GPUS = {
         'nvidia': ['T4', 'A10', 'A16', 'A2', 'L4', 'L40'],
         'intel': ['Flex', 'Max', 'Arc A'],
-        'amd': ['MI210', 'MI250', 'MI300']
+        'amd': [
+            # Data Center / Professional
+            'MI210', 'MI250', 'MI300', 'MI100', 'MI60', 'MI50',
+            'Instinct',
+            # Prosumer / High-end Consumer (RDNA2 and newer)
+            'RX 6900', 'RX 6800', 'RX 6700',
+            'RX 7900', 'RX 7800', 'RX 7700', 'RX 7600',
+            # Professional Workstation
+            'Radeon Pro W6800', 'Radeon Pro W6900', 'Radeon Pro W7900',
+            'Radeon Pro V620', 'Radeon Pro V520',
+            # Consumer RDNA3
+            'RX 7950', 'RX 7800 XT', 'RX 7700 XT',
+        ]
     }
+    
+    # Consumer AMD GPUs with ROCm support (capable but not optimized for inference)
+    AMD_ROCM_CAPABLE = [
+        'RX 6950', 'RX 6900', 'RX 6800', 'RX 6750', 'RX 6700', 'RX 6650', 'RX 6600',
+        'RX 7900', 'RX 7800', 'RX 7700', 'RX 7600',
+        'Vega 64', 'Vega 56', 'Vega VII',
+        'Radeon VII'
+    ]
     
     # Apple Silicon optimization
     APPLE_CHIPS = ['M1', 'M2', 'M3']
@@ -147,10 +167,15 @@ class GPUDetector:
                         match = re.search(r':\s*(.+)', line)
                         if match:
                             name = match.group(1).strip()
+                            
+                            # Try to get memory info
+                            memory_mb = self._get_amd_memory_rocm(index)
+                            
                             gpu = GPUInfo(
                                 vendor='amd',
                                 name=name,
-                                index=index
+                                index=index,
+                                memory_mb=memory_mb
                             )
                             gpus.append(gpu)
                             index += 1
@@ -160,24 +185,59 @@ class GPUDetector:
             # Fallback to lspci
             try:
                 result = subprocess.run(
-                    ['lspci'], capture_output=True, text=True, timeout=10
+                    ['lspci', '-v'], capture_output=True, text=True, timeout=10
                 )
                 if result.returncode == 0:
                     index = 0
                     for line in result.stdout.split('\n'):
-                        if 'AMD' in line and ('VGA' in line or 'Display' in line or '3D' in line):
+                        # Look for AMD VGA/3D/Display controllers
+                        if 'AMD' in line and any(x in line for x in ['VGA', 'Display', '3D']):
                             # Extract GPU info from lspci
-                            match = re.search(r'AMD[^:]*:\s*(.+)', line)
-                            if match:
-                                name = match.group(1).strip()
-                                gpu = GPUInfo(
-                                    vendor='amd',
-                                    name=name,
-                                    index=index
-                                )
-                                gpus.append(gpu)
-                                index += 1
-                                self.logger.info(f"Detected AMD GPU: {name}")
+                            # Try to parse model name
+                            name = 'AMD GPU'
+                            
+                            # Look for specific patterns
+                            if 'Radeon RX' in line:
+                                match = re.search(r'Radeon RX\s+\d+\w*\s*\w*', line)
+                                if match:
+                                    name = match.group(0)
+                            elif 'Radeon VII' in line:
+                                name = 'Radeon VII'
+                            elif 'Vega' in line:
+                                if 'Vega 64' in line:
+                                    name = 'Vega 64'
+                                elif 'Vega 56' in line:
+                                    name = 'Vega 56'
+                                else:
+                                    name = 'Vega'
+                            elif 'Instinct' in line:
+                                match = re.search(r'Instinct\s+MI\d+\w*', line)
+                                if match:
+                                    name = match.group(0)
+                            elif 'Radeon Pro' in line:
+                                match = re.search(r'Radeon Pro\s+\w+\d+\w*', line)
+                                if match:
+                                    name = match.group(0)
+                            elif '[' in line and ']' in line:
+                                # Extract name from brackets
+                                match = re.search(r'\[([^\]]+)\]', line)
+                                if match:
+                                    bracket_name = match.group(1)
+                                    if 'Radeon' in bracket_name or 'RX' in bracket_name:
+                                        name = bracket_name
+                            
+                            # Try to get memory info from lspci -v output
+                            memory_mb = self._parse_amd_memory_lspci(result.stdout, line)
+                            
+                            gpu = GPUInfo(
+                                vendor='amd',
+                                name=name,
+                                index=index,
+                                memory_mb=memory_mb
+                            )
+                            gpus.append(gpu)
+                            index += 1
+                            self.logger.info(f"Detected AMD GPU: {name}")
             except Exception as e:
                 self.logger.debug(f"lspci check failed: {e}")
         
@@ -185,6 +245,57 @@ class GPUDetector:
             self.logger.warning(f"Error detecting AMD GPUs: {e}")
         
         return gpus
+    
+    def _get_amd_memory_rocm(self, gpu_index: int) -> int:
+        """Get AMD GPU memory using rocm-smi"""
+        try:
+            result = subprocess.run(
+                ['rocm-smi', '--showmeminfo', 'vram', '--gpu', str(gpu_index)],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                # Parse memory from output
+                for line in result.stdout.split('\n'):
+                    if 'Total' in line or 'VRAM' in line:
+                        # Extract memory size (usually in MB or GB)
+                        match = re.search(r'(\d+)\s*(MB|GB)', line, re.IGNORECASE)
+                        if match:
+                            size = int(match.group(1))
+                            unit = match.group(2).upper()
+                            if unit == 'GB':
+                                return size * 1024
+                            return size
+        except Exception:
+            pass
+        return 0
+    
+    def _parse_amd_memory_lspci(self, lspci_output: str, device_line: str) -> int:
+        """Parse AMD GPU memory from lspci verbose output"""
+        try:
+            # Find the memory line after the device
+            lines = lspci_output.split('\n')
+            device_idx = lines.index(device_line)
+            
+            # Look at the next few lines for memory info
+            for i in range(device_idx + 1, min(device_idx + 10, len(lines))):
+                line = lines[i]
+                if 'Memory at' in line and 'prefetchable' in line:
+                    # Extract size from memory range
+                    match = re.search(r'\[size=(\d+)([KMG])\]', line)
+                    if match:
+                        size = int(match.group(1))
+                        unit = match.group(2)
+                        if unit == 'G':
+                            return size * 1024
+                        elif unit == 'M':
+                            return size
+                        elif unit == 'K':
+                            return size // 1024
+        except Exception:
+            pass
+        return 0
     
     def _detect_intel_gpus(self) -> List[GPUInfo]:
         """Detect Intel GPUs using xpu-smi or lspci"""
@@ -311,15 +422,48 @@ class GPUDetector:
         
         # AMD classification
         elif gpu.vendor == 'amd':
-            # ROCm 5.0+ supports MI series and some RX 6000+
-            gpu.is_inference_capable = True
+            # ROCm 5.0+ supports many consumer and professional cards
+            # Check for inference-optimized models
+            is_inference_optimized = False
+            is_training_ready = False
+            
             for inference_model in self.INFERENCE_GPUS['amd']:
                 if inference_model in gpu.name:
-                    gpu.is_training_capable = True
+                    gpu.is_inference_capable = True
+                    is_inference_optimized = True
+                    # MI series and Pro series are training ready
+                    if 'MI' in gpu.name or 'Pro' in gpu.name or 'Instinct' in gpu.name:
+                        gpu.is_training_capable = True
+                        is_training_ready = True
                     break
-            # RX 6000 and 7000 series support inference
-            if 'RX 6' in gpu.name or 'RX 7' in gpu.name:
+            
+            # Check ROCm-capable consumer cards
+            if not is_inference_optimized:
+                for rocm_model in self.AMD_ROCM_CAPABLE:
+                    if rocm_model in gpu.name:
+                        gpu.is_inference_capable = True
+                        # RDNA2 (6000 series) and RDNA3 (7000 series) support training
+                        if any(x in gpu.name for x in ['RX 6', 'RX 7', 'Vega', 'VII']):
+                            gpu.is_training_capable = True
+                        break
+            
+            # Additional checks for specific series
+            if 'RDNA' in gpu.name.upper() or 'RDNA2' in gpu.name.upper() or 'RDNA3' in gpu.name.upper():
                 gpu.is_inference_capable = True
+                gpu.is_training_capable = True
+            
+            # Vega architecture and newer support inference
+            if 'Vega' in gpu.name or 'VII' in gpu.name:
+                gpu.is_inference_capable = True
+                gpu.is_training_capable = True
+            
+            # Check for minimum memory (4GB for inference, 8GB for training)
+            if gpu.memory_mb > 0:
+                if gpu.memory_mb < 4096:
+                    gpu.is_inference_capable = False
+                    gpu.is_training_capable = False
+                elif gpu.memory_mb < 8192:
+                    gpu.is_training_capable = False
         
         # Intel classification
         elif gpu.vendor == 'intel':
@@ -377,6 +521,23 @@ class GPUDetector:
         elif gpu.vendor == 'amd':
             if 'MI' in gpu.name:
                 labels.append('mi-series')
+                # Add specific MI model
+                if 'MI300' in gpu.name:
+                    labels.append('mi300')
+                elif 'MI250' in gpu.name:
+                    labels.append('mi250')
+                elif 'MI210' in gpu.name:
+                    labels.append('mi210')
+            elif 'RX 7' in gpu.name:
+                labels.append('rdna3')
+                labels.append('rx7000')
+            elif 'RX 6' in gpu.name:
+                labels.append('rdna2')
+                labels.append('rx6000')
+            elif 'Vega' in gpu.name or 'VII' in gpu.name:
+                labels.append('vega')
+            elif 'Radeon Pro' in gpu.name:
+                labels.append('radeon-pro')
         
         elif gpu.vendor == 'intel':
             if 'Arc' in gpu.name:

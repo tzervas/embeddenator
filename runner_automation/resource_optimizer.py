@@ -91,9 +91,19 @@ class ResourceOptimizer:
     RECOMMENDED_HOST_CPU_PERCENT = 20  # Reserve 20% for host
     RECOMMENDED_HOST_MEMORY_PERCENT = 15  # Reserve 15% for host
     
-    # Intel Xeon E5-2660 v3/v4 specific optimizations
-    XEON_E5_2660_CORES = 10  # per CPU
-    XEON_E5_2660_THREADS = 20  # with HT
+    # Intel Xeon E5-26xx Haswell (14-core) specific optimizations
+    XEON_E5_26XX_HASWELL_CORES = 14  # per CPU (E5-2680 v3, E5-2697 v3, etc.)
+    XEON_E5_26XX_HASWELL_THREADS = 28  # with HT
+    
+    # Common Haswell Xeon E5-26xx models
+    HASWELL_XEON_MODELS = [
+        'E5-2680 v3',  # 12-core
+        'E5-2683 v3',  # 14-core
+        'E5-2695 v3',  # 14-core
+        'E5-2697 v3',  # 14-core
+        'E5-2698 v3',  # 16-core
+        'E5-2699 v3',  # 18-core
+    ]
     
     def __init__(self, logger: logging.Logger):
         """
@@ -166,10 +176,24 @@ class ResourceOptimizer:
         
         return info
     
-    def is_xeon_e5_2660(self) -> bool:
-        """Check if running on Intel Xeon E5-2660 v3 or v4"""
+    def is_haswell_xeon_e5_26xx(self) -> bool:
+        """Check if running on Intel Xeon E5-26xx Haswell (v3)"""
         model = self.cpu_info.model.lower()
-        return 'e5-2660' in model and ('v3' in model or 'v4' in model)
+        
+        # Check for E5-26xx v3 (Haswell)
+        if 'e5-26' in model and 'v3' in model:
+            return True
+        
+        # Check for specific Haswell models
+        for haswell_model in self.HASWELL_XEON_MODELS:
+            if haswell_model.lower() in model:
+                return True
+        
+        # Check for 14-core Haswell characteristics
+        if self.cpu_info.is_xeon and self.cpu_info.cores_physical == 14:
+            return True
+        
+        return False
     
     def calculate_optimal_resources(self, runner_count: int, 
                                    enable_optimization: bool = True,
@@ -217,13 +241,21 @@ class ResourceOptimizer:
         cpu_per_runner = max(1, available_cpu // runner_count)
         memory_per_runner = max(1, available_memory / runner_count)
         
-        # Special optimization for Xeon E5-2660 v3/v4
-        if self.is_xeon_e5_2660():
-            self.logger.info("Detected Intel Xeon E5-2660 v3/v4 - applying optimizations")
-            # With dual socket, we have 20 physical cores (40 threads)
-            # Optimal is to use physical cores, not hyperthreads for compute
-            cpu_per_runner = min(cpu_per_runner, 4)  # 4 physical cores per runner
-            self.logger.info(f"  Xeon optimization: {cpu_per_runner} cores per runner")
+        # Special optimization for Haswell Xeon E5-26xx (14-core)
+        if self.is_haswell_xeon_e5_26xx():
+            self.logger.info("Detected Intel Xeon E5-26xx Haswell (14-core) - applying optimizations")
+            # With dual socket, we have 28 physical cores (56 threads)
+            # Optimal is to use physical cores, not hyperthreads for compute-heavy workloads
+            # For 14-core Haswell, 4-6 cores per runner is optimal
+            if runner_count <= 4:
+                # With 4 or fewer runners, give each 6 cores
+                cpu_per_runner = min(cpu_per_runner, 6)
+            else:
+                # With more runners, give each 4 cores
+                cpu_per_runner = min(cpu_per_runner, 4)
+            
+            self.logger.info(f"  Haswell Xeon optimization: {cpu_per_runner} cores per runner")
+            self.logger.info(f"  Total cores: {self.cpu_info.cores_physical}, Using physical cores only")
         
         # Apple Silicon optimization
         if self.cpu_info.is_apple_silicon:
@@ -252,7 +284,7 @@ class ResourceOptimizer:
             'gpu_per_runner': gpu_per_runner,
             'optimization_enabled': True,
             'cpu_model': self.cpu_info.model,
-            'is_xeon_e5_2660': self.is_xeon_e5_2660(),
+            'is_haswell_xeon_e5_26xx': self.is_haswell_xeon_e5_26xx(),
             'is_apple_silicon': self.cpu_info.is_apple_silicon
         }
         
