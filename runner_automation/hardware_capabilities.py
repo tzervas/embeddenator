@@ -203,57 +203,82 @@ GPU_CONFIGURATIONS = {
         # Data Center / Professional
         'data_center': {
             'models': [
+                # Blackwell (2024+)
+                {'name': 'B200', 'memory_gb': 192, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
+                {'name': 'B100', 'memory_gb': 192, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
+                {'name': 'GB200', 'memory_gb': 192, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
                 # Hopper (2022+)
-                {'name': 'H100', 'memory_gb': 80, 'compute': 9.0, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'H800', 'memory_gb': 80, 'compute': 9.0, 'tensor_cores': True, 'inference': True, 'training': True},
+                {'name': 'H200', 'memory_gb': 141, 'compute': 9.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Hopper'},
+                {'name': 'H100', 'memory_gb': 80, 'compute': 9.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Hopper'},
+                {'name': 'H800', 'memory_gb': 80, 'compute': 9.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Hopper'},
                 # Ampere (2020+)
-                {'name': 'A100', 'memory_gb': 80, 'compute': 8.0, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'A40', 'memory_gb': 48, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'A30', 'memory_gb': 24, 'compute': 8.0, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'A10', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False},
-                {'name': 'A16', 'memory_gb': 16, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False},
-                {'name': 'A2', 'memory_gb': 16, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False},
+                {'name': 'A100', 'memory_gb': 80, 'compute': 8.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'A40', 'memory_gb': 48, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'A30', 'memory_gb': 24, 'compute': 8.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'A10', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
+                {'name': 'A16', 'memory_gb': 16, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
+                {'name': 'A2', 'memory_gb': 16, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
                 # Inference Optimized
-                {'name': 'T4', 'memory_gb': 16, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': False},
-                {'name': 'L4', 'memory_gb': 24, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False},
-                {'name': 'L40', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'L40S', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
+                {'name': 'T4', 'memory_gb': 16, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Turing'},
+                {'name': 'L4', 'memory_gb': 24, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ada Lovelace'},
+                {'name': 'L40', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'L40S', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
             ],
         },
         # Professional / Workstation
         'professional': {
             'models': [
+                # RTX Blackwell (2025+)
+                {'name': 'RTX 6000 Blackwell', 'memory_gb': 48, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
+                {'name': 'RTX 5000 Blackwell', 'memory_gb': 32, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
                 # RTX Ada Generation
-                {'name': 'RTX 6000 Ada', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 5880 Ada', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 5000 Ada', 'memory_gb': 32, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 4500 Ada', 'memory_gb': 24, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 4000 Ada', 'memory_gb': 20, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False},
+                {'name': 'RTX 6000 Ada', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 5880 Ada', 'memory_gb': 48, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 5000 Ada', 'memory_gb': 32, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4500 Ada', 'memory_gb': 24, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4000 Ada', 'memory_gb': 20, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ada Lovelace'},
                 # RTX Ampere Generation
-                {'name': 'RTX A6000', 'memory_gb': 48, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX A5500', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX A5000', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX A4500', 'memory_gb': 20, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX A4000', 'memory_gb': 16, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False},
-                {'name': 'RTX A2000', 'memory_gb': 12, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False},
+                {'name': 'RTX A6000', 'memory_gb': 48, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX A5500', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX A5000', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX A4500', 'memory_gb': 20, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX A4000', 'memory_gb': 16, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
+                {'name': 'RTX A2000', 'memory_gb': 12, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
                 # Quadro (Legacy Professional)
-                {'name': 'Quadro RTX 8000', 'memory_gb': 48, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'Quadro RTX 6000', 'memory_gb': 24, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'Quadro RTX 5000', 'memory_gb': 16, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': False},
+                {'name': 'Quadro RTX 8000', 'memory_gb': 48, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Turing'},
+                {'name': 'Quadro RTX 6000', 'memory_gb': 24, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Turing'},
+                {'name': 'Quadro RTX 5000', 'memory_gb': 16, 'compute': 7.5, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Turing'},
             ],
         },
         # Consumer / Gaming
         'consumer': {
             'models': [
-                # RTX 40 Series (Ada Lovelace)
-                {'name': 'RTX 4090', 'memory_gb': 24, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 4080', 'memory_gb': 16, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 4070', 'memory_gb': 12, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False},
-                # RTX 30 Series (Ampere)
-                {'name': 'RTX 3090', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 3080', 'memory_gb': 12, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True},
-                {'name': 'RTX 3070', 'memory_gb': 8, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False},
-                {'name': 'RTX 3060', 'memory_gb': 12, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False},
+                # RTX 50 Series (Blackwell) - 2025
+                {'name': 'RTX 5090', 'memory_gb': 32, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
+                {'name': 'RTX 5080', 'memory_gb': 16, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
+                {'name': 'RTX 5070 Ti', 'memory_gb': 16, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Blackwell'},
+                {'name': 'RTX 5070', 'memory_gb': 12, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Blackwell'},
+                {'name': 'RTX 5060 Ti', 'memory_gb': 16, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Blackwell'},
+                {'name': 'RTX 5060', 'memory_gb': 8, 'compute': 10.0, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Blackwell'},
+                # RTX 40 Series (Ada Lovelace) - 2022
+                {'name': 'RTX 4090', 'memory_gb': 24, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4080 Super', 'memory_gb': 16, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4080', 'memory_gb': 16, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4070 Ti Super', 'memory_gb': 16, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4070 Ti', 'memory_gb': 12, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4070 Super', 'memory_gb': 12, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4070', 'memory_gb': 12, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4060 Ti', 'memory_gb': 16, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ada Lovelace'},
+                {'name': 'RTX 4060', 'memory_gb': 8, 'compute': 8.9, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ada Lovelace'},
+                # RTX 30 Series (Ampere) - 2020
+                {'name': 'RTX 3090 Ti', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX 3090', 'memory_gb': 24, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX 3080 Ti', 'memory_gb': 12, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX 3080', 'memory_gb': 12, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': True, 'generation': 'Ampere'},
+                {'name': 'RTX 3070 Ti', 'memory_gb': 8, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
+                {'name': 'RTX 3070', 'memory_gb': 8, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
+                {'name': 'RTX 3060 Ti', 'memory_gb': 8, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
+                {'name': 'RTX 3060', 'memory_gb': 12, 'compute': 8.6, 'tensor_cores': True, 'inference': True, 'training': False, 'generation': 'Ampere'},
             ],
         },
     },
