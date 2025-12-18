@@ -84,7 +84,8 @@ class RunnerConfig:
         self.ephemeral = os.getenv('RUNNER_EPHEMERAL', 'false').lower() == 'true'
         self.replace_existing = os.getenv('RUNNER_REPLACE_EXISTING', 'false').lower() == 'true'
         self.disable_auto_update = os.getenv('RUNNER_DISABLE_AUTO_UPDATE', 'false').lower() == 'true'
-        self.additional_flags = os.getenv('RUNNER_ADDITIONAL_FLAGS', '').split()
+        additional_flags_str = os.getenv('RUNNER_ADDITIONAL_FLAGS', '').strip()
+        self.additional_flags = additional_flags_str.split() if additional_flags_str else []
         
         # Cleanup
         self.clean_on_deregister = os.getenv('RUNNER_CLEAN_ON_DEREGISTER', 'true').lower() == 'true'
@@ -582,17 +583,15 @@ class RunnerManager:
         self.logger.info("Cleaning up Docker resources...")
         
         try:
-            # Check disk space
-            result = subprocess.run(['df', '-BG', '/'], capture_output=True, text=True)
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                if len(lines) > 1:
-                    parts = lines[1].split()
-                    if len(parts) >= 4:
-                        available = int(parts[3].rstrip('G'))
-                        if available < self.config.docker_cleanup_threshold_gb:
-                            self.logger.warning(f"Low disk space: {available}GB, running Docker cleanup")
-                            subprocess.run(['docker', 'system', 'prune', '-a', '-f'], check=False)
+            # Check disk space using shutil for cross-platform compatibility
+            disk_usage = shutil.disk_usage('/')
+            available_gb = disk_usage.free / (1024**3)
+            
+            if available_gb < self.config.docker_cleanup_threshold_gb:
+                self.logger.warning(f"Low disk space: {available_gb:.1f}GB, running Docker cleanup")
+                subprocess.run(['docker', 'system', 'prune', '-a', '-f'], check=False)
+            else:
+                self.logger.debug(f"Disk space OK: {available_gb:.1f}GB available")
         except Exception as e:
             self.logger.warning(f"Docker cleanup failed: {e}")
     
