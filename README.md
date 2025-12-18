@@ -442,6 +442,93 @@ Three separate workflows eliminate duplication and provide clear responsibilitie
 
 See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 setup guide.
 
+### Self-Hosted Runner Automation
+
+Embeddenator includes a comprehensive Python-based automation system for managing GitHub Actions self-hosted runners with complete lifecycle management:
+
+**Features:**
+- ✨ Automated registration with short-lived tokens
+- 🔄 Complete lifecycle management (register → run → deregister)
+- ⏱️ Configurable auto-deregistration after idle timeout
+- 🎯 Manual mode for persistent runners
+- 🚀 Multi-runner deployment support
+- 📊 Health monitoring and status reporting
+- 🧹 Automatic cleanup of Docker resources
+- ⚙️ Flexible configuration via .env file or CLI arguments
+
+**Quick Start:**
+
+```bash
+# 1. Copy and configure environment file
+cp .env.example .env
+# Edit .env and set GITHUB_REPOSITORY and GITHUB_TOKEN
+
+# 2. Run in auto mode (registers, starts, monitors, auto-deregisters when idle)
+python3 runner_manager.py run
+
+# 3. Or use manual mode (keeps running until stopped)
+RUNNER_MODE=manual python3 runner_manager.py run
+```
+
+**Individual Commands:**
+
+```bash
+# Register runner(s)
+python3 runner_manager.py register
+
+# Start runner service(s)
+python3 runner_manager.py start
+
+# Monitor and manage lifecycle
+python3 runner_manager.py monitor
+
+# Check status
+python3 runner_manager.py status
+
+# Stop and deregister
+python3 runner_manager.py stop
+```
+
+**Advanced Usage:**
+
+```bash
+# Deploy multiple runners
+python3 runner_manager.py run --runner-count 4
+
+# Custom labels
+python3 runner_manager.py register --labels self-hosted,linux,ARM64,large
+
+# Auto-deregister after 10 minutes of inactivity
+RUNNER_IDLE_TIMEOUT=600 python3 runner_manager.py run
+```
+
+**Configuration Options:**
+
+Key environment variables (see `.env.example` for full list):
+- `GITHUB_REPOSITORY` - Repository to register runners for (required)
+- `GITHUB_TOKEN` - Personal access token with repo scope (required)
+- `RUNNER_MODE` - Deployment mode: `auto` (default) or `manual`
+- `RUNNER_IDLE_TIMEOUT` - Auto-deregister timeout in seconds (default: 300)
+- `RUNNER_COUNT` - Number of runners to deploy (default: 1)
+- `RUNNER_LABELS` - Comma-separated runner labels
+- `RUNNER_EPHEMERAL` - Enable ephemeral runners (deregister after one job)
+
+See `.env.example` for complete configuration documentation.
+
+**Deployment Modes:**
+
+1. **Auto Mode** (default): Runners automatically deregister after being idle for a specified timeout
+   - Perfect for cost optimization
+   - Ideal for CI/CD pipelines with sporadic builds
+   - Runners terminate when queue is empty
+
+2. **Manual Mode**: Runners keep running until manually stopped
+   - Best for development environments
+   - Useful for persistent infrastructure
+   - Explicit control over runner lifecycle
+
+See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 setup guide.
+
 ### Project Structure
 
 ```
@@ -456,6 +543,8 @@ embeddenator/
 ├── Dockerfile.tool             # Static binary packaging
 ├── Dockerfile.holographic      # Holographic OS container
 ├── orchestrator.py             # Unified build/test/deploy
+├── runner_manager.py           # Self-hosted runner automation (NEW)
+├── .env.example                # Runner configuration template (NEW)
 ├── ci_build_monitor.sh         # CI hang detection and monitoring
 ├── generate_docs.sh            # Documentation generation
 ├── .github/
