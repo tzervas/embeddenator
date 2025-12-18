@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Runner Manager Module
 
@@ -14,6 +13,7 @@ from datetime import datetime
 from typing import Dict, List
 
 from .runner import Runner
+from .emulation import EmulationManager
 
 
 class RunnerManager:
@@ -33,6 +33,7 @@ class RunnerManager:
         self.github.logger = self.logger  # Update GitHub API logger
         self.runners: List[Runner] = []
         self.shutdown_requested = False
+        self.emulation_mgr = EmulationManager(self.logger)
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self._handle_shutdown)
@@ -79,19 +80,50 @@ class RunnerManager:
         """
         self.logger.info(f"Registering {self.config.runner_count} runner(s)...")
         
-        for i in range(1, self.config.runner_count + 1):
-            runner = Runner(self.config, self.github, self.logger, runner_id=i)
+        # Setup emulation if needed
+        if self.config.enable_emulation:
+            self.logger.info("Checking emulation requirements...")
+            for target_arch in self.config.target_archs:
+                if self.emulation_mgr.is_emulation_needed(target_arch, self.config.arch):
+                    self.logger.info(f"Emulation needed for {target_arch} on {self.config.arch}")
+                    if not self.emulation_mgr.setup_emulation(target_arch, self.config.arch):
+                        if not self.config.emulation_auto_install:
+                            self.logger.error(f"Emulation setup failed for {target_arch}")
+                            self.logger.error("Set RUNNER_EMULATION_AUTO_INSTALL=true to auto-install QEMU")
+                            return False
+                        else:
+                            self.logger.error(f"Emulation setup failed for {target_arch} even with auto-install")
+                            return False
+                else:
+                    self.logger.info(f"No emulation needed for {target_arch} on {self.config.arch}")
+        
+        # Determine which architectures to deploy
+        archs_to_deploy = self.config.target_archs if self.config.target_archs else [self.config.arch]
+        runners_per_arch = self.config.runner_count // len(archs_to_deploy)
+        remainder = self.config.runner_count % len(archs_to_deploy)
+        
+        runner_id = 1
+        for arch_idx, arch in enumerate(archs_to_deploy):
+            # Distribute remainder across first architectures
+            count_for_arch = runners_per_arch + (1 if arch_idx < remainder else 0)
             
-            if not runner.register():
-                self.logger.error(f"Failed to register runner {i}")
-                return False
+            self.logger.info(f"Deploying {count_for_arch} runner(s) for {arch}")
             
-            self.runners.append(runner)
-            
-            # Stagger deployments if sequential
-            if self.config.deployment_strategy == 'sequential' and i < self.config.runner_count:
-                self.logger.info(f"Waiting {self.config.deployment_stagger}s before next runner...")
-                time.sleep(self.config.deployment_stagger)
+            for i in range(count_for_arch):
+                # Create runner with specific architecture
+                runner = Runner(self.config, self.github, self.logger, runner_id=runner_id, target_arch=arch)
+                
+                if not runner.register():
+                    self.logger.error(f"Failed to register runner {runner_id} ({arch})")
+                    return False
+                
+                self.runners.append(runner)
+                runner_id += 1
+                
+                # Stagger deployments if sequential
+                if self.config.deployment_strategy == 'sequential' and runner_id <= self.config.runner_count:
+                    self.logger.info(f"Waiting {self.config.deployment_stagger}s before next runner...")
+                    time.sleep(self.config.deployment_stagger)
         
         self.logger.info("All runners registered successfully")
         return True

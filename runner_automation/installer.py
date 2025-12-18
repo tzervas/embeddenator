@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Runner Installer Module
 
@@ -18,7 +17,9 @@ class RunnerInstaller:
     
     RUNNER_DOWNLOAD_URLS = {
         'x64': 'https://github.com/actions/runner/releases/download/v{version}/actions-runner-linux-x64-{version}.tar.gz',
-        'arm64': 'https://github.com/actions/runner/releases/download/v{version}/actions-runner-linux-arm64-{version}.tar.gz'
+        'arm64': 'https://github.com/actions/runner/releases/download/v{version}/actions-runner-linux-arm64-{version}.tar.gz',
+        # Note: RISC-V runners may not be officially available yet, fallback to x64 with emulation
+        'riscv64': 'https://github.com/actions/runner/releases/download/v{version}/actions-runner-linux-x64-{version}.tar.gz'
     }
     
     def __init__(self, config, logger: logging.Logger):

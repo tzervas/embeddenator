@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Runner Configuration Module
 
@@ -49,7 +48,12 @@ class RunnerConfig:
         self.install_dir = Path(os.getenv('RUNNER_INSTALL_DIR', './actions-runner'))
         self.version = os.getenv('RUNNER_VERSION', 'latest')
         self.fallback_version = os.getenv('RUNNER_FALLBACK_VERSION', '2.319.0')
+        
+        # Architecture configuration
         self.arch = os.getenv('RUNNER_ARCH', '') or self.detect_architecture()
+        self.target_archs = self._parse_target_architectures()
+        self.enable_emulation = os.getenv('RUNNER_ENABLE_EMULATION', 'true').lower() == 'true'
+        self.emulation_auto_install = os.getenv('RUNNER_EMULATION_AUTO_INSTALL', 'false').lower() == 'true'
         
         # Logging
         self.log_level = os.getenv('LOG_LEVEL', 'INFO')
@@ -97,8 +101,27 @@ class RunnerConfig:
             return 'x64'
         elif machine in ('arm64', 'aarch64'):
             return 'arm64'
+        elif machine in ('riscv64',):
+            return 'riscv64'
         else:
             return 'x64'  # Default
+    
+    def _parse_target_architectures(self) -> List[str]:
+        """
+        Parse target architectures from environment
+        
+        Returns:
+            List of target architectures to deploy
+        """
+        target_archs_str = os.getenv('RUNNER_TARGET_ARCHITECTURES', '').strip()
+        
+        if target_archs_str:
+            # Parse comma-separated list
+            archs = [arch.strip() for arch in target_archs_str.split(',')]
+            return archs
+        else:
+            # Default to host architecture only
+            return [self.arch]
     
     def validate(self) -> List[str]:
         """Validate configuration and return list of errors"""

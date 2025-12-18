@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Runner Module
 
@@ -18,7 +17,7 @@ from .installer import RunnerInstaller
 class Runner:
     """Manage individual runner lifecycle"""
     
-    def __init__(self, config, github_api, logger: logging.Logger, runner_id: int = 1):
+    def __init__(self, config, github_api, logger: logging.Logger, runner_id: int = 1, target_arch: Optional[str] = None):
         """
         Initialize runner
         
@@ -27,13 +26,15 @@ class Runner:
             github_api: GitHubAPI instance
             logger: Logger instance
             runner_id: Unique ID for this runner
+            target_arch: Target architecture (overrides config.arch if provided)
         """
         self.config = config
         self.github = github_api
         self.logger = logger
         self.runner_id = runner_id
-        self.name = f"{config.name_prefix}-{runner_id}"
-        self.install_dir = config.install_dir.parent / f"{config.install_dir.name}-{runner_id}"
+        self.target_arch = target_arch or config.arch
+        self.name = f"{config.name_prefix}-{self.target_arch}-{runner_id}"
+        self.install_dir = config.install_dir.parent / f"{config.install_dir.name}-{self.target_arch}-{runner_id}"
         self.process = None
         self.start_time = None
         self.last_activity = None
@@ -45,11 +46,17 @@ class Runner:
         Returns:
             True if successful, False otherwise
         """
-        self.logger.info(f"Registering runner: {self.name}")
+        self.logger.info(f"Registering runner: {self.name} ({self.target_arch})")
         
-        # Install runner if needed
+        # Install runner if needed - pass target_arch to installer
         installer = RunnerInstaller(self.config, self.logger)
-        if not installer.install(self.install_dir):
+        # Temporarily override config arch for this specific runner
+        original_arch = self.config.arch
+        self.config.arch = self.target_arch
+        success = installer.install(self.install_dir)
+        self.config.arch = original_arch
+        
+        if not success:
             return False
         
         # Get registration token
