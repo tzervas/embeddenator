@@ -100,8 +100,13 @@ class RunnerConfig:
                     line = line.strip()
                     if line and not line.startswith('#') and '=' in line:
                         key, value = line.split('=', 1)
-                        if key and not os.getenv(key):
-                            os.environ[key] = value
+                        key = key.strip()
+                        value = value.strip()
+                        if key and value:
+                            # Always load from .env, but environment variables take precedence
+                            # Only set if not already in environment
+                            if key not in os.environ:
+                                os.environ[key] = value
     
     def detect_architecture(self) -> str:
         """Detect system architecture"""
