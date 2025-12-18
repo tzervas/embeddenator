@@ -35,3 +35,14 @@ manifest.json
 __pycache__/
 *.py[cod]
 *$py.class
+runner_automation/__pycache__/
+
+# Environment and secrets
+.env
+.env.local
+
+# Runner manager
+actions-runner*/
+runner_manager.log
+runner_metrics.json
+*.runner.json
