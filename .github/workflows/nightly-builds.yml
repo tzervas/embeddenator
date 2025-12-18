@@ -1,0 +1,192 @@
+name: Nightly Holographic OS Builds
+
+on:
+  schedule:
+    # Run at 2 AM UTC daily
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force_build_all:
+        description: 'Force build all targets (including LTS)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-nightly:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Debian Testing/Sid nightly builds
+          - config: debian-testing-amd64
+            os: debian
+            version: testing
+            arch: amd64
+          - config: debian-testing-arm64
+            os: debian
+            version: testing
+            arch: arm64
+          - config: debian-sid-amd64
+            os: debian
+            version: sid
+            arch: amd64
+          - config: debian-sid-arm64
+            os: debian
+            version: sid
+            arch: arm64
+          # Ubuntu Testing/Rolling nightly builds
+          - config: ubuntu-testing-amd64
+            os: ubuntu
+            version: devel
+            arch: amd64
+          - config: ubuntu-testing-arm64
+            os: ubuntu
+            version: devel
+            arch: arm64
+          - config: ubuntu-rolling-amd64
+            os: ubuntu
+            version: rolling
+            arch: amd64
+          - config: ubuntu-rolling-arm64
+            os: ubuntu
+            version: rolling
+            arch: arm64
+      fail-fast: false
+      max-parallel: 4
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          NIGHTLY_TAG="${VERSION}-nightly-$(date +%Y%m%d)"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "nightly_tag=$NIGHTLY_TAG" >> $GITHUB_OUTPUT
+          echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+      
+      - name: Build Embeddenator tool with nightly
+        run: cargo +nightly build --release --verbose
+      
+      - name: Build holographic OS image (nightly)
+        run: |
+          python3 build_holographic_os.py \
+            --os ${{ matrix.config }} \
+            --registry ghcr.io \
+            --repo ${{ github.repository_owner }}/embeddenator \
+            --tag-suffix "-nightly" \
+            --verbose
+      
+      - name: Tag and push nightly image
+        run: |
+          CONFIG="${{ matrix.config }}"
+          NIGHTLY_TAG="${{ steps.version.outputs.nightly_tag }}"
+          DATE_TAG="${{ steps.version.outputs.version }}-nightly-${{ steps.version.outputs.date }}"
+          
+          # Tag with dated nightly tag
+          docker tag "embeddenator-holographic-${CONFIG}:latest" \
+            "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:${DATE_TAG}"
+          
+          # Tag as latest nightly
+          docker tag "embeddenator-holographic-${CONFIG}:latest" \
+            "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:nightly"
+          
+          # Push both tags
+          docker push "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:${DATE_TAG}"
+          docker push "ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:nightly"
+      
+      - name: Generate build metadata
+        run: |
+          CONFIG="${{ matrix.config }}"
+          cat > "nightly-metadata-${CONFIG}.json" <<EOF
+          {
+            "image": "embeddenator-holographic-${CONFIG}",
+            "version": "${{ steps.version.outputs.nightly_tag }}",
+            "os": "${{ matrix.os }}",
+            "os_version": "${{ matrix.version }}",
+            "arch": "${{ matrix.arch }}",
+            "build_type": "nightly",
+            "rust_toolchain": "nightly",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "build_date": "${{ steps.version.outputs.date }}",
+            "repository": "${{ github.repository }}",
+            "commit": "${{ github.sha }}"
+          }
+          EOF
+      
+      - name: Upload metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-metadata-${{ matrix.config }}
+          path: nightly-metadata-*.json
+          retention-days: 90
+
+  summary:
+    needs: [build-nightly]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all metadata
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nightly-metadata-*
+          merge-multiple: true
+      
+      - name: Generate nightly build summary
+        run: |
+          echo "# Nightly Holographic OS Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Date:** $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Time:** $(date -u +%H:%M:%S) UTC" >> $GITHUB_STEP_SUMMARY
+          echo "**Rust Toolchain:** nightly" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Built Nightly Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          for metadata in nightly-metadata-*.json; do
+            if [ -f "$metadata" ]; then
+              CONFIG=$(jq -r '.image' "$metadata" | sed 's/embeddenator-holographic-//')
+              OS=$(jq -r '.os' "$metadata")
+              VERSION=$(jq -r '.os_version' "$metadata")
+              ARCH=$(jq -r '.arch' "$metadata")
+              BUILD_VER=$(jq -r '.version' "$metadata")
+              
+              echo "- ✅ **${CONFIG}** (${OS}:${VERSION} ${ARCH})" >> $GITHUB_STEP_SUMMARY
+              echo "  - Version: \`${BUILD_VER}\`" >> $GITHUB_STEP_SUMMARY
+              echo "  - Tag: \`ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-${CONFIG}:nightly\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Usage" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Pull nightly images with:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository_owner }}/embeddenator-holographic-<config>:nightly" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Nightly builds use the latest Rust nightly toolchain and latest OS packages from testing/sid/devel branches." >> $GITHUB_STEP_SUMMARY
