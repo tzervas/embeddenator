@@ -20,6 +20,20 @@ This guide covers setting up self-hosted GitHub Actions runners for building ARM
 - **Total Resources:** 16 cores, 24GB RAM, 120GB disk
 - **Best for:** Distributing load across multiple VMs/containers
 
+### Option 3: Native ARM64 Hardware Options
+
+#### Cloud Providers:
+- **AWS Graviton (t4g/c7g):** Cost-effective ARM64 instances
+- **Oracle Cloud ARM:** Free tier available with Ampere CPUs
+- **Azure Dpsv5:** ARM64-based VMs
+- **Google Cloud Tau T2A:** ARM64 instances
+
+#### On-Premise/Edge:
+- **Raspberry Pi 5:** 4-8GB RAM, suitable for light workloads
+- **Rock5 Model B:** Up to 32GB RAM, powerful SBC
+- **NVIDIA Jetson:** GPU-enabled ARM64 (future use)
+- **Apple Silicon (M1/M2/M3):** Via macOS runners (requires additional setup)
+
 ## Setup Instructions
 
 ### QEMU Emulation Setup (x86_64 Host)
@@ -187,6 +201,178 @@ Make it executable:
 sudo chmod +x /etc/cron.daily/docker-cleanup
 ```
 
+## Automated Runner Management (Recommended)
+
+The Embeddenator project includes a comprehensive Python-based automation system that handles runner lifecycle management automatically. This is the **recommended approach** for production deployments.
+
+### Why Use Automation?
+
+✅ **Automatic registration** with short-lived tokens  
+✅ **Health monitoring** and auto-recovery  
+✅ **Auto-scaling** with idle timeout  
+✅ **Multi-runner coordination**  
+✅ **Zero manual intervention** required  
+
+### Quick Start with runner_manager.py
+
+#### 1. Configure Environment
+```bash
+# In the embeddenator repository root
+cp .env.example .env
+
+# Edit .env and set:
+GITHUB_REPOSITORY=tzervas/embeddenator
+GITHUB_TOKEN=ghp_your_personal_access_token
+RUNNER_LABELS=self-hosted,linux,ARM64
+RUNNER_TARGET_ARCHITECTURES=arm64
+```
+
+#### 2. Run in Auto Mode (Cost Optimized)
+```bash
+# Single runner with auto-deregistration after 5 minutes idle
+python3 runner_manager.py run
+
+# Multiple runners for parallel builds
+RUNNER_COUNT=4 python3 runner_manager.py run
+```
+
+#### 3. Run in Manual Mode (Persistent)
+```bash
+# Keep runner alive until manually stopped
+RUNNER_MODE=manual python3 runner_manager.py run
+```
+
+### Configuration Options
+
+Key environment variables for ARM64 runners:
+
+```bash
+# Runner Configuration
+RUNNER_NAME=arm64-runner-1           # Unique name for each runner
+RUNNER_LABELS=self-hosted,linux,ARM64  # Required labels for workflow
+RUNNER_COUNT=1                       # Number of runners to deploy
+
+# Architecture Support
+RUNNER_TARGET_ARCHITECTURES=arm64    # Target architecture
+RUNNER_ENABLE_EMULATION=true         # Enable QEMU if on x86_64
+RUNNER_EMULATION_AUTO_INSTALL=false  # Auto-install QEMU (requires sudo)
+
+# Lifecycle Management
+RUNNER_MODE=auto                     # auto|manual
+RUNNER_IDLE_TIMEOUT=300              # Auto-deregister after 5 min idle
+RUNNER_EPHEMERAL=false               # Single-use runners (deregister after 1 job)
+
+# Resource Management
+RUNNER_WORK_DIR=_work                # Working directory for jobs
+RUNNER_CLEANUP_ON_EXIT=true          # Clean up on shutdown
+```
+
+### Advanced Deployment Scenarios
+
+#### Scenario 1: ARM64 with QEMU Emulation (Development)
+```bash
+# On x86_64 host, emulate ARM64 runners
+RUNNER_TARGET_ARCHITECTURES=arm64 \
+RUNNER_ENABLE_EMULATION=true \
+RUNNER_EMULATION_METHOD=docker \
+RUNNER_COUNT=2 \
+python3 runner_manager.py run
+```
+
+#### Scenario 2: Native ARM64 (Production)
+```bash
+# On ARM64 hardware (or Graviton/Oracle Cloud)
+RUNNER_TARGET_ARCHITECTURES=arm64 \
+RUNNER_MODE=manual \
+RUNNER_COUNT=4 \
+python3 runner_manager.py run
+```
+
+#### Scenario 3: Auto-Scaling for CI/CD
+```bash
+# Auto-register on demand, auto-deregister when idle
+RUNNER_MODE=auto \
+RUNNER_IDLE_TIMEOUT=300 \
+RUNNER_COUNT=2 \
+python3 runner_manager.py run
+```
+
+### Monitoring and Management
+
+#### Check Runner Status
+```bash
+python3 runner_manager.py status
+```
+
+#### View Logs
+```bash
+# Real-time logs
+python3 runner_manager.py run --verbose
+
+# Check runner_manager logs
+tail -f logs/runner_manager.log
+```
+
+#### Stop Runners
+```bash
+# Graceful shutdown
+python3 runner_manager.py stop
+
+# Or Ctrl+C in the terminal running the manager
+```
+
+### Integration with Systemd (Production)
+
+For production deployments, run runner_manager.py as a systemd service:
+
+```bash
+# Create service file
+sudo tee /etc/systemd/system/github-runner-manager.service > /dev/null <<EOF
+[Unit]
+Description=GitHub Actions Runner Manager for Embeddenator
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=github-runner
+WorkingDirectory=/home/github-runner/embeddenator
+EnvironmentFile=/home/github-runner/embeddenator/.env
+ExecStart=/usr/bin/python3 /home/github-runner/embeddenator/runner_manager.py run
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable github-runner-manager
+sudo systemctl start github-runner-manager
+
+# Check status
+sudo systemctl status github-runner-manager
+```
+
+### Comparison: Manual vs Automated Setup
+
+| Feature | Manual Setup | Automated (runner_manager.py) |
+|---------|-------------|-------------------------------|
+| Registration | Manual token management | Automatic with short-lived tokens |
+| Lifecycle | Manual start/stop | Fully automated |
+| Health Monitoring | External monitoring needed | Built-in |
+| Multi-Runner | Complex scripting | Simple config |
+| Auto-Scaling | Not supported | Built-in with idle timeout |
+| Recovery | Manual intervention | Automatic restart |
+| Emulation | Manual QEMU setup | Auto-detected and configured |
+| **Recommended For** | Quick testing, learning | Production & active development |
+
+### Further Documentation
+
+For complete automation features, see:
+- [Runner Automation Guide](../../docs/RUNNER_AUTOMATION.md)
+- [Self-Hosted CI Project Spec](../../docs/SELF_HOSTED_CI_PROJECT_SPEC.md)
+
 ### 2. Docker Daemon Configuration
 
 Edit `/etc/docker/daemon.json`:
@@ -338,6 +524,39 @@ If builds are too slow with QEMU emulation:
 4. **Updates:** Keep runner software updated
 5. **Monitoring:** Set up alerts for unusual activity
 
+### Best Practices:
+
+#### 1. Use Dedicated User Account
+```bash
+# Create dedicated user for runners
+sudo useradd -m -s /bin/bash github-runner
+sudo usermod -aG docker github-runner
+
+# Run runner installation as this user
+sudo -u github-runner bash
+```
+
+#### 2. Network Firewall Configuration
+```bash
+# Only allow outbound HTTPS to GitHub
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow from 192.168.1.0/24 to any port 22  # SSH from local network only
+sudo ufw enable
+```
+
+#### 3. Rotate Registration Tokens
+- Never use long-lived tokens
+- Tokens expire after 1 hour
+- Use the runner_manager.py automation for automatic token management
+
+#### 4. Secure Secrets Storage
+```bash
+# Store GitHub PAT securely
+chmod 600 ~/.env
+# Never commit .env to version control
+```
+
 ## Maintenance
 
 ### Weekly Tasks:
@@ -365,3 +584,284 @@ sudo ./svc.sh uninstall
 cd ~
 rm -rf ~/actions-runner-arm64-*
 ```
+
+## Validation and Testing
+
+After setting up your ARM64 runner, follow these validation steps to ensure everything works correctly.
+
+### Phase 1: Basic Validation
+
+#### 1.1 Verify Runner Registration
+```bash
+# Check runner appears in GitHub
+# Go to: https://github.com/tzervas/embeddenator/settings/actions/runners
+# Look for your runner name (e.g., arm64-runner-1) with "Idle" status
+```
+
+#### 1.2 Test Architecture Detection
+```bash
+# Create a simple test workflow or manually trigger ci-arm64.yml
+# Check the "Verify Architecture" step output
+# Expected: uname -m shows "aarch64" or "arm64"
+```
+
+#### 1.3 Verify Docker Access
+```bash
+# On the runner machine
+docker run --rm hello-world
+docker run --rm --platform linux/arm64 arm64v8/ubuntu uname -m
+# Should output: aarch64
+```
+
+### Phase 2: CI Workflow Testing
+
+#### 2.1 Manual Workflow Trigger
+1. Navigate to: https://github.com/tzervas/embeddenator/actions/workflows/ci-arm64.yml
+2. Click "Run workflow" button
+3. Select branch (e.g., `main`)
+4. Click "Run workflow"
+
+#### 2.2 Monitor Execution
+Watch the workflow run and verify:
+- ✅ Runner picks up the job (status changes from "Queued" to "Running")
+- ✅ Architecture detection shows aarch64
+- ✅ Rust build completes successfully
+- ✅ All 33 tests pass
+- ✅ Integration tests complete
+- ✅ Build artifacts are uploaded (if job fails)
+
+#### 2.3 Expected Timings
+- **Native ARM64:** 8-15 minutes for full test suite
+- **QEMU Emulation:** 25-45 minutes (depending on CPU cores)
+
+### Phase 3: Performance Validation
+
+#### 3.1 Run Benchmarks
+```bash
+# On the runner machine, clone and test locally
+git clone https://github.com/tzervas/embeddenator.git
+cd embeddenator
+time cargo build --release
+time cargo test --all --verbose
+```
+
+#### 3.2 Check Resource Usage During Build
+```bash
+# In another terminal while build is running
+htop  # Monitor CPU usage
+free -h  # Monitor memory
+df -h  # Monitor disk space
+docker stats  # Monitor Docker containers
+```
+
+#### 3.3 Expected Resource Usage
+- **CPU:** 80-100% of allocated cores during compilation
+- **Memory:** 4-8GB during peak (with 4-8 cores)
+- **Disk I/O:** Moderate to high during dependency downloads
+- **Network:** Spikes during crate downloads from crates.io
+
+### Phase 4: Multi-Runner Testing (if applicable)
+
+#### 4.1 Deploy Multiple Runners
+```bash
+# Using runner_manager.py
+RUNNER_COUNT=2 python3 runner_manager.py run
+
+# Or manually deploy 2 separate runners
+```
+
+#### 4.2 Trigger Parallel Workflows
+Create 2-3 workflow runs simultaneously and verify:
+- ✅ Jobs are distributed across runners
+- ✅ Both runners show "Busy" status
+- ✅ No job failures due to resource contention
+- ✅ Build times are consistent across runners
+
+### Phase 5: Failure Recovery Testing
+
+#### 5.1 Test Runner Crash Recovery (with automation)
+```bash
+# If using runner_manager.py with auto mode
+# Find the runner process and kill it
+ps aux | grep runner
+kill -9 <PID>
+
+# Verify:
+# - runner_manager.py detects failure
+# - Automatic restart attempt (if configured)
+# - Runner re-registers and becomes available
+```
+
+#### 5.2 Test Network Interruption
+```bash
+# Simulate network loss
+sudo iptables -A OUTPUT -p tcp --dport 443 -j DROP
+
+# Wait 2 minutes, then restore
+sudo iptables -D OUTPUT -p tcp --dport 443 -j DROP
+
+# Verify:
+# - Runner reconnects automatically
+# - Queued jobs execute after reconnection
+```
+
+#### 5.3 Test Disk Space Exhaustion
+```bash
+# Fill disk to >90% (create large file in /tmp)
+dd if=/dev/zero of=/tmp/largefile bs=1M count=10000
+
+# Trigger a build and verify:
+# - Build fails gracefully with clear error
+# - Cleanup scripts run (if configured)
+# - After cleanup, runner becomes available again
+
+# Clean up test file
+rm /tmp/largefile
+```
+
+### Phase 6: Security Validation
+
+#### 6.1 Verify Runner Isolation
+```bash
+# During a workflow run, check process ownership
+ps aux | grep runner
+
+# Verify runner process runs as non-root user
+# Verify Docker containers run in separate namespace
+```
+
+#### 6.2 Check Secret Handling
+```bash
+# Add a test secret to repository
+# Create a workflow that uses the secret
+# After workflow completes, verify:
+# - Secret not visible in logs
+# - Secret not persisted in filesystem
+# - Environment cleaned after job
+```
+
+#### 6.3 Audit Runner Logs
+```bash
+# Check for security events
+sudo journalctl -u actions.runner.* | grep -i "error\|fail\|security"
+
+# Review runner diagnostic logs
+ls -la ~/actions-runner-*/_diag/
+tail -100 ~/actions-runner-*/_diag/Runner_*.log
+```
+
+### Phase 7: Production Readiness Checklist
+
+Before enabling automatic triggering on the main branch:
+
+- [ ] ✅ Manual workflow runs complete successfully 3+ times
+- [ ] ✅ All 33 tests pass consistently
+- [ ] ✅ Build time within acceptable range (<15 min for native ARM64)
+- [ ] ✅ Resource usage monitored and within limits
+- [ ] ✅ Disk cleanup automation working
+- [ ] ✅ Security validation passed
+- [ ] ✅ Failure recovery tested
+- [ ] ✅ Runner uptime >99% over 1 week test period
+- [ ] ✅ Documentation reviewed and accurate
+- [ ] ✅ Team trained on monitoring and troubleshooting
+
+### Troubleshooting Validation Issues
+
+#### Issue: Runner doesn't pick up jobs
+**Diagnosis:**
+```bash
+# Check runner status
+sudo systemctl status actions.runner.*
+
+# Check runner connectivity
+curl -I https://api.github.com
+
+# Verify labels match workflow requirements
+# Workflow requires: ["self-hosted", "linux", "ARM64"]
+```
+
+**Resolution:**
+- Verify runner is online in GitHub UI
+- Check runner labels match workflow exactly
+- Restart runner service
+- Check firewall rules
+
+#### Issue: Tests fail on ARM64 but pass on AMD64
+**Diagnosis:**
+```bash
+# Run specific failing test locally
+cargo test <test_name> --verbose -- --nocapture
+
+# Check for architecture-specific code
+grep -r "cfg(target_arch" src/
+```
+
+**Resolution:**
+- Review test output for architecture-specific failures
+- Check for endianness issues
+- Verify all dependencies support ARM64
+- Report architecture-specific bugs in GitHub issues
+
+#### Issue: Build times too slow
+**Diagnosis:**
+```bash
+# Check if using emulation vs native
+uname -m  # Should show "aarch64" for native
+
+# Check CPU allocation
+nproc
+lscpu
+
+# Check for throttling
+dmesg | grep -i throttl
+```
+
+**Resolution:**
+- If emulated: Consider native ARM64 hardware
+- Increase CPU core allocation
+- Enable build caching
+- Reduce parallelism if memory constrained
+
+## Post-Setup Next Steps
+
+After validation is complete:
+
+1. **Enable Auto-Trigger** (see TASK-005 in TASK_REGISTRY.md):
+   ```yaml
+   # In .github/workflows/ci-arm64.yml
+   on:
+     push:
+       branches: [main]  # Enable automatic runs on main
+     workflow_dispatch:  # Keep manual trigger option
+   ```
+
+2. **Set up Monitoring**:
+   - GitHub Actions dashboard for run history
+   - Runner health checks (if using runner_manager.py)
+   - Disk space alerts
+   - Build time tracking
+
+3. **Document Your Setup**:
+   - Record runner configuration details
+   - Document any custom modifications
+   - Note performance characteristics
+   - Create runbook for common operations
+
+4. **Train Team**:
+   - Share troubleshooting procedures
+   - Document escalation paths
+   - Establish maintenance schedule
+
+## Additional Resources
+
+- [GitHub Actions Self-Hosted Runner Docs](https://docs.github.com/en/actions/hosting-your-own-runners)
+- [Runner Automation Guide](../../docs/RUNNER_AUTOMATION.md)
+- [Self-Hosted CI Project Spec](../../docs/SELF_HOSTED_CI_PROJECT_SPEC.md)
+- [CI/CD Workflow Documentation](./README.md)
+- [Embeddenator Task Registry](../../TASK_REGISTRY.md)
+
+---
+
+**Last Updated:** 2025-12-22  
+**Document Version:** 2.0  
+**Status:** Production Ready
