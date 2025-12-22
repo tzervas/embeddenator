@@ -365,7 +365,7 @@ sudo systemctl status github-runner-manager
 | Auto-Scaling | Not supported | Built-in with idle timeout |
 | Recovery | Manual intervention | Automatic restart |
 | Emulation | Manual QEMU setup | Auto-detected and configured |
-| **Recommended For** | Simple/testing | Production/Development |
+| **Recommended For** | Quick testing, learning | Production & active development |
 
 ### Further Documentation
 
