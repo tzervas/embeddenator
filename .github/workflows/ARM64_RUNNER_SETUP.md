@@ -373,9 +373,6 @@ For complete automation features, see:
 - [Runner Automation Guide](../../docs/RUNNER_AUTOMATION.md)
 - [Self-Hosted CI Project Spec](../../docs/SELF_HOSTED_CI_PROJECT_SPEC.md)
 
-Make it executable:
-```bash
-
 ### 2. Docker Daemon Configuration
 
 Edit `/etc/docker/daemon.json`:

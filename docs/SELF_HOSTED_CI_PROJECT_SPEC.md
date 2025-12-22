@@ -16,15 +16,9 @@
 4. [System Architecture](#system-architecture)
 5. [Requirements](#requirements)
 6. [Runner Types and Configurations](#runner-types-and-configurations)
-7. [Deployment Scenarios](#deployment-scenarios)
-8. [Lifecycle Management](#lifecycle-management)
-9. [Security Considerations](#security-considerations)
-10. [Resource Management](#resource-management)
-11. [Integration Points](#integration-points)
-12. [Testing and Validation](#testing-and-validation)
-13. [Monitoring and Observability](#monitoring-and-observability)
-14. [Disaster Recovery](#disaster-recovery)
-15. [Future Roadmap](#future-roadmap)
+7. [Testing and Validation](#testing-and-validation)
+8. [Future Roadmap](#future-roadmap)
+9. [Appendix](#appendix)
 
 ---
 
