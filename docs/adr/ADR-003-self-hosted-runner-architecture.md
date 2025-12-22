@@ -126,8 +126,11 @@ We designed a self-hosted runner architecture with the following components:
 ## Implementation Details
 
 ### Runner Manager (`runner_manager.py`)
-```python
-# Auto mode with ARM64 emulation
+```bash
+# Example: Auto mode with ARM64 emulation
+# - RUNNER_TARGET_ARCHITECTURES: Which architectures to support (arm64, x64, riscv64)
+# - RUNNER_ENABLE_EMULATION: Enable QEMU emulation for non-native architectures (default: false)
+# - RUNNER_MODE: Runner lifecycle mode (auto|manual, default: manual)
 RUNNER_TARGET_ARCHITECTURES=arm64 \
 RUNNER_ENABLE_EMULATION=true \
 RUNNER_MODE=auto \
