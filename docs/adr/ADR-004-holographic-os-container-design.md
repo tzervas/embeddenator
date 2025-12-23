@@ -158,6 +158,49 @@ We implemented a Holographic OS Container system with the following design:
 - Delta encoding for OS version updates
 - Compression integration (when TASK-008 complete)
 - More OS distributions (Alpine, Fedora, Arch)
+- **Package isolation and factoralization** (see ADR-005):
+  - Isolate individual packages from holographic OS containers
+  - Bundle everything except target package(s) for selective updates
+  - Factorialized hologram representation using balanced ternary encoding
+  - Enable package updates without full container reconstruction
+  - Differential distribution of package updates
+
+## Related Work
+
+### Package Isolation via Hologram Factoralization
+
+A key advanced feature for holographic OS containers is the ability to isolate and manipulate individual packages without full reconstruction. This is described in detail in [ADR-005: Hologram-Based Package Isolation and Factoralization](ADR-005-hologram-package-isolation.md).
+
+**Core Concept**: Given a holographic container with N packages, we can:
+1. **Isolate** a target package by bundling all other packages into a complementary hologram
+2. **Factorialize** the representation into target + complementary pair
+3. **Encode** using balanced ternary for compact storage (~39× compression)
+4. **Update** by replacing just the target hologram and rebundling
+
+**Key Benefits for OS Containers**:
+- **Selective Package Updates**: Update nginx without touching the rest of the system
+- **Differential Distribution**: Ship only updated packages as compact holograms (~40 bytes)
+- **A/B Testing**: Test multiple package versions against same base system
+- **Package Removal**: Use complementary hologram as new base (target excluded)
+- **Hardware Efficiency**: Optimized for 64-bit registers (40 trits per register)
+
+**Example Use Case**:
+```bash
+# Factorialize Debian container to isolate Python package
+embeddenator factorialize \
+  --engram debian-12.engram \
+  --package python3.11 \
+  --output python-isolated.hologram \
+  --complementary debian-12-no-python.hologram
+
+# Update to Python 3.12
+embeddenator bundle \
+  --base debian-12-no-python.hologram \
+  --package python3.12.hologram \
+  --output debian-12-python312.engram
+```
+
+This enables OS containers to support package-level granularity while maintaining the holographic algebraic properties.
 
 ## References
 
@@ -167,3 +210,4 @@ We implemented a Holographic OS Container system with the following design:
 - .github/workflows/build-holographic-os.yml - Alternative workflow
 - Dockerfile.holographic - Container definition
 - tests/e2e_regression.rs - End-to-end validation tests
+- ADR-005: Hologram-Based Package Isolation and Factoralization
