@@ -174,7 +174,7 @@ A key advanced feature for holographic OS containers is the ability to isolate a
 **Core Concept**: Given a holographic container with N packages, we can:
 1. **Isolate** a target package by bundling all other packages into a complementary hologram
 2. **Factorialize** the representation into target + complementary pair
-3. **Encode** using balanced ternary for compact storage (40× compression)
+3. **Encode** using balanced ternary for compact storage (~39× compression)
 4. **Update** by replacing just the target hologram and rebundling
 
 **Key Benefits for OS Containers**:

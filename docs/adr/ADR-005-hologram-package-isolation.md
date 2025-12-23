@@ -83,11 +83,16 @@ We leverage **balanced ternary mathematics** for optimal hardware utilization:
 ```
 3^40 = 12,157,665,459,056,928,801 ≈ 2^63.4
 
-Mapping:
-- 40 trits can represent any value from -(3^40-1)/2 to +(3^40-1)/2
-- Fits perfectly in a signed 64-bit integer
+Mapping for unsigned 64-bit:
+- 40 trits can represent any value from 0 to 3^40-1
+- Fits in an unsigned 64-bit integer (2^64 = 18,446,744,073,709,551,616)
 - Each trit encodes log₂(3) ≈ 1.585 bits of information
 - 40 trits × 1.585 = 63.4 bits (optimal for 64-bit registers)
+
+For signed 64-bit with balanced ternary:
+- Use 39 trits: 3^39 = 4,052,555,153,018,976,267 < 2^63
+- Range: -(3^39-1)/2 to +(3^39-1)/2
+- Still optimal: 39 trits × 1.585 = 61.8 bits
 ```
 
 **Tryte Structure**:
@@ -101,14 +106,14 @@ Mapping:
 **64-bit Register Operations** (no AVX required):
 ```rust
 // Encode sparse vector indices into balanced ternary
-// 40 trits per 64-bit register
+// 39 trits per 64-bit register (for signed balanced ternary)
 struct BalancedTernary64 {
-    value: i64,  // Stores 40 trits in balanced representation
+    value: i64,  // Stores up to 39 trits in balanced representation
 }
 
 impl BalancedTernary64 {
     // Convert trit vector to 64-bit value
-    fn from_trits(trits: &[i8; 40]) -> Self {
+    fn from_trits(trits: &[i8]) -> Self {
         let mut value: i64 = 0;
         let mut multiplier: i64 = 1;
         
@@ -121,14 +126,25 @@ impl BalancedTernary64 {
     }
     
     // Extract trits from 64-bit value
-    fn to_trits(&self) -> [i8; 40] {
-        let mut trits = [0i8; 40];
+    fn to_trits(&self, num_trits: usize) -> Vec<i8> {
+        let mut trits = Vec::with_capacity(num_trits);
         let mut remaining = self.value;
         
-        for i in 0..40 {
-            let trit = ((remaining % 3) + 3) % 3;
-            trits[i] = if trit == 2 { -1 } else { trit as i8 };
-            remaining = (remaining - trits[i] as i64) / 3;
+        for _ in 0..num_trits {
+            // Properly handle balanced ternary {-1, 0, +1}
+            let mut trit = remaining % 3;
+            remaining /= 3;
+            
+            // Convert to balanced representation
+            if trit == 2 {
+                trit = -1;
+                remaining += 1;
+            } else if trit == -2 {
+                trit = 1;
+                remaining -= 1;
+            }
+            
+            trits.push(trit as i8);
         }
         
         trits
@@ -156,7 +172,8 @@ HologramEncoding {
 
 For a 10,000-dimensional vector with 1% density (100 positive + 100 negative = 200 non-zero elements):
 - Traditional storage: ~200 × 8 bytes (indices) = 1,600 bytes
-- Balanced ternary: ~200/40 = 5 blocks × 8 bytes = 40 bytes
+- Balanced ternary: ~200/39 = 5.1 blocks × 8 bytes ≈ 41 bytes
+- Compression ratio: ~39× improvement
 - Compression ratio: 40× improvement
 
 **Two-Way Encoding Properties**:
@@ -341,7 +358,7 @@ embeddenator factorialize \
   --package updated-kernel \
   --output kernel-update.hologram
 
-# Ship only kernel-update.hologram (40 bytes vs 100MB)
+# Ship only kernel-update.hologram (~41 bytes vs 100MB)
 # Receivers bundle with their existing complementary hologram
 ```
 
@@ -355,22 +372,40 @@ embeddenator factorialize \
 
 ## Notes
 
-### Why 40 Trits?
+### Optimal Trit Count for 64-bit Registers
 
-The choice of 40 trits per 64-bit register is mathematically optimal:
+The choice between 39 and 40 trits depends on whether signed or unsigned integers are used:
 
+**For Unsigned 64-bit** (40 trits):
 ```
 3^40 = 12,157,665,459,056,928,801
-2^63 = 9,223,372,036,854,775,808 (max signed 64-bit)
 2^64 = 18,446,744,073,709,551,616 (max unsigned 64-bit)
 
 3^40 ≈ 2^63.4
 
 This means:
 - 40 trits use 63.4 bits of information
-- Fits perfectly in 64-bit signed integer
+- Fits in 64-bit unsigned integer
 - 41 trits would overflow (3^41 > 2^64)
-- 39 trits would waste ~1.6 bits of capacity
+- Range: 0 to 3^40-1
+```
+
+**For Signed 64-bit with Balanced Ternary** (39 trits):
+```
+3^39 = 4,052,555,153,018,976,267
+2^63 = 9,223,372,036,854,775,808 (max signed 64-bit)
+
+3^39 ≈ 2^61.8
+
+This means:
+- 39 trits use 61.8 bits of information
+- Fits comfortably in signed 64-bit integer
+- Balanced ternary range: -(3^39-1)/2 to +(3^39-1)/2
+- 40 trits would overflow signed (3^40 > 2^63)
+- Only wastes ~1.2 bits vs theoretical maximum
+```
+
+**Recommendation**: Use 39 trits for balanced ternary (signed) representation, which aligns naturally with the {-1, 0, +1} sparse vector format.
 ```
 
 ### Balanced vs Unbalanced Ternary

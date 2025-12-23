@@ -40,9 +40,16 @@ Embeddenator uses sparse ternary vectors to represent data holographically:
 - **Cosine Similarity**: Algebraic cleanup - correct match >0.75, noise <0.3
 
 The ternary representation {-1, 0, +1} is **hardware-optimized** for 64-bit CPUs:
-- 40 trits encode perfectly in a 64-bit register (3^40 ≈ 2^63.4)
+- 39-40 trits encode optimally in a 64-bit register (39 for signed, 40 for unsigned)
 - No SIMD extensions required (AVX/AVX2 optional for acceleration)
 - Based on balanced ternary mathematics for efficient computation
+
+**Scalability through Adaptive Sparsity**:
+- Current: 10,000 dimensions @ ~1% sparsity (200 non-zero elements)
+- Balanced: 50,000 dimensions @ 0.4% sparsity (200 non-zero, 100× better collision resistance)
+- High-precision: 100,000 dimensions @ 0.2% sparsity (200 non-zero, 10,000× better collision resistance)
+- **Key insight**: Constant non-zero elements → constant computational cost regardless of dimensionality
+- See [ADR-006](docs/adr/ADR-006-dimensionality-sparsity-scaling.md) for detailed analysis
 
 ### Engrams
 
@@ -58,7 +65,7 @@ An **engram** is a holographic encoding of an entire filesystem or dataset:
 
 - **Isolate packages**: Extract individual packages without full reconstruction
 - **Complementary bundling**: Bundle everything *except* target package(s)
-- **Compact encoding**: Balanced ternary representation (~40× compression)
+- **Compact encoding**: Balanced ternary representation (~39× compression)
 - **Selective updates**: Update packages without touching the rest of the system
 - **Differential distribution**: Ship only updated packages as compact holograms
 
@@ -343,7 +350,7 @@ Typical performance characteristics:
    - `pos`: Indices with +1 value
    - `neg`: Indices with -1 value
    - Efficient operations: bundle, bind, cosine similarity
-   - Hardware-optimized: 40 trits per 64-bit register
+   - Hardware-optimized: 39-40 trits per 64-bit register
 
 2. **EmbrFS**: Holographic filesystem layer
    - Chunked encoding (4KB default)
@@ -362,7 +369,7 @@ Comprehensive architectural documentation is available in `docs/adr/`:
 - **[ADR-001](docs/adr/ADR-001-sparse-ternary-vsa.md)**: Sparse Ternary VSA
   - Core VSA design and sparse ternary vectors
   - Balanced ternary mathematics and hardware optimization
-  - 64-bit register encoding (40 trits per register)
+  - 64-bit register encoding (39-40 trits per register)
   
 - **[ADR-002](docs/adr/ADR-002-multi-agent-workflow-system.md)**: Multi-Agent Workflow System
   
@@ -378,6 +385,13 @@ Comprehensive architectural documentation is available in `docs/adr/`:
   - Balanced ternary encoding for compact representation
   - Package-level granular updates
   - Hardware optimization strategy for 64-bit CPUs
+
+- **[ADR-006](docs/adr/ADR-006-dimensionality-sparsity-scaling.md)**: Dimensionality and Sparsity Scaling
+  - Scaling holographic space to TB-scale datasets
+  - Adaptive sparsity strategy (maintain constant computational cost)
+  - Performance analysis and collision probability projections
+  - Impact on 100% bit-perfect guarantee
+  - Deep operation resilience for factoralization
 
 See `docs/adr/README.md` for the complete ADR index.
 
@@ -830,7 +844,7 @@ MIT License - see LICENSE file for details
 - [Balanced Ternary](https://en.wikipedia.org/wiki/Balanced_ternary) - Wikipedia overview
 - [Ternary Computing](https://homepage.divms.uiowa.edu/~jones/ternary/) - Historical and mathematical foundations
 - Three-Valued Logic and Quantum Computing
-- Optimal encoding: 40 trits in 64-bit registers (3^40 ≈ 2^63.4)
+- Optimal encoding: 39-40 trits in 64-bit registers (39 for signed, 40 for unsigned)
 
 ### Architecture Documentation
 - [ADR-001: Sparse Ternary VSA](docs/adr/ADR-001-sparse-ternary-vsa.md) - Core design and hardware optimization
