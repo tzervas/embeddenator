@@ -77,9 +77,63 @@ The implementation uses Rust's `HashMap<usize, i8>` to efficiently store only no
   - Excellent for production use
   - May limit contributor pool vs Python/JavaScript
 
+## Hardware Optimization Considerations
+
+### Balanced Ternary Representation
+
+The choice of sparse ternary vectors {-1, 0, +1} aligns naturally with **balanced ternary** arithmetic, which offers significant hardware optimization opportunities:
+
+#### Ternary Mathematics
+- **Trits** (ternary digits): {-1, 0, +1} representing three states
+- **Trytes** (ternary bytes): Groups of trits optimized for binary hardware
+- **Balanced ternary**: Uses symmetric -1/0/+1 representation (vs unbalanced 0/1/2)
+
+#### 64-Bit Register Optimization
+
+Contemporary 64-bit CPUs can efficiently encode ternary data without requiring SIMD extensions:
+
+```
+Optimal encoding: 40 trits per 64-bit register
+
+Mathematical basis:
+  3^40 = 12,157,665,459,056,928,801 ≈ 2^63.4
+  
+This means:
+  - 40 trits use 63.4 bits of information (perfect fit for signed 64-bit)
+  - Each trit encodes log₂(3) ≈ 1.585 bits
+  - 40 trits × 1.585 = 63.4 bits
+  - No wasted register capacity
+  - No overflow risk with 41 trits (3^41 > 2^64)
+```
+
+**Benefits**:
+- Works on any 64-bit CPU (x86-64, ARM64, RISC-V) without extensions
+- No AVX, AVX2, or AVX-512 required for basic operations
+- Can leverage SIMD when available for 2-8× acceleration
+- Scalar fallback always available
+- Optimal information density for contemporary hardware
+
+#### Compact Hologram Encoding
+
+For sparse vectors with ~1% density (200 non-zero elements out of 10,000):
+- Traditional: 200 indices × 8 bytes = 1,600 bytes
+- Balanced ternary: 200 trits / 40 trits per register = 5 registers × 8 bytes = 40 bytes
+- **Compression ratio: 40×**
+
+This compact representation enables:
+- Hash-like storage format
+- Two-way encoding (encode/decode without loss)
+- Efficient network transfer
+- Reduced memory footprint
+- Algebraic operations on encoded form
+
+See [ADR-005](ADR-005-hologram-package-isolation.md) for detailed implementation of balanced ternary encoding and hologram package isolation.
+
 ## References
 
 - Vector Symbolic Architectures: A New Building Block for Artificial General Intelligence (Kleyko et al.)
 - Sparse Distributed Memory (Kanerva, 1988)
 - Embeddenator README.md - Core Concepts section
 - src/vsa.rs - Implementation details
+- [Balanced Ternary](https://en.wikipedia.org/wiki/Balanced_ternary)
+- ADR-005: Hologram-Based Package Isolation (balanced ternary implementation)

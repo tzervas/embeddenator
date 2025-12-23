@@ -28,6 +28,7 @@ Each ADR follows this structure:
 | [ADR-002](ADR-002-multi-agent-workflow-system.md) | Multi-Agent Workflow System | Accepted | 2025-12-15 |
 | [ADR-003](ADR-003-self-hosted-runner-architecture.md) | Self-Hosted Runner Architecture | Accepted | 2025-12-22 |
 | [ADR-004](ADR-004-holographic-os-container-design.md) | Holographic OS Container Design | Accepted | 2025-12-15 |
+| [ADR-005](ADR-005-hologram-package-isolation.md) | Hologram-Based Package Isolation and Factoralization | Proposed | 2025-12-23 |
 
 ## Creating a New ADR
 
