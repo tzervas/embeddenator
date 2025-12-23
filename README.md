@@ -17,6 +17,7 @@
 - **Production-Grade**: 33 comprehensive tests with zero clippy warnings
 - **Multi-Architecture**: Native amd64 support (arm64 via self-hosted runners - coming soon)
 - **Test Runner**: Intelligent validation with debug logging (v0.2.0)
+- **AI Assistant Integration**: Architecture for specialized coding and research assistants with embeddenator-enhanced retrieval
 
 ## What's New in v0.2.0
 
@@ -865,6 +866,9 @@ MIT License - see LICENSE file for details
 - [ADR-001: Sparse Ternary VSA](docs/adr/ADR-001-sparse-ternary-vsa.md) - Core design and hardware optimization
 - [ADR-005: Hologram Package Isolation](docs/adr/ADR-005-hologram-package-isolation.md) - Balanced ternary implementation
 - [Complete ADR Index](docs/adr/README.md) - All architecture decision records
+
+### Use Cases and Applications
+- [Specialized AI Assistant Models](docs/SPECIALIZED_AI_ASSISTANTS.md) - Architecture for deploying coding and research assistant LLMs with embeddenator-enhanced retrieval, multi-model parallel execution, and document-driven development workflows
 
 ## Support
 
