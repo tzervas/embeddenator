@@ -39,13 +39,45 @@ Embeddenator uses sparse ternary vectors to represent data holographically:
 - **Bind (⊙)**: Non-commutative composition - `A ⊙ A ≈ I` (self-inverse)
 - **Cosine Similarity**: Algebraic cleanup - correct match >0.75, noise <0.3
 
+The ternary representation {-1, 0, +1} is **hardware-optimized** for 64-bit CPUs:
+- 39-40 trits encode optimally in a 64-bit register (39 for signed, 40 for unsigned)
+- No SIMD extensions required (AVX/AVX2 optional for acceleration)
+- Based on balanced ternary mathematics for efficient computation
+
+**Scalability through Adaptive Sparsity**:
+- Current: 10,000 dimensions @ ~1% sparsity (200 non-zero elements)
+- Balanced: 50,000 dimensions @ 0.4% sparsity (200 non-zero, 100× better collision resistance)
+- High-precision: 100,000 dimensions @ 0.2% sparsity (200 non-zero, 10,000× better collision resistance)
+- **Key insight**: Constant non-zero elements → constant computational cost regardless of dimensionality
+- See [ADR-006](docs/adr/ADR-006-dimensionality-sparsity-scaling.md) for detailed analysis
+
 ### Engrams
 
 An **engram** is a holographic encoding of an entire filesystem or dataset:
 
 - Single root vector containing superposition of all chunks
-- Codebook mapping chunk IDs to original data
+- Secure codebook with VSA-lens encoded data (not plaintext)
 - Manifest tracking file structure and metadata
+
+**Security**: The codebook does NOT store plaintext data. Chunks are encoded using a VSA-lens reversible encoding mechanism that is:
+- Mathematically trivial to decode WITH the master key
+- Computationally infeasible without the master key  
+- Quantum resistant (no algebraic structure for quantum algorithms)
+- Enables selective decryption (decrypt only needed chunks)
+
+See [ADR-007](docs/adr/ADR-007-codebook-security.md) for details on the VSA-as-a-lens security model.
+
+### Hologram Package Isolation (Advanced)
+
+**Package factoralization** enables selective manipulation of packages within holographic containers:
+
+- **Isolate packages**: Extract individual packages without full reconstruction
+- **Complementary bundling**: Bundle everything *except* target package(s)
+- **Compact encoding**: Balanced ternary representation (~39× compression)
+- **Selective updates**: Update packages without touching the rest of the system
+- **Differential distribution**: Ship only updated packages as compact holograms
+
+See [ADR-005](docs/adr/ADR-005-hologram-package-isolation.md) for technical details on hologram factoralization, balanced ternary encoding, and 64-bit register optimization.
 
 ## Quick Start
 
@@ -326,6 +358,7 @@ Typical performance characteristics:
    - `pos`: Indices with +1 value
    - `neg`: Indices with -1 value
    - Efficient operations: bundle, bind, cosine similarity
+   - Hardware-optimized: 39-40 trits per 64-bit register
 
 2. **EmbrFS**: Holographic filesystem layer
    - Chunked encoding (4KB default)
@@ -336,6 +369,46 @@ Typical performance characteristics:
    - Ingest: directory → engram
    - Extract: engram → directory
    - Query: similarity search
+
+### Architecture Decision Records (ADRs)
+
+Comprehensive architectural documentation is available in `docs/adr/`:
+
+- **[ADR-001](docs/adr/ADR-001-sparse-ternary-vsa.md)**: Sparse Ternary VSA
+  - Core VSA design and sparse ternary vectors
+  - Balanced ternary mathematics and hardware optimization
+  - 64-bit register encoding (39-40 trits per register)
+  
+- **[ADR-002](docs/adr/ADR-002-multi-agent-workflow-system.md)**: Multi-Agent Workflow System
+  
+- **[ADR-003](docs/adr/ADR-003-self-hosted-runner-architecture.md)**: Self-Hosted Runner Architecture
+  
+- **[ADR-004](docs/adr/ADR-004-holographic-os-container-design.md)**: Holographic OS Container Design
+  - Configuration-driven builder for Debian/Ubuntu
+  - Dual versioning strategy (LTS + nightly)
+  - Package isolation capabilities
+  
+- **[ADR-005](docs/adr/ADR-005-hologram-package-isolation.md)**: Hologram-Based Package Isolation
+  - Factoralization of holographic containers
+  - Balanced ternary encoding for compact representation
+  - Package-level granular updates
+  - Hardware optimization strategy for 64-bit CPUs
+
+- **[ADR-006](docs/adr/ADR-006-dimensionality-sparsity-scaling.md)**: Dimensionality and Sparsity Scaling
+  - Scaling holographic space to TB-scale datasets
+  - Adaptive sparsity strategy (maintain constant computational cost)
+  - Performance analysis and collision probability projections
+  - Impact on 100% bit-perfect guarantee
+  - Deep operation resilience for factoralization
+
+- **[ADR-007](docs/adr/ADR-007-codebook-security.md)**: Codebook Security and Reversible Encoding
+  - VSA-as-a-lens cryptographic primitive
+  - Quantum-resistant encoding mechanism
+  - Mathematically trivial with key, impossible without
+  - Bulk encryption with selective decryption
+  - Integration with holographic indexing
+
+See `docs/adr/README.md` for the complete ADR index.
 
 ### File Format
 
@@ -777,9 +850,21 @@ MIT License - see LICENSE file for details
 
 ## References
 
+### Vector Symbolic Architectures (VSA)
 - Vector Symbolic Architectures: [Kanerva, P. (2009)](https://redwood.berkeley.edu/wp-content/uploads/2021/08/KanervaHyperdimensionalComputing09-JCSS.pdf)
 - Sparse Distributed Representations
 - Holographic Reduced Representations (HRR)
+
+### Ternary Computing and Hardware Optimization
+- [Balanced Ternary](https://en.wikipedia.org/wiki/Balanced_ternary) - Wikipedia overview
+- [Ternary Computing](https://homepage.divms.uiowa.edu/~jones/ternary/) - Historical and mathematical foundations
+- Three-Valued Logic and Quantum Computing
+- Optimal encoding: 39-40 trits in 64-bit registers (39 for signed, 40 for unsigned)
+
+### Architecture Documentation
+- [ADR-001: Sparse Ternary VSA](docs/adr/ADR-001-sparse-ternary-vsa.md) - Core design and hardware optimization
+- [ADR-005: Hologram Package Isolation](docs/adr/ADR-005-hologram-package-isolation.md) - Balanced ternary implementation
+- [Complete ADR Index](docs/adr/README.md) - All architecture decision records
 
 ## Support
 
