@@ -335,6 +335,9 @@ For optimal results, fine-tune on:
 **Description**: Maintain pools of identical models for load balancing and parallel request handling.
 
 ```python
+import threading
+import queue
+
 class ModelPool:
     def __init__(self, model_path, pool_size=4):
         self.models = [load_model(model_path) for _ in range(pool_size)]
@@ -1540,6 +1543,7 @@ Research is complete when:
 
 ```python
 # inference_wrapper.py
+# Requirements: pip install llama-cpp-python
 import llama_cpp
 from pathlib import Path
 
@@ -1577,11 +1581,13 @@ print(code)
 # embeddenator_wrapper.py
 import subprocess
 import json
+import shutil
 from pathlib import Path
 
 class EmbeddenatorClient:
-    def __init__(self, embeddenator_bin: str = "embeddenator"):
-        self.bin = embeddenator_bin
+    def __init__(self, embeddenator_bin: str = None):
+        # Find embeddenator in PATH if not specified
+        self.bin = embeddenator_bin or shutil.which("embeddenator") or "embeddenator"
     
     def ingest(self, input_dir: Path, engram_path: Path, manifest_path: Path):
         cmd = [
@@ -1687,7 +1693,8 @@ class Orchestrator:
             self.executor.submit(self.execute_task, task)
             for task in tasks
         ]
-        results = [f.result() for f in concurrent.futures.as_completed(futures)]
+        # Maintain order by waiting on futures in submission order
+        results = [f.result() for f in futures]
         return results
     
     def _augment_prompt(self, prompt: str, context: Any) -> str:
@@ -1697,9 +1704,14 @@ class Orchestrator:
     def _create_query_file(self, query: str) -> Path:
         # Create temporary query file for embeddenator
         import tempfile
+        import os
         fd, path = tempfile.mkstemp(suffix=".txt")
-        with open(fd, 'w') as f:
-            f.write(query)
+        try:
+            with os.fdopen(fd, 'w') as f:
+                f.write(query)
+        except:
+            os.close(fd)  # Ensure fd is closed on error
+            raise
         return Path(path)
 
 # Usage
