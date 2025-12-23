@@ -56,8 +56,16 @@ The ternary representation {-1, 0, +1} is **hardware-optimized** for 64-bit CPUs
 An **engram** is a holographic encoding of an entire filesystem or dataset:
 
 - Single root vector containing superposition of all chunks
-- Codebook mapping chunk IDs to original data
+- Secure codebook with VSA-lens encoded data (not plaintext)
 - Manifest tracking file structure and metadata
+
+**Security**: The codebook does NOT store plaintext data. Chunks are encoded using a VSA-lens reversible encoding mechanism that is:
+- Mathematically trivial to decode WITH the master key
+- Computationally infeasible without the master key  
+- Quantum resistant (no algebraic structure for quantum algorithms)
+- Enables selective decryption (decrypt only needed chunks)
+
+See [ADR-007](docs/adr/ADR-007-codebook-security.md) for details on the VSA-as-a-lens security model.
 
 ### Hologram Package Isolation (Advanced)
 
@@ -392,6 +400,13 @@ Comprehensive architectural documentation is available in `docs/adr/`:
   - Performance analysis and collision probability projections
   - Impact on 100% bit-perfect guarantee
   - Deep operation resilience for factoralization
+
+- **[ADR-007](docs/adr/ADR-007-codebook-security.md)**: Codebook Security and Reversible Encoding
+  - VSA-as-a-lens cryptographic primitive
+  - Quantum-resistant encoding mechanism
+  - Mathematically trivial with key, impossible without
+  - Bulk encryption with selective decryption
+  - Integration with holographic indexing
 
 See `docs/adr/README.md` for the complete ADR index.
 

@@ -38,7 +38,7 @@ We need to find a mathematically efficient approach to:
 ### Critical Constraints
 
 - **100% Bit-Perfect Guarantee**: The codebook-based reconstruction must remain perfect
-- **Codebook Independence**: VSA vectors are for indexing; actual data in codebook
+- **Codebook Security**: VSA vectors for indexing; codebook stores encoded data (see ADR-007)
 - **Computational Budget**: Existing operations (bundle, bind, cosine) must scale gracefully
 - **Memory Budget**: Sparse representation must not explode with higher dimensions
 - **Backward Compatibility**: Existing engrams should remain usable
@@ -69,13 +69,15 @@ Where:
 **Memory Baseline (Current)**:
 ```
 Single Vector: 200 non-zero × 8 bytes = 1,600 bytes
-Codebook Entry: ~4KB (chunk data) + metadata ≈ 4,200 bytes
-Total per Chunk: 1,600 + 4,200 = 5,800 bytes
+Codebook Entry: ~4KB (encoded chunk data) + integrity vector + metadata ≈ 4,300 bytes
+Total per Chunk: 1,600 + 4,300 = 5,900 bytes
 
 For 1 million chunks:
 - Vectors: 1M × 1.6KB = 1.6 GB
-- Codebook: 1M × 4.2KB = 4.2 GB
-- Total: ~5.8 GB
+- Codebook: 1M × 4.3KB = 4.3 GB
+- Total: ~5.9 GB
+
+Note: Codebook stores VSA-lens encoded data (see ADR-007), not plaintext
 ```
 
 ### 2. Scaling Scenarios and Impacts
@@ -257,21 +259,22 @@ VSA Layer (Indexing):
   - Affected by noise, dimensionality, sparsity
 
 Codebook Layer (Data Storage):
-  - Purpose: Store actual chunk bytes
-  - Exact: HashMap[ChunkID] → bytes
-  - Perfect reconstruction always possible if correct ID found
+  - Purpose: Store encoded chunk data (VSA-lens encrypted)
+  - Secure: MasterLens[ChunkID] → encrypted bytes (see ADR-007)
+  - Perfect reconstruction possible with correct ID and master key
 
 Reconstruction Process:
   1. VSA finds chunk ID (approximate, threshold-based)
-  2. Codebook returns exact bytes (perfect, deterministic)
-  3. Result: Bit-perfect IF VSA finds correct ID
+  2. Codebook returns encoded bytes, decrypted with master key (perfect, deterministic)
+  3. Result: Bit-perfect IF VSA finds correct ID AND master key available
 ```
 
 **Guarantee Preservation**:
 - ✅ As long as cosine similarity > threshold, correct chunk ID retrieved
-- ✅ Once correct ID retrieved, codebook gives perfect data
+- ✅ Once correct ID retrieved, codebook decrypts to perfect data (with master key)
 - ✅ Higher dimensionality → better similarity scores → lower failure rate
 - ✅ The failure mode is "wrong chunk" not "corrupted chunk"
+- ℹ️ See ADR-007 for codebook security and VSA-lens encoding details
 
 **Failure Analysis**:
 
@@ -370,8 +373,8 @@ Operation Latencies:
 
 Memory (1M chunks):
 - Vectors: 1.6 GB
-- Codebook: 4.2 GB
-- Total: 5.8 GB
+- Codebook: 4.3 GB (encoded chunks with integrity vectors)
+- Total: 5.9 GB
 
 Reliability:
 - Collision probability: ~10^-6
@@ -390,8 +393,8 @@ Operation Latencies:
 
 Memory (1M chunks):
 - Vectors: 1.6 GB (no change)
-- Codebook: 4.2 GB (no change)
-- Total: 5.8 GB (no change)
+- Codebook: 4.3 GB (encoded, slight increase for integrity vectors)
+- Total: 5.9 GB
 
 Reliability:
 - Collision probability: ~10^-10 (10,000× better!)
@@ -411,8 +414,8 @@ Operation Latencies:
 
 Memory (1M chunks):
 - Vectors: 1.8 GB (slight increase for block metadata)
-- Codebook: 4.2 GB (no change)
-- Total: 6.0 GB
+- Codebook: 4.3 GB (encoded, slight increase for integrity vectors)
+- Total: 6.1 GB
 
 Reliability:
 - Collision probability: ~10^-12 (near-impossible)
@@ -432,10 +435,10 @@ Reliability:
 - **Detection**: Checksum mismatch (if checksums added to manifest)
 
 **Mode 2: Codebook Corruption (Storage Layer)**
-- **Probability**: Independent of VSA design (disk/memory errors)
-- **Impact**: Correct chunk ID, but data corrupted
-- **Mitigation**: Checksums, redundancy, ECC memory
-- **Detection**: Checksum verification
+- **Probability**: Independent of VSA design (disk/memory errors, tampering)
+- **Impact**: Correct chunk ID, but encoded data corrupted or tampered
+- **Mitigation**: Integrity vectors in VSA-lens encoding (see ADR-007), checksums, ECC memory
+- **Detection**: Integrity vector verification, checksum validation
 
 **Mode 3: Noise Accumulation (Deep Operations)**
 - **Probability**: Increases with operation depth
@@ -570,8 +573,10 @@ D = 100,000: P ≈ 10^-10 (1 in 10 billion)
 - [Random Indexing](https://en.wikipedia.org/wiki/Random_indexing) - Sparse distributed representations
 - [Bloom Filters](https://en.wikipedia.org/wiki/Bloom_filter) - Probabilistic data structures
 - [MinHash](https://en.wikipedia.org/wiki/MinHash) - Similarity estimation for sets
+- [Post-Quantum Cryptography](https://csrc.nist.gov/projects/post-quantum-cryptography)
 - Vector Symbolic Architectures (Kanerva, 2009)
 - Hyperdimensional Computing (Kleyko et al., 2020)
+- ADR-007: Codebook Security and Reversible Encoding (security model)
 
 ## Appendix: Simulation Results
 
