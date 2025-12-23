@@ -132,16 +132,14 @@ impl BalancedTernary64 {
         
         for _ in 0..num_trits {
             // Properly handle balanced ternary {-1, 0, +1}
-            let mut trit = remaining % 3;
-            remaining /= 3;
+            // Use Euclidean modulo for consistent behavior with negative numbers
+            let mut trit = ((remaining % 3) + 3) % 3;
+            remaining = (remaining - trit) / 3;
             
-            // Convert to balanced representation
+            // Convert to balanced representation: {0, 1, 2} -> {0, 1, -1}
             if trit == 2 {
                 trit = -1;
-                remaining += 1;
-            } else if trit == -2 {
-                trit = 1;
-                remaining -= 1;
+                remaining += 1; // Carry adjustment
             }
             
             trits.push(trit as i8);
@@ -174,7 +172,6 @@ For a 10,000-dimensional vector with 1% density (100 positive + 100 negative = 2
 - Traditional storage: ~200 × 8 bytes (indices) = 1,600 bytes
 - Balanced ternary: ~200/39 = 5.1 blocks × 8 bytes ≈ 41 bytes
 - Compression ratio: ~39× improvement
-- Compression ratio: 40× improvement
 
 **Two-Way Encoding Properties**:
 1. **Forward**: Vector indices → balanced ternary blocks → hash-like representation
