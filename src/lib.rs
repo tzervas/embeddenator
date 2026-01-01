@@ -77,6 +77,12 @@ pub use dimensional::{
     HyperVec, DifferentialEncoder, DifferentialEncoding,
 };
 pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
+pub use embrfs::{
+    DirectorySubEngramStore, HierarchicalChunkHit, HierarchicalManifest, HierarchicalQueryBounds,
+    SubEngram, SubEngramStore, UnifiedManifest, load_hierarchical_manifest,
+    query_hierarchical_codebook, query_hierarchical_codebook_with_store, save_hierarchical_manifest,
+    save_sub_engrams_dir,
+};
 pub use fuse_shim::{EngramFS, EngramFSBuilder, FileAttr, FileKind};
 pub use kernel_interop::{
     CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,

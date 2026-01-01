@@ -25,10 +25,10 @@ use crate::resonator::Resonator;
 use crate::correction::{CorrectionStore, CorrectionStats};
 use crate::retrieval::{RerankedResult, TernaryInvertedIndex};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::{self, Read};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 /// Default chunk size for file encoding (4KB)
@@ -55,6 +55,7 @@ pub struct Manifest {
 pub struct HierarchicalManifest {
     pub version: u32,
     pub levels: Vec<ManifestLevel>,
+    #[serde(default)]
     pub sub_engrams: HashMap<String, SubEngram>,
 }
 
@@ -73,12 +74,429 @@ pub struct ManifestItem {
 }
 
 /// Sub-engram in hierarchical structure
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SubEngram {
     pub id: String,
     pub root: SparseVec,
+    /// Chunk IDs that belong to this sub-engram.
+    ///
+    /// This enables selective retrieval without indexing the entire global codebook.
+    #[serde(default)]
+    pub chunk_ids: Vec<usize>,
     pub chunk_count: usize,
     pub children: Vec<String>,
+}
+
+/// Bounds and tuning parameters for hierarchical selective retrieval.
+#[derive(Clone, Debug)]
+pub struct HierarchicalQueryBounds {
+    /// Global top-k results to return.
+    pub k: usize,
+    /// Candidate count per expanded node before reranking.
+    pub candidate_k: usize,
+    /// Maximum number of frontier nodes retained (beam width).
+    pub beam_width: usize,
+    /// Maximum depth to descend (0 means only level-0 nodes).
+    pub max_depth: usize,
+    /// Maximum number of expanded nodes.
+    pub max_expansions: usize,
+    /// Maximum number of cached inverted indices.
+    pub max_open_indices: usize,
+    /// Maximum number of cached sub-engrams.
+    pub max_open_engrams: usize,
+}
+
+impl Default for HierarchicalQueryBounds {
+    fn default() -> Self {
+        Self {
+            k: 10,
+            candidate_k: 100,
+            beam_width: 32,
+            max_depth: 4,
+            max_expansions: 128,
+            max_open_indices: 16,
+            max_open_engrams: 16,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct HierarchicalChunkHit {
+    pub sub_engram_id: String,
+    pub chunk_id: usize,
+    pub approx_score: i32,
+    pub cosine: f64,
+}
+
+#[derive(Clone, Debug)]
+struct FrontierItem {
+    score: f64,
+    sub_engram_id: String,
+    depth: usize,
+}
+
+#[derive(Clone, Debug)]
+struct RemappedInvertedIndex {
+    index: TernaryInvertedIndex,
+    local_to_global: Vec<usize>,
+}
+
+impl RemappedInvertedIndex {
+    fn build(chunk_ids: &[usize], vectors: &HashMap<usize, SparseVec>) -> Self {
+        let mut index = TernaryInvertedIndex::new();
+        let mut local_to_global = Vec::with_capacity(chunk_ids.len());
+
+        for (local_id, &global_id) in chunk_ids.iter().enumerate() {
+            let Some(vec) = vectors.get(&global_id) else {
+                continue;
+            };
+            local_to_global.push(global_id);
+            index.add(local_id, vec);
+        }
+
+        index.finalize();
+        Self {
+            index,
+            local_to_global,
+        }
+    }
+
+    fn query_top_k_reranked(
+        &self,
+        query: &SparseVec,
+        vectors: &HashMap<usize, SparseVec>,
+        candidate_k: usize,
+        k: usize,
+    ) -> Vec<HierarchicalChunkHit> {
+        if k == 0 {
+            return Vec::new();
+        }
+
+        let candidates = self.index.query_top_k(query, candidate_k);
+        let mut out = Vec::with_capacity(candidates.len().min(k));
+        for cand in candidates {
+            let Some(&global_id) = self.local_to_global.get(cand.id) else {
+                continue;
+            };
+            let Some(vec) = vectors.get(&global_id) else {
+                continue;
+            };
+            out.push((global_id, cand.score, query.cosine(vec)));
+        }
+
+        out.sort_by(|a, b| {
+            b.2.total_cmp(&a.2)
+                .then_with(|| b.1.cmp(&a.1))
+                .then_with(|| a.0.cmp(&b.0))
+        });
+        out.truncate(k);
+
+        out.into_iter()
+            .map(|(chunk_id, approx_score, cosine)| HierarchicalChunkHit {
+                sub_engram_id: String::new(),
+                chunk_id,
+                approx_score,
+                cosine,
+            })
+            .collect()
+    }
+}
+
+#[derive(Clone, Debug)]
+struct LruCache<V> {
+    cap: usize,
+    map: HashMap<String, V>,
+    order: Vec<String>,
+}
+
+impl<V> LruCache<V> {
+    fn new(cap: usize) -> Self {
+        Self {
+            cap,
+            map: HashMap::new(),
+            order: Vec::new(),
+        }
+    }
+
+    fn get(&mut self, key: &str) -> Option<&V> {
+        if self.map.contains_key(key) {
+            self.touch(key);
+            return self.map.get(key);
+        }
+        None
+    }
+
+    fn insert(&mut self, key: String, value: V) {
+        if self.cap == 0 {
+            return;
+        }
+
+        if self.map.contains_key(&key) {
+            self.map.insert(key.clone(), value);
+            self.touch(&key);
+            return;
+        }
+
+        self.map.insert(key.clone(), value);
+        self.order.push(key);
+
+        while self.map.len() > self.cap {
+            if let Some(evict) = self.order.first().cloned() {
+                self.order.remove(0);
+                self.map.remove(&evict);
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn touch(&mut self, key: &str) {
+        if let Some(pos) = self.order.iter().position(|k| k == key) {
+            let k = self.order.remove(pos);
+            self.order.push(k);
+        }
+    }
+}
+
+/// Storage/loader seam for hierarchical sub-engrams.
+///
+/// This enables on-demand loading (e.g., from disk) rather than requiring that
+/// every sub-engram is materialized in memory.
+pub trait SubEngramStore {
+    fn load(&self, id: &str) -> Option<SubEngram>;
+}
+
+fn escape_sub_engram_id(id: &str) -> String {
+    // Minimal reversible escaping for filenames.
+    // Note: not intended for untrusted input; IDs are internal.
+    id.replace('%', "%25").replace('/', "%2F")
+}
+
+/// Directory-backed store for sub-engrams.
+///
+/// Files are stored as bincode blobs under `${dir}/{escaped_id}.subengram`.
+pub struct DirectorySubEngramStore {
+    dir: PathBuf,
+}
+
+impl DirectorySubEngramStore {
+    pub fn new<P: AsRef<Path>>(dir: P) -> Self {
+        Self {
+            dir: dir.as_ref().to_path_buf(),
+        }
+    }
+
+    fn path_for_id(&self, id: &str) -> PathBuf {
+        self.dir.join(format!("{}.subengram", escape_sub_engram_id(id)))
+    }
+}
+
+impl SubEngramStore for DirectorySubEngramStore {
+    fn load(&self, id: &str) -> Option<SubEngram> {
+        let path = self.path_for_id(id);
+        let data = fs::read(path).ok()?;
+        bincode::deserialize(&data).ok()
+    }
+}
+
+/// Save a hierarchical manifest as JSON.
+pub fn save_hierarchical_manifest<P: AsRef<Path>>(
+    hierarchical: &HierarchicalManifest,
+    path: P,
+) -> io::Result<()> {
+    let file = File::create(path)?;
+    serde_json::to_writer_pretty(file, hierarchical)?;
+    Ok(())
+}
+
+/// Load a hierarchical manifest from JSON.
+pub fn load_hierarchical_manifest<P: AsRef<Path>>(path: P) -> io::Result<HierarchicalManifest> {
+    let file = File::open(path)?;
+    let manifest = serde_json::from_reader(file)?;
+    Ok(manifest)
+}
+
+/// Save a set of sub-engrams to a directory (bincode per sub-engram).
+pub fn save_sub_engrams_dir<P: AsRef<Path>>(
+    sub_engrams: &HashMap<String, SubEngram>,
+    dir: P,
+) -> io::Result<()> {
+    let dir = dir.as_ref();
+    fs::create_dir_all(dir)?;
+    for (id, sub) in sub_engrams {
+        let encoded = bincode::serialize(sub).map_err(io::Error::other)?;
+        let path = dir.join(format!("{}.subengram", escape_sub_engram_id(id)));
+        fs::write(path, encoded)?;
+    }
+    Ok(())
+}
+
+struct InMemorySubEngramStore<'a> {
+    map: &'a HashMap<String, SubEngram>,
+}
+
+impl<'a> InMemorySubEngramStore<'a> {
+    fn new(map: &'a HashMap<String, SubEngram>) -> Self {
+        Self { map }
+    }
+}
+
+impl SubEngramStore for InMemorySubEngramStore<'_> {
+    fn load(&self, id: &str) -> Option<SubEngram> {
+        self.map.get(id).cloned()
+    }
+}
+
+fn get_cached_sub_engram(
+    cache: &mut LruCache<SubEngram>,
+    store: &impl SubEngramStore,
+    id: &str,
+) -> Option<SubEngram> {
+    if let Some(v) = cache.get(id) {
+        return Some(v.clone());
+    }
+    let loaded = store.load(id)?;
+    cache.insert(id.to_string(), loaded.clone());
+    Some(loaded)
+}
+
+/// Query a hierarchical manifest by selectively unfolding only promising sub-engrams.
+///
+/// This performs a beam-limited traversal over `hierarchical.sub_engrams`.
+/// At each expanded node, it builds (and LRU-caches) an inverted index over the
+/// node-local `chunk_ids` subset of `codebook`, then reranks by exact cosine.
+pub fn query_hierarchical_codebook(
+    hierarchical: &HierarchicalManifest,
+    codebook: &HashMap<usize, SparseVec>,
+    query: &SparseVec,
+    bounds: &HierarchicalQueryBounds,
+) -> Vec<HierarchicalChunkHit> {
+    let store = InMemorySubEngramStore::new(&hierarchical.sub_engrams);
+    query_hierarchical_codebook_with_store(hierarchical, &store, codebook, query, bounds)
+}
+
+/// Store-backed variant of `query_hierarchical_codebook` that supports on-demand sub-engram loading.
+pub fn query_hierarchical_codebook_with_store(
+    hierarchical: &HierarchicalManifest,
+    store: &impl SubEngramStore,
+    codebook: &HashMap<usize, SparseVec>,
+    query: &SparseVec,
+    bounds: &HierarchicalQueryBounds,
+) -> Vec<HierarchicalChunkHit> {
+    if bounds.k == 0 || hierarchical.levels.is_empty() {
+        return Vec::new();
+    }
+
+    let mut sub_cache: LruCache<SubEngram> = LruCache::new(bounds.max_open_engrams);
+    let mut index_cache: LruCache<RemappedInvertedIndex> = LruCache::new(bounds.max_open_indices);
+
+    let mut frontier: Vec<FrontierItem> = Vec::new();
+    if let Some(level0) = hierarchical.levels.first() {
+        for item in &level0.items {
+            let Some(sub) = get_cached_sub_engram(&mut sub_cache, store, &item.sub_engram_id) else {
+                continue;
+            };
+            frontier.push(FrontierItem {
+                score: query.cosine(&sub.root),
+                sub_engram_id: item.sub_engram_id.clone(),
+                depth: 0,
+            });
+        }
+    }
+
+    frontier.sort_by(|a, b| {
+        b.score
+            .total_cmp(&a.score)
+            .then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id))
+    });
+    if frontier.len() > bounds.beam_width {
+        frontier.truncate(bounds.beam_width);
+    }
+
+    let mut expansions = 0usize;
+
+    // Keep only the best hit per chunk for determinism.
+    let mut best_by_chunk: HashMap<usize, HierarchicalChunkHit> = HashMap::new();
+
+    while !frontier.is_empty() && expansions < bounds.max_expansions {
+        let node = frontier.remove(0);
+
+        let Some(sub) = get_cached_sub_engram(&mut sub_cache, store, &node.sub_engram_id) else {
+            continue;
+        };
+
+        expansions += 1;
+
+        let idx = if let Some(existing) = index_cache.get(&node.sub_engram_id) {
+            existing
+        } else {
+            let built = RemappedInvertedIndex::build(&sub.chunk_ids, codebook);
+            index_cache.insert(node.sub_engram_id.clone(), built);
+            // Safe: we just inserted it.
+            index_cache
+                .get(&node.sub_engram_id)
+                .expect("index cache insert")
+        };
+
+        let mut local_hits = idx.query_top_k_reranked(query, codebook, bounds.candidate_k, bounds.k);
+        for hit in &mut local_hits {
+            hit.sub_engram_id = node.sub_engram_id.clone();
+        }
+
+        for hit in local_hits {
+            match best_by_chunk.get(&hit.chunk_id) {
+                None => {
+                    best_by_chunk.insert(hit.chunk_id, hit);
+                }
+                Some(existing) => {
+                    let better = hit
+                        .cosine
+                        .total_cmp(&existing.cosine)
+                        .then_with(|| hit.approx_score.cmp(&existing.approx_score))
+                        .is_gt();
+                    if better {
+                        best_by_chunk.insert(hit.chunk_id, hit);
+                    }
+                }
+            }
+        }
+
+        if node.depth >= bounds.max_depth {
+            continue;
+        }
+
+        let children = sub.children.clone();
+        for child_id in &children {
+            let Some(child) = get_cached_sub_engram(&mut sub_cache, store, child_id) else {
+                continue;
+            };
+            frontier.push(FrontierItem {
+                score: query.cosine(&child.root),
+                sub_engram_id: child_id.clone(),
+                depth: node.depth + 1,
+            });
+        }
+
+        frontier.sort_by(|a, b| {
+            b.score
+                .total_cmp(&a.score)
+                .then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id))
+        });
+        if frontier.len() > bounds.beam_width {
+            frontier.truncate(bounds.beam_width);
+        }
+    }
+
+    let mut out: Vec<HierarchicalChunkHit> = best_by_chunk.into_values().collect();
+    out.sort_by(|a, b| {
+        b.cosine
+            .total_cmp(&a.cosine)
+            .then_with(|| b.approx_score.cmp(&a.approx_score))
+            .then_with(|| a.chunk_id.cmp(&b.chunk_id))
+            .then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id))
+    });
+    out.truncate(bounds.k);
+    out
 }
 
 /// Unified manifest enum for backward compatibility
@@ -666,32 +1084,38 @@ impl EmbrFS {
         verbose: bool,
         _config: &ReversibleVSAConfig,
     ) -> io::Result<HierarchicalManifest> {
-        use std::collections::HashMap;
-
         let mut levels = Vec::new();
         let mut sub_engrams = HashMap::new();
 
-        // Group files by path components at each level
-        let mut level_components: HashMap<usize, HashMap<String, Vec<&FileEntry>>> = HashMap::new();
-
+        // Group files by *path prefixes* at each level.
+        // Level 0: "a"; Level 1: "a/b"; etc.
+        let mut level_prefixes: HashMap<usize, HashMap<String, Vec<&FileEntry>>> = HashMap::new();
         for file_entry in &self.manifest.files {
-            let path_components: Vec<&str> = file_entry.path.split('/').collect();
-
-            for (level, &component) in path_components.iter().enumerate() {
-                level_components.entry(level)
+            let comps: Vec<&str> = file_entry.path.split('/').collect();
+            let mut prefix = String::new();
+            for (level, &comp) in comps.iter().enumerate() {
+                if level == 0 {
+                    prefix.push_str(comp);
+                } else {
+                    prefix.push('/');
+                    prefix.push_str(comp);
+                }
+                level_prefixes
+                    .entry(level)
                     .or_insert_with(HashMap::new)
-                    .entry(component.to_string())
+                    .entry(prefix.clone())
                     .or_insert_with(Vec::new)
                     .push(file_entry);
             }
         }
 
         // Process each level
-        let max_level = level_components.keys().max().unwrap_or(&0);
+        let max_level = level_prefixes.keys().max().unwrap_or(&0);
 
         for level in 0..=*max_level {
             if verbose {
-                let item_count = level_components.get(&level)
+                let item_count = level_prefixes
+                    .get(&level)
                     .map(|comps| comps.values().map(|files| files.len()).sum::<usize>())
                     .unwrap_or(0);
                 println!("Processing level {} with {} items", level, item_count);
@@ -700,25 +1124,27 @@ impl EmbrFS {
             let mut level_bundle = SparseVec::new();
             let mut manifest_items = Vec::new();
 
-            if let Some(components) = level_components.get(&level) {
-                for (component, files) in components {
-                    // Create permutation shift based on component hash
+            if let Some(prefixes) = level_prefixes.get(&level) {
+                for (prefix, files) in prefixes {
+                    // Create permutation shift based on prefix hash
                     let shift = {
                         use std::collections::hash_map::DefaultHasher;
                         use std::hash::{Hash, Hasher};
                         let mut hasher = DefaultHasher::new();
-                        component.hash(&mut hasher);
+                        prefix.hash(&mut hasher);
                         (hasher.finish() % (DIM as u64)) as usize
                     };
 
                     // Bundle all files under this component with permutation
                     let mut component_bundle = SparseVec::new();
+                    let mut chunk_ids_set: HashSet<usize> = HashSet::new();
                     for file_entry in files {
                         // Find chunks for this file and bundle them
                         let mut file_bundle = SparseVec::new();
                         for &chunk_id in &file_entry.chunks {
                             if let Some(chunk_vec) = self.engram.codebook.get(&chunk_id) {
                                 file_bundle = file_bundle.bundle(chunk_vec);
+                                chunk_ids_set.insert(chunk_id);
                             }
                         }
 
@@ -734,30 +1160,38 @@ impl EmbrFS {
 
                     level_bundle = level_bundle.bundle(&component_bundle);
 
-                    // Create sub-engram for this component
-                    let sub_id = format!("level_{}_component_{}", level, component);
-                    let children = if level < *max_level {
-                        // This is an intermediate node, find children at next level
-                        level_components.get(&(level + 1))
-                            .map(|next_level| {
-                                next_level.keys()
-                                    .map(|child| format!("level_{}_component_{}", level + 1, child))
-                                    .collect()
-                            })
-                            .unwrap_or_default()
-                    } else {
-                        Vec::new()
-                    };
+                    // Create sub-engram for this prefix.
+                    // Children are the immediate next-level prefixes underneath this prefix.
+                    let sub_id = format!("level_{}_prefix_{}", level, prefix);
+
+                    let mut children_set: HashSet<String> = HashSet::new();
+                    if level < *max_level {
+                        for file_entry in files {
+                            let comps: Vec<&str> = file_entry.path.split('/').collect();
+                            if comps.len() <= level + 1 {
+                                continue;
+                            }
+                            let child_prefix = comps[..=level + 1].join("/");
+                            let child_id = format!("level_{}_prefix_{}", level + 1, child_prefix);
+                            children_set.insert(child_id);
+                        }
+                    }
+                    let mut children: Vec<String> = children_set.into_iter().collect();
+                    children.sort();
+
+                    let mut chunk_ids: Vec<usize> = chunk_ids_set.into_iter().collect();
+                    chunk_ids.sort_unstable();
 
                     sub_engrams.insert(sub_id.clone(), SubEngram {
                         id: sub_id.clone(),
                         root: component_bundle,
+                        chunk_ids,
                         chunk_count: files.iter().map(|f| f.chunks.len()).sum(),
                         children,
                     });
 
                     manifest_items.push(ManifestItem {
-                        path: component.clone(),
+                        path: prefix.clone(),
                         sub_engram_id: sub_id,
                     });
                 }
