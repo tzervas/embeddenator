@@ -3,7 +3,7 @@
 //! This test verifies that the CorrectionStore integration with EmbrFS
 //! guarantees bit-perfect reconstruction for all types of data.
 
-use embeddenator::{EmbrFS, ReversibleVSAConfig, CorrectionStats};
+use embeddenator::{EmbrFS, ReversibleVSAConfig};
 use std::fs;
 use tempfile::TempDir;
 

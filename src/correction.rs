@@ -385,7 +385,6 @@ impl ReconstructionVerifier {
     pub fn verify_all(&self, chunks: impl Iterator<Item = (u64, Vec<u8>)>) -> VerificationResult {
         let mut verified = 0u64;
         let mut failed = 0u64;
-        let mut missing = 0u64;
         let mut failed_ids = Vec::new();
 
         for (id, data) in chunks {
@@ -397,7 +396,7 @@ impl ReconstructionVerifier {
             }
         }
 
-        missing = self.expected_hashes.len() as u64 - verified - failed;
+        let missing = self.expected_hashes.len() as u64 - verified - failed;
 
         VerificationResult {
             verified,

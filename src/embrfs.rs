@@ -23,6 +23,7 @@
 use crate::vsa::{SparseVec, ReversibleVSAConfig, DIM};
 use crate::resonator::Resonator;
 use crate::correction::{CorrectionStore, CorrectionStats};
+use crate::retrieval::{RerankedResult, TernaryInvertedIndex};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -101,6 +102,23 @@ pub struct Engram {
     /// Correction store for 100% reconstruction guarantee
     #[serde(default)]
     pub corrections: CorrectionStore,
+}
+
+impl Engram {
+    /// Query the engram's codebook for chunks most similar to `query`.
+    ///
+    /// This builds an inverted index over the codebook for sub-linear candidate
+    /// generation, then reranks those candidates using exact cosine similarity.
+    pub fn query_codebook(&self, query: &SparseVec, k: usize) -> Vec<RerankedResult> {
+        if k == 0 || self.codebook.is_empty() {
+            return Vec::new();
+        }
+
+        // Simple heuristic: rerank a moderately-sized candidate set.
+        let candidate_k = (k.saturating_mul(10)).max(50);
+        let index = TernaryInvertedIndex::build_from_map(&self.codebook);
+        index.query_top_k_reranked(query, &self.codebook, candidate_k, k)
+    }
 }
 
 /// EmbrFS - Holographic Filesystem with Guaranteed Reconstruction
@@ -417,11 +435,23 @@ impl EmbrFS {
             }
 
             let mut reconstructed = Vec::new();
-            for &chunk_id in &file_entry.chunks {
+            let num_chunks = file_entry.chunks.len();
+            for (chunk_idx, &chunk_id) in file_entry.chunks.iter().enumerate() {
                 if let Some(chunk_vec) = engram.codebook.get(&chunk_id) {
+                    // Calculate the actual chunk size
+                    // Last chunk may be smaller than DEFAULT_CHUNK_SIZE
+                    let chunk_size = if chunk_idx == num_chunks - 1 {
+                        // Last chunk: remaining bytes
+                        let remaining = file_entry.size - (chunk_idx * DEFAULT_CHUNK_SIZE);
+                        remaining.min(DEFAULT_CHUNK_SIZE)
+                    } else {
+                        DEFAULT_CHUNK_SIZE
+                    };
+                    
                     // Decode the sparse vector to bytes
                     // IMPORTANT: Use the same path as during encoding for correct shift calculation
-                    let decoded = chunk_vec.decode_data(config, Some(&file_entry.path), DEFAULT_CHUNK_SIZE);
+                    // Also use the same chunk_size as during ingest for correct correction matching
+                    let decoded = chunk_vec.decode_data(config, Some(&file_entry.path), chunk_size);
                     
                     // Apply correction to guarantee bit-perfect reconstruction
                     let chunk_data = if let Some(corrected) = engram.corrections.apply(chunk_id as u64, &decoded) {
@@ -535,11 +565,20 @@ impl EmbrFS {
             }
 
             let mut reconstructed = Vec::new();
-            for &chunk_id in &file_entry.chunks {
+            let num_chunks = file_entry.chunks.len();
+            for (chunk_idx, &chunk_id) in file_entry.chunks.iter().enumerate() {
+                // Calculate the actual chunk size
+                let chunk_size = if chunk_idx == num_chunks - 1 {
+                    let remaining = file_entry.size - (chunk_idx * DEFAULT_CHUNK_SIZE);
+                    remaining.min(DEFAULT_CHUNK_SIZE)
+                } else {
+                    DEFAULT_CHUNK_SIZE
+                };
+                
                 let chunk_data = if let Some(vector) = self.engram.codebook.get(&chunk_id) {
                     // Decode the SparseVec back to bytes using reversible encoding
                     // IMPORTANT: Use the same path as during encoding for correct shift calculation
-                    let decoded = vector.decode_data(config, Some(&file_entry.path), DEFAULT_CHUNK_SIZE);
+                    let decoded = vector.decode_data(config, Some(&file_entry.path), chunk_size);
                     
                     // Apply correction to guarantee bit-perfect reconstruction
                     if let Some(corrected) = self.engram.corrections.apply(chunk_id as u64, &decoded) {
@@ -555,7 +594,7 @@ impl EmbrFS {
                     
                     // Decode the recovered vector back to bytes
                     // For resonator recovery, try with path first, fall back to no path
-                    let decoded = recovered_vec.decode_data(config, Some(&file_entry.path), DEFAULT_CHUNK_SIZE);
+                    let decoded = recovered_vec.decode_data(config, Some(&file_entry.path), chunk_size);
                     
                     // Apply correction if available (may not be if chunk was lost)
                     if let Some(corrected) = self.engram.corrections.apply(chunk_id as u64, &decoded) {
@@ -621,7 +660,12 @@ impl EmbrFS {
     /// let hierarchical = fs.bundle_hierarchically(500, false, &config);
     /// assert!(hierarchical.is_ok());
     /// ```
-    pub fn bundle_hierarchically(&self, max_level_sparsity: usize, verbose: bool, config: &ReversibleVSAConfig) -> io::Result<HierarchicalManifest> {
+    pub fn bundle_hierarchically(
+        &self,
+        max_level_sparsity: usize,
+        verbose: bool,
+        _config: &ReversibleVSAConfig,
+    ) -> io::Result<HierarchicalManifest> {
         use std::collections::HashMap;
 
         let mut levels = Vec::new();
@@ -799,15 +843,30 @@ impl EmbrFS {
                 fs::create_dir_all(parent)?;
             }
 
-            // Find the hierarchical path for this file
-            let path_components: Vec<&str> = file_entry.path.split('/').collect();
             let mut reconstructed = Vec::new();
 
             // Reconstruct each chunk using hierarchical information
-            for &chunk_id in &file_entry.chunks {
+            let num_chunks = file_entry.chunks.len();
+            for (chunk_idx, &chunk_id) in file_entry.chunks.iter().enumerate() {
                 if let Some(chunk_vector) = self.engram.codebook.get(&chunk_id) {
+                    // Calculate the actual chunk size
+                    let chunk_size = if chunk_idx == num_chunks - 1 {
+                        let remaining = file_entry.size - (chunk_idx * DEFAULT_CHUNK_SIZE);
+                        remaining.min(DEFAULT_CHUNK_SIZE)
+                    } else {
+                        DEFAULT_CHUNK_SIZE
+                    };
+                    
                     // Decode using hierarchical inverse transformations
-                    let chunk_data = chunk_vector.decode_data(config, Some(&file_entry.path), DEFAULT_CHUNK_SIZE);
+                    let decoded = chunk_vector.decode_data(config, Some(&file_entry.path), chunk_size);
+                    
+                    // Apply correction if available
+                    let chunk_data = if let Some(corrected) = self.engram.corrections.apply(chunk_id as u64, &decoded) {
+                        corrected
+                    } else {
+                        decoded
+                    };
+                    
                     reconstructed.extend_from_slice(&chunk_data);
                 }
             }
