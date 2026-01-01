@@ -73,7 +73,7 @@ phases:
         
       - id: TASK-RES-002
         title: Add ternary sign thresholding
-        status: pending
+        status: completed
         agent: VSAExpert
         deps: [TASK-RES-001]
         files: [src/resonator.rs]
@@ -254,7 +254,7 @@ phases:
 
 summary:
   total_tasks: 20
-  completed_tasks: 7
+  completed_tasks: 8
   phases: 7
   critical_path: [TASK-VSA-001, TASK-VSA-003, TASK-RES-001, TASK-RES-003, TASK-HIE-003, TASK-HIE-004]
   estimated_total_hours: 140
