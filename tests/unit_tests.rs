@@ -533,3 +533,49 @@ fn test_embrfs_without_resonator_fallback() {
     let extracted_path = temp_dir.path().join("test.txt");
     assert!(extracted_path.exists());
 }
+
+#[test]
+fn test_hierarchical_bundling() {
+    use embeddenator::embrfs::EmbrFS;
+
+    let mut fs = EmbrFS::new();
+
+    // Add test files with hierarchical paths
+    let test_files = vec![
+        ("dir1/file1.txt", b"content1"),
+        ("dir1/file2.txt", b"content2"),
+        ("dir1/subdir/file3.txt", b"content3"),
+        ("dir2/file4.txt", b"content4"),
+    ];
+
+    for (path, content) in test_files {
+        let mut file_entry = embeddenator::embrfs::FileEntry {
+            path: path.to_string(),
+            is_text: true,
+            size: content.len(),
+            chunks: vec![fs.manifest.total_chunks],
+        };
+        fs.manifest.files.push(file_entry);
+        fs.manifest.total_chunks += 1;
+        fs.engram.codebook.insert(fs.manifest.total_chunks - 1, content.to_vec());
+    }
+
+    // Test hierarchical bundling
+    let hierarchical = fs.bundle_hierarchically(200, false);
+    assert!(hierarchical.is_ok());
+
+    let manifest = hierarchical.unwrap();
+    assert_eq!(manifest.version, 1);
+    assert!(manifest.levels.len() > 0);
+
+    // Should have sub-engrams for components
+    assert!(manifest.sub_engrams.len() > 0);
+
+    // Verify that different levels have different structures
+    for level in &manifest.levels {
+        assert!(level.items.len() > 0);
+        for item in &level.items {
+            assert!(manifest.sub_engrams.contains_key(&item.sub_engram_id));
+        }
+    }
+}
