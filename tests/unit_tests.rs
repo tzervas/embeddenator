@@ -473,3 +473,63 @@ fn test_resonator_sign_threshold_high_threshold() {
     // With high threshold, only strong similarities should pass
     assert_eq!(ternary, vec![0, 0, 0]);
 }
+
+#[test]
+fn test_embrfs_resonator_integration() {
+    use embeddenator::embrfs::EmbrFS;
+    use tempfile::tempdir;
+
+    let mut embrfs = EmbrFS::new();
+    let resonator = Resonator::new();
+    embrfs.set_resonator(resonator);
+
+    // Add a test file to the embrfs
+    let test_data = b"Hello, World!";
+    let file_entry = embeddenator::embrfs::FileEntry {
+        path: "test.txt".to_string(),
+        is_text: true,
+        size: test_data.len(),
+        chunks: vec![0],
+    };
+    embrfs.manifest.files.push(file_entry);
+    embrfs.manifest.total_chunks = 1;
+    embrfs.engram.codebook.insert(0, test_data.to_vec());
+
+    // Test extraction with resonator
+    let temp_dir = tempdir().unwrap();
+    let result = embrfs.extract_with_resonator(temp_dir.path(), false);
+    assert!(result.is_ok());
+
+    // Verify file was extracted
+    let extracted_path = temp_dir.path().join("test.txt");
+    assert!(extracted_path.exists());
+}
+
+#[test]
+fn test_embrfs_without_resonator_fallback() {
+    use embeddenator::embrfs::EmbrFS;
+    use tempfile::tempdir;
+
+    let mut embrfs = EmbrFS::new(); // No resonator set
+
+    // Add a test file to the embrfs
+    let test_data = b"Hello, World!";
+    let file_entry = embeddenator::embrfs::FileEntry {
+        path: "test.txt".to_string(),
+        is_text: true,
+        size: test_data.len(),
+        chunks: vec![0],
+    };
+    embrfs.manifest.files.push(file_entry);
+    embrfs.manifest.total_chunks = 1;
+    embrfs.engram.codebook.insert(0, test_data.to_vec());
+
+    // Test extraction without resonator (should use standard extract)
+    let temp_dir = tempdir().unwrap();
+    let result = embrfs.extract_with_resonator(temp_dir.path(), false);
+    assert!(result.is_ok());
+
+    // Verify file was extracted
+    let extracted_path = temp_dir.path().join("test.txt");
+    assert!(extracted_path.exists());
+}
