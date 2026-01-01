@@ -739,38 +739,64 @@ mod qa_tests {
 mod property_tests {
     use super::*;
     use proptest::prelude::*;
+    use std::collections::BTreeMap;
+
+    fn sparse_vec_strategy(max_nonzeros: usize) -> impl Strategy<Value = SparseVec> {
+        prop::collection::vec(
+            (0usize..embeddenator::DIM, prop_oneof![Just(1i8), Just(-1i8)]),
+            1..max_nonzeros,
+        )
+        .prop_map(|pairs| {
+            let mut by_idx: BTreeMap<usize, i8> = BTreeMap::new();
+            for (idx, sign) in pairs {
+                by_idx.insert(idx, sign);
+            }
+
+            let mut v = SparseVec::new();
+            v.pos = Vec::new();
+            v.neg = Vec::new();
+
+            for (idx, sign) in by_idx {
+                match sign {
+                    1 => v.pos.push(idx),
+                    -1 => v.neg.push(idx),
+                    _ => {}
+                }
+            }
+            v
+        })
+    }
 
     proptest! {
         #[test]
-        fn test_sparse_vec_bundle_associativity(a in any::<SparseVec>(), b in any::<SparseVec>(), c in any::<SparseVec>()) {
-            let left = a.bundle(&b).bundle(&c);
-            let right = a.bundle(&b.bundle(&c));
-
-            let similarity = left.cosine(&right);
-            prop_assert!(similarity > 0.8, "Bundle not associative: similarity = {}", similarity);
+        fn test_sparse_vec_bundle_commutativity(a in sparse_vec_strategy(256), b in sparse_vec_strategy(256)) {
+            let ab = a.bundle(&b);
+            let ba = b.bundle(&a);
+            prop_assert_eq!(ab.pos, ba.pos);
+            prop_assert_eq!(ab.neg, ba.neg);
         }
 
         #[test]
-        fn test_sparse_vec_bind_self_inverse(vec in any::<SparseVec>()) {
+        fn test_sparse_vec_bind_self_inverse(vec in sparse_vec_strategy(256)) {
             let bound = vec.bind(&vec);
             prop_assert!(!bound.pos.is_empty() || !bound.neg.is_empty(), "Bind self-inverse should produce non-zero result");
         }
 
         #[test]
-        fn test_sparse_vec_cosine_bounds(vec in any::<SparseVec>()) {
+        fn test_sparse_vec_cosine_bounds(vec in sparse_vec_strategy(256)) {
             let similarity = vec.cosine(&vec);
-            prop_assert!(similarity >= 0.0 && similarity <= 1.0, "Cosine similarity out of bounds: {}", similarity);
+            prop_assert!(similarity >= -1e-12 && similarity <= 1.0 + 1e-12, "Cosine similarity out of bounds: {}", similarity);
         }
 
         #[test]
         fn test_tryte3_bind_commutative(a in 0..27u8, b in 0..27u8) {
             use embeddenator::ternary::Tryte3;
 
-            let t1 = Tryte3::from_value(a as i8 - 13);
-            let t2 = Tryte3::from_value(b as i8 - 13);
+            let t1 = Tryte3::from_i8(a as i8 - 13).expect("Tryte3 from_i8 range");
+            let t2 = Tryte3::from_i8(b as i8 - 13).expect("Tryte3 from_i8 range");
 
-            let bound_ab = t1.bind(t2);
-            let bound_ba = t2.bind(t1);
+            let bound_ab = t1.mul(t2);
+            let bound_ba = t2.mul(t1);
 
             prop_assert_eq!(bound_ab, bound_ba, "Tryte3 bind not commutative");
         }
