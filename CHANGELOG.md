@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Level-by-level sparsity control for scalable hierarchical storage
   - Hierarchical manifest generation with sub-engram relationships
   - TB+ synthetic test validation for hierarchical bundling correctness
+- **TASK-HIE-004**: Hierarchical extraction with manifest-guided traversal
+  - `extract_hierarchically()` method for manifest-guided level traversal
+  - Inverse permutation decoding for path-based reconstruction
+  - Support for bit-perfect reconstruction from hierarchical structures
+  - E2E test validation for complete hierarchical extraction workflow
 
 ## [0.2.0] - 2025-12-15
 
