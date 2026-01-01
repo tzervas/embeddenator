@@ -28,11 +28,11 @@ name: CI arm64 Build and Test
 # See .github/workflows/README.md for detailed troubleshooting and setup guide.
 
 on:
-  # DISABLED: Uncomment these when self-hosted ARM64 runners are ready
-  # push:
-  #   branches: [ main ]
-  # pull_request:
-  #   types: [opened, synchronize, reopened]
+  # ENABLED: ARM64 runners are now operational
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
   
   # Manual trigger for testing self-hosted runners
   workflow_dispatch:

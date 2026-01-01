@@ -1,0 +1,37 @@
+project:
+  name: embeddenator-agentic-dev
+  description: Multi-agent orchestration layer for developing and extending the embeddenator holographic VSA substrate
+  root_dir: ../..  # relative to agentic-dev/ → points to embeddenator root
+  language: Rust (core) + Python (orchestration)
+  tech_stack: sparse ternary vectors, VSA (bundle/bind/cleanup), engram encoding, Docker, CLI tools
+  license: MIT
+  agents:
+    - role: Planner
+      goal: Decompose features (ingest/extract/query/engram ops/scalability) into tasks
+      instructions_file: .github/instructions/planner_vsa.md
+    - role: RustEngineer
+      goal: Write/modify Rust code in src/ for SparseVec, EmbrFS, VSA ops
+      instructions_file: .github/instructions/rust_vsa_engineer.md
+    - role: PythonOrchestrator
+      goal: Improve orchestrator.py, build scripts, test_runner.py
+      instructions_file: .github/instructions/python_orchestrator.md
+    - role: Tester
+      goal: Write/maintain unit/integration/E2E tests (33+ coverage)
+      instructions_file: .github/instructions/tester_embeddenator.md
+    - role: VSAExpert
+      goal: Optimize ternary sparse vectors, bundle/bind ops, cosine cleanup, hierarchical chunking
+      instructions_file: .github/instructions/vsa_specialist.md
+    - role: DockerDevOps
+      goal: Maintain Dockerfile.tool, Dockerfile.holographic, OS engram builds
+      instructions_file: .github/instructions/docker_holographic.md
+    - role: Reviewer
+      goal: Enforce zero clippy warnings, production-grade quality, bit-perfect fidelity
+      instructions_file: .github/instructions/reviewer_embeddenator.md
+  task_tracker: tasking/tracker_vsa.yaml
+  workflows:
+    - feature_branch_prefix: feat/vsa-
+    - pr_require: Tester + Reviewer approval
+    - ci_integration: Reuse existing .github/workflows/ci-*.yml
+  custom_prompts:
+    - vsa_operation: "When implementing VSA ops, ensure sparsity <5%, ternary {-1,0,1}, algebraic correctness."
+    - engram_fidelity: "All extract operations must guarantee 100% bit-perfect reconstruction."

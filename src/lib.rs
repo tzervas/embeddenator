@@ -58,8 +58,10 @@
 
 pub mod cli;
 pub mod embrfs;
+pub mod resonator;
 pub mod vsa;
 
 // Re-export main types for convenience
 pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
-pub use vsa::{SparseVec, DIM};
+pub use resonator::Resonator;
+pub use vsa::{SparseVec, VSAConfig, DIM};
