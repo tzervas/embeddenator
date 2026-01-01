@@ -253,16 +253,48 @@ phases:
     tasks:
       - id: TASK-FUSE-001
         title: Implement fuser Filesystem trait
-        status: pending
+        status: in_progress
         agent: RustEngineer
-        deps: [TASK-HIE-004, TASK-RES-003]
-        files: [src/fuse.rs, Cargo.toml]
+        deps: [TASK-HIE-004, TASK-RES-003, TASK-TERNARY-001]
+        files: [src/fuse_shim.rs, Cargo.toml]
         acceptance:
           - Basic read ops via unbind/cleanup
           - POSIX parity in Docker
         estimate_hours: 16
+        notes: "fuse_shim.rs scaffolding complete, need fuser crate integration"
 
   - id: phase_7
+    name: balanced_ternary_substrate
+    priority: P0
+    tasks:
+      - id: TASK-TERNARY-001
+        title: Implement balanced ternary computing substrate
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-VSA-001]
+        files: [src/ternary.rs, src/codebook.rs, src/dimensional.rs, src/correction.rs]
+        acceptance:
+          - Trit/Tryte3/Word6 primitives
+          - 38 trits in 61 bits encoding
+          - All algebraic properties proven
+          - 29 exhaustive tests passing
+        estimate_hours: 24
+        completed_at: "2025-12-31"
+        
+      - id: TASK-TERNARY-002
+        title: CorrectionStore integration with EmbrFS
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-TERNARY-001]
+        files: [src/embrfs.rs, src/correction.rs, tests/reconstruction_guarantee.rs]
+        acceptance:
+          - 100% bitwise reconstruction guarantee
+          - 7 reconstruction tests passing
+          - Path-based shift bug fixed
+        estimate_hours: 8
+        completed_at: "2025-12-31"
+
+  - id: phase_8
     name: ci_infrastructure
     priority: P0
     tasks:
@@ -289,8 +321,12 @@ phases:
         estimate_hours: 2
 
 summary:
-  total_tasks: 20
-  completed_tasks: 8
-  phases: 7
-  critical_path: [TASK-VSA-001, TASK-VSA-003, TASK-RES-001, TASK-RES-003, TASK-PLACEHOLDER-001, TASK-HIE-003, TASK-HIE-004, TASK-PLACEHOLDER-002]
-  estimated_total_hours: 140
+  total_tasks: 22
+  completed_tasks: 10
+  phases: 8
+  critical_path: [TASK-VSA-001, TASK-TERNARY-001, TASK-TERNARY-002, TASK-FUSE-001]
+  estimated_total_hours: 172
+  last_updated: "2025-12-31T20:00:00Z"
+  recent_completions:
+    - TASK-TERNARY-001
+    - TASK-TERNARY-002
