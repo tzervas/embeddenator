@@ -1,0 +1,151 @@
+# Embeddenator API Surface Reference
+# Purpose: Quick lookup for agent code generation
+
+modules:
+  vsa:
+    path: src/vsa.rs
+    exports:
+      - name: DIM
+        type: const usize
+        value: 10000
+        
+      - name: SparseVec
+        type: struct
+        fields:
+          - {name: pos, type: "Vec<usize>", desc: "Indices with +1 value"}
+          - {name: neg, type: "Vec<usize>", desc: "Indices with -1 value"}
+        methods:
+          - sig: "fn new() -> Self"
+            desc: Create empty sparse vector
+          - sig: "fn random() -> Self"
+            desc: Generate random sparse vector with ~1% density
+          - sig: "fn from_data(data: &[u8]) -> Self"
+            desc: Deterministic vector from SHA256 seed
+          - sig: "fn bundle(&self, other: &SparseVec) -> SparseVec"
+            desc: Associative superposition (⊕)
+          - sig: "fn bind(&self, other: &SparseVec) -> SparseVec"
+            desc: Non-commutative composition (⊙)
+          - sig: "fn cosine(&self, other: &SparseVec) -> f64"
+            desc: Cosine similarity [-1, 1]
+        derives: [Clone, Debug, Serialize, Deserialize, Default]
+        
+    to_add:
+      - name: VSAConfig
+        type: struct
+        fields:
+          - {name: dimensionality, type: usize}
+          - {name: target_non_zero, type: usize}
+          - {name: sparsity, type: f32}
+        methods:
+          - sig: "fn new(dimensionality: usize) -> Self"
+          - sig: "fn high_precision() -> Self"
+            desc: "100K dims, 0.2% sparsity"
+          - sig: "fn balanced() -> Self"
+            desc: "50K dims, 0.4% sparsity"
+          - sig: "fn fast() -> Self"
+            desc: "10K dims, 2% sparsity"
+            
+      - name: permute
+        type: method
+        sig: "fn permute(&self, shift: usize) -> SparseVec"
+        desc: Cyclic shift for order encoding
+        
+      - name: inverse_permute
+        type: method
+        sig: "fn inverse_permute(&self, shift: usize) -> SparseVec"
+        desc: Reverse cyclic shift
+        
+      - name: thin
+        type: method
+        sig: "fn thin(&self, target_density: f32) -> SparseVec"
+        desc: Context-dependent thinning
+
+  embrfs:
+    path: src/embrfs.rs
+    exports:
+      - name: EmbrFS
+        type: struct
+        desc: Holographic filesystem
+        
+      - name: Engram
+        type: struct
+        fields:
+          - {name: root, type: SparseVec}
+          - {name: codebook, type: "HashMap<u64, Vec<u8>>"}
+          - {name: manifest, type: FsManifest}
+          
+    to_add:
+      - name: HierarchicalManifest
+        type: struct
+        fields:
+          - {name: version, type: u32}
+          - {name: levels, type: "Vec<ManifestLevel>"}
+          - {name: sub_engrams, type: "HashMap<String, SubEngram>"}
+          
+      - name: SubEngram
+        type: struct
+        fields:
+          - {name: id, type: String}
+          - {name: root, type: SparseVec}
+          - {name: chunk_count, type: usize}
+          - {name: children, type: "Vec<String>"}
+
+  resonator:
+    path: src/resonator.rs
+    status: TO_CREATE
+    exports:
+      - name: Resonator
+        type: struct
+        fields:
+          - {name: codebook, type: "&[SparseVec]"}
+          - {name: max_iterations, type: usize, default: 10}
+          - {name: convergence_threshold, type: f64, default: 0.001}
+        methods:
+          - sig: "fn new(codebook: &[SparseVec]) -> Self"
+          - sig: "fn factorize(&self, compound: &SparseVec, num_factors: usize) -> Vec<SparseVec>"
+            desc: Iteratively factor compound vector
+          - sig: "fn project(&self, noisy: &SparseVec) -> SparseVec"
+            desc: Project onto codebook subspace
+          - sig: "fn threshold_ternary(vec: &[f64]) -> SparseVec"
+            desc: Sign function to ternary values
+
+  fuse:
+    path: src/fuse.rs
+    status: TO_CREATE
+    crate_dep: fuser
+    exports:
+      - name: EmbrFuse
+        type: struct
+        implements: fuser::Filesystem
+        methods:
+          - sig: "fn lookup(&mut self, req: &Request, parent: u64, name: &OsStr, reply: ReplyEntry)"
+          - sig: "fn read(&mut self, req: &Request, ino: u64, fh: u64, offset: i64, size: u32, flags: i32, lock_owner: Option<u64>, reply: ReplyData)"
+
+cli:
+  path: src/cli.rs
+  commands:
+    existing:
+      - {name: ingest, desc: "Encode directory to engram"}
+      - {name: extract, desc: "Reconstruct from engram"}
+      - {name: query, desc: "Search engram by similarity"}
+    to_add:
+      - {name: "ingest --hierarchical", desc: "Multi-level encoding for large datasets"}
+      - {name: "mount", desc: "FUSE mount engram"}
+      - {name: "config", desc: "Show/set VSA configuration"}
+
+file_index:
+  source:
+    - {path: src/vsa.rs, lines: 278, desc: "VSA operations"}
+    - {path: src/embrfs.rs, desc: "Filesystem encoding"}
+    - {path: src/cli.rs, desc: "CLI interface"}
+    - {path: src/lib.rs, desc: "Library exports"}
+    - {path: src/main.rs, desc: "Entry point"}
+  tests:
+    - {path: tests/unit_tests.rs, count: 11}
+    - {path: tests/integration_cli.rs, count: 7}
+    - {path: tests/e2e_regression.rs, count: 6}
+  docs:
+    - {path: docs/adr/, count: 7}
+    - {path: context.md, desc: "Research context"}
+    - {path: context-1.md, desc: "Engineering plan"}
+    - {path: TASK_REGISTRY.md, desc: "Task tracking"}
