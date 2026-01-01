@@ -4,7 +4,7 @@ description: Expert in sparse ternary VSA math for Embeddenator engrams and oper
 argument-hint: Describe your VSA math query, e.g., bundling formula for hierarchies.
 infer: true
 target: vscode
-tools: ['search']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'todo']
 handoffs:
   - label: Implement in Rust
     agent: rust-implementer

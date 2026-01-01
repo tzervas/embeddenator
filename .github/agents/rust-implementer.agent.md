@@ -4,7 +4,7 @@ description: Generate Rust code for Embeddenator VSA implementations.
 argument-hint: Specify code task, e.g., bundle method for SparseVec.
 infer: true
 target: vscode
-tools: ['search', 'usages']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'todo']
 handoffs:
   - label: Integrate with Kernel
     agent: integration-specialist

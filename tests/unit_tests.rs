@@ -1,6 +1,6 @@
 //! Unit tests for Vector Symbolic Architecture (VSA)
 
-use embeddenator::vsa::{SparseVec, VSAConfig};
+use embeddenator::vsa::SparseVec;
 use embeddenator::resonator::Resonator;
 use std::collections::HashSet;
 
@@ -206,40 +206,40 @@ fn test_is_text_file() {
 }
 
 #[test]
-fn test_vsaconfig_new() {
-    let config = VSAConfig::new(10000);
-    assert_eq!(config.dimensionality, 10000);
-    assert_eq!(config.target_non_zero, 200);
-    assert!((config.sparsity - 0.02).abs() < 0.001);
+fn test_reversible_vsaconfig_default() {
+    use embeddenator::vsa::ReversibleVSAConfig;
     
-    let config_50k = VSAConfig::new(50000);
-    assert_eq!(config_50k.dimensionality, 50000);
-    assert!((config_50k.sparsity - 0.004).abs() < 0.001);
+    let config = ReversibleVSAConfig::default();
+    assert_eq!(config.block_size, 256);
+    assert_eq!(config.max_path_depth, 10);
+    assert_eq!(config.base_shift, 1000);
+    assert_eq!(config.target_sparsity, 200);
 }
 
 #[test]
-fn test_vsaconfig_presets() {
-    let high = VSAConfig::high_precision();
-    assert_eq!(high.dimensionality, 100_000);
-    assert!((high.sparsity - 0.002).abs() < 0.001);
+fn test_reversible_vsaconfig_presets() {
+    use embeddenator::vsa::ReversibleVSAConfig;
     
-    let balanced = VSAConfig::balanced();
-    assert_eq!(balanced.dimensionality, 50_000);
-    assert!((balanced.sparsity - 0.004).abs() < 0.001);
+    let small = ReversibleVSAConfig::small_blocks();
+    assert_eq!(small.block_size, 64);
+    assert_eq!(small.target_sparsity, 100);
     
-    let fast = VSAConfig::fast();
-    assert_eq!(fast.dimensionality, 10_000);
-    assert!((fast.sparsity - 0.02).abs() < 0.001);
+    let default = ReversibleVSAConfig::default();
+    assert_eq!(default.block_size, 256);
+    assert_eq!(default.target_sparsity, 200);
 }
 
 #[test]
-fn test_vsaconfig_serialization() {
-    let config = VSAConfig::balanced();
+fn test_reversible_vsaconfig_serialization() {
+    use embeddenator::vsa::ReversibleVSAConfig;
+    
+    let config = ReversibleVSAConfig::default();
     let serialized = serde_json::to_string(&config).unwrap();
-    let deserialized: VSAConfig = serde_json::from_str(&serialized).unwrap();
-    assert_eq!(config.dimensionality, deserialized.dimensionality);
-    assert_eq!(config.target_non_zero, deserialized.target_non_zero);
-    assert!((config.sparsity - deserialized.sparsity).abs() < 0.001);
+    let deserialized: ReversibleVSAConfig = serde_json::from_str(&serialized).unwrap();
+    assert_eq!(config.block_size, deserialized.block_size);
+    assert_eq!(config.max_path_depth, deserialized.max_path_depth);
+    assert_eq!(config.base_shift, deserialized.base_shift);
+    assert_eq!(config.target_sparsity, deserialized.target_sparsity);
 }
 
 #[test]
@@ -342,9 +342,12 @@ fn test_thin_no_change_when_smaller() {
 
 #[test]
 fn test_bundle_with_config_thinning() {
-    let config = VSAConfig::balanced(); // target_non_zero = 200
+    use embeddenator::vsa::ReversibleVSAConfig;
+    
+    let config = ReversibleVSAConfig::default(); // target_sparsity = 200
     
     // Create 10 vectors that will bundle to more than 200 non-zeros
+    #[allow(deprecated)]
     let vectors: Vec<SparseVec> = (0..10)
         .map(|i| SparseVec::from_data(format!("test data {}", i).as_bytes()))
         .collect();
@@ -477,10 +480,12 @@ fn test_resonator_sign_threshold_high_threshold() {
 #[test]
 fn test_embrfs_resonator_integration() {
     use embeddenator::embrfs::EmbrFS;
+    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
     use tempfile::tempdir;
 
     let mut embrfs = EmbrFS::new();
     let resonator = Resonator::new();
+    let config = ReversibleVSAConfig::default();
     embrfs.set_resonator(resonator);
 
     // Add a test file to the embrfs
@@ -493,11 +498,13 @@ fn test_embrfs_resonator_integration() {
     };
     embrfs.manifest.files.push(file_entry);
     embrfs.manifest.total_chunks = 1;
-    embrfs.engram.codebook.insert(0, test_data.to_vec());
+    // Create a SparseVec from the data for the codebook
+    let chunk_vec = SparseVec::encode_data(&test_data[..], &config, Some("test.txt"));
+    embrfs.engram.codebook.insert(0, chunk_vec);
 
     // Test extraction with resonator
     let temp_dir = tempdir().unwrap();
-    let result = embrfs.extract_with_resonator(temp_dir.path(), false);
+    let result = embrfs.extract_with_resonator(temp_dir.path(), false, &config);
     assert!(result.is_ok());
 
     // Verify file was extracted
@@ -508,9 +515,11 @@ fn test_embrfs_resonator_integration() {
 #[test]
 fn test_embrfs_without_resonator_fallback() {
     use embeddenator::embrfs::EmbrFS;
+    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
     use tempfile::tempdir;
 
     let mut embrfs = EmbrFS::new(); // No resonator set
+    let config = ReversibleVSAConfig::default();
 
     // Add a test file to the embrfs
     let test_data = b"Hello, World!";
@@ -522,11 +531,13 @@ fn test_embrfs_without_resonator_fallback() {
     };
     embrfs.manifest.files.push(file_entry);
     embrfs.manifest.total_chunks = 1;
-    embrfs.engram.codebook.insert(0, test_data.to_vec());
+    // Create a SparseVec from the data for the codebook
+    let chunk_vec = SparseVec::encode_data(&test_data[..], &config, Some("test.txt"));
+    embrfs.engram.codebook.insert(0, chunk_vec);
 
     // Test extraction without resonator (should use standard extract)
     let temp_dir = tempdir().unwrap();
-    let result = embrfs.extract_with_resonator(temp_dir.path(), false);
+    let result = embrfs.extract_with_resonator(temp_dir.path(), false, &config);
     assert!(result.is_ok());
 
     // Verify file was extracted
@@ -537,8 +548,10 @@ fn test_embrfs_without_resonator_fallback() {
 #[test]
 fn test_hierarchical_bundling() {
     use embeddenator::embrfs::EmbrFS;
+    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
 
     let mut fs = EmbrFS::new();
+    let config = ReversibleVSAConfig::default();
 
     // Add test files with hierarchical paths
     let test_files = vec![
@@ -549,19 +562,21 @@ fn test_hierarchical_bundling() {
     ];
 
     for (path, content) in test_files {
-        let mut file_entry = embeddenator::embrfs::FileEntry {
+        let file_entry = embeddenator::embrfs::FileEntry {
             path: path.to_string(),
             is_text: true,
             size: content.len(),
             chunks: vec![fs.manifest.total_chunks],
         };
         fs.manifest.files.push(file_entry);
+        // Create a SparseVec from the content for the codebook
+        let chunk_vec = SparseVec::encode_data(&content[..], &config, Some(path));
+        fs.engram.codebook.insert(fs.manifest.total_chunks, chunk_vec);
         fs.manifest.total_chunks += 1;
-        fs.engram.codebook.insert(fs.manifest.total_chunks - 1, content.to_vec());
     }
 
     // Test hierarchical bundling
-    let hierarchical = fs.bundle_hierarchically(200, false);
+    let hierarchical = fs.bundle_hierarchically(200, false, &config);
     assert!(hierarchical.is_ok());
 
     let manifest = hierarchical.unwrap();
@@ -583,9 +598,11 @@ fn test_hierarchical_bundling() {
 #[test]
 fn test_hierarchical_extraction() {
     use embeddenator::embrfs::EmbrFS;
+    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
     use tempfile::tempdir;
 
     let mut fs = EmbrFS::new();
+    let config = ReversibleVSAConfig::default();
 
     // Add test files with hierarchical paths
     let test_files = vec![
@@ -603,16 +620,18 @@ fn test_hierarchical_extraction() {
             chunks: vec![fs.manifest.total_chunks],
         };
         fs.manifest.files.push(file_entry);
+        // Create a SparseVec from the content for the codebook
+        let chunk_vec = SparseVec::encode_data(&content[..], &config, Some(*path));
+        fs.engram.codebook.insert(fs.manifest.total_chunks, chunk_vec);
         fs.manifest.total_chunks += 1;
-        fs.engram.codebook.insert(fs.manifest.total_chunks - 1, content.to_vec());
     }
 
     // Create hierarchical manifest
-    let hierarchical = fs.bundle_hierarchically(200, false).unwrap();
+    let hierarchical = fs.bundle_hierarchically(200, false, &config).unwrap();
 
     // Test hierarchical extraction
     let temp_dir = tempdir().unwrap();
-    let result = fs.extract_hierarchically(&hierarchical, temp_dir.path(), false);
+    let result = fs.extract_hierarchically(&hierarchical, temp_dir.path(), false, &config);
     assert!(result.is_ok());
 
     // Verify files were extracted (even if content is transformed)

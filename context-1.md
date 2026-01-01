@@ -160,3 +160,8 @@ enum VsaError {
 -  denzp/rust-buildkit - GitHub - https://github.com/denzp/rust-buildkit  
 -  containerd/docs/PLUGINS.md at main - GitHub - https://github.com/containerd/containerd/blob/main/docs/PLUGINS.md  
 -  BuildKit - https://docs.docker.com/build/buildkit/
+
+---
+
+yes, we will need to throw massive amounts of synthetic data, both known good and garbage data both to fully and exhaustively vet this.
+i've got a server we can set up a hardened vm on and capture a bunch of logs from and just absolutely slam it with massive volumes of data 24/7 until we've satisfacotrily validated it into oblivion.

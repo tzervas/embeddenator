@@ -6,7 +6,7 @@
 //! - Querying similarity
 
 use crate::embrfs::EmbrFS;
-use crate::vsa::SparseVec;
+use crate::vsa::{SparseVec, ReversibleVSAConfig};
 use clap::{Parser, Subcommand};
 use std::fs::File;
 use std::io::{self, Read};
@@ -152,7 +152,8 @@ pub fn run() -> io::Result<()> {
             }
 
             let mut fs = EmbrFS::new();
-            fs.ingest_directory(&input, verbose)?;
+            let config = ReversibleVSAConfig::default();
+            fs.ingest_directory(&input, verbose, &config)?;
 
             fs.save_engram(&engram)?;
             fs.save_manifest(&manifest)?;
@@ -184,8 +185,9 @@ pub fn run() -> io::Result<()> {
 
             let engram_data = EmbrFS::load_engram(&engram)?;
             let manifest_data = EmbrFS::load_manifest(&manifest)?;
+            let config = ReversibleVSAConfig::default();
 
-            EmbrFS::extract(&engram_data, &manifest_data, &output_dir, verbose)?;
+            EmbrFS::extract(&engram_data, &manifest_data, &output_dir, verbose, &config)?;
 
             if verbose {
                 println!("\nExtraction complete!");
@@ -214,7 +216,7 @@ pub fn run() -> io::Result<()> {
             let mut query_data = Vec::new();
             query_file.read_to_end(&mut query_data)?;
 
-            let query_vec = SparseVec::from_data(&query_data);
+            let query_vec = SparseVec::encode_data(&query_data, &ReversibleVSAConfig::default(), None);
             let similarity = query_vec.cosine(&engram_data.root);
 
             println!("Query file: {}", query.display());

@@ -57,11 +57,24 @@
 //! - [`cli`]: Command-line interface
 
 pub mod cli;
+pub mod codebook;
+pub mod correction;
+pub mod dimensional;
 pub mod embrfs;
+pub mod fuse_shim;
 pub mod resonator;
+pub mod ternary;
 pub mod vsa;
 
 // Re-export main types for convenience
+pub use codebook::{Codebook, BalancedTernaryWord, ProjectionResult, SemanticOutlier, WordMetadata};
+pub use correction::{CorrectionStore, CorrectionStats, ChunkCorrection, CorrectionType, ReconstructionVerifier};
+pub use dimensional::{
+    Trit as DimTrit, Tryte, DimensionalConfig, TritDepthConfig,
+    HyperVec, DifferentialEncoder, DifferentialEncoding,
+};
 pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
+pub use fuse_shim::{EngramFS, EngramFSBuilder, FileAttr, FileKind};
 pub use resonator::Resonator;
-pub use vsa::{SparseVec, VSAConfig, DIM};
+pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
+pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};
