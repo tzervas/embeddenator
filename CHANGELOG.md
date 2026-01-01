@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `extract_with_resonator()` method with robust recovery capabilities
   - Integration tests validating resonator-enhanced extraction
   - 100% reconstruction support with pattern completion fallback
+- **TASK-HIE-003**: Multi-level bundling with path role binding and permutation
+  - `bundle_hierarchically()` method for hierarchical engram creation
+  - Path component encoding using permutation operations at each level
+  - Level-by-level sparsity control for scalable hierarchical storage
+  - Hierarchical manifest generation with sub-engram relationships
+  - TB+ synthetic test validation for hierarchical bundling correctness
 
 ## [0.2.0] - 2025-12-15
 
