@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **TASK-RES-003**: Resonator-EmbrFS integration for enhanced extraction
+  - Optional resonator field in EmbrFS struct for pattern completion
+  - `set_resonator()` method for configuring resonator networks
+  - `extract_with_resonator()` method with robust recovery capabilities
+  - Integration tests validating resonator-enhanced extraction
+  - 100% reconstruction support with pattern completion fallback
+
 ## [0.2.0] - 2025-12-15
 
 ### Added
