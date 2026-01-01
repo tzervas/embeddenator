@@ -444,3 +444,32 @@ fn test_resonator_factorize_convergence() {
     assert!(result.final_delta >= 0.0);
     assert!(result.final_delta < 1.0);
 }
+
+#[test]
+fn test_resonator_sign_threshold() {
+    let resonator = Resonator::new();
+    let similarities = vec![0.8, -0.3, 0.05, -0.9, 0.0];
+    let ternary = resonator.sign_threshold(&similarities, 0.1);
+
+    assert_eq!(ternary, vec![1, -1, 0, -1, 0]);
+}
+
+#[test]
+fn test_resonator_sign_threshold_zero_threshold() {
+    let resonator = Resonator::new();
+    let similarities = vec![0.1, -0.1, 0.0];
+    let ternary = resonator.sign_threshold(&similarities, 0.0);
+
+    // With zero threshold, all non-zero values should be thresholded
+    assert_eq!(ternary, vec![1, -1, 0]);
+}
+
+#[test]
+fn test_resonator_sign_threshold_high_threshold() {
+    let resonator = Resonator::new();
+    let similarities = vec![0.5, -0.5, 0.05];
+    let ternary = resonator.sign_threshold(&similarities, 0.6);
+
+    // With high threshold, only strong similarities should pass
+    assert_eq!(ternary, vec![0, 0, 0]);
+}

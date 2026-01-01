@@ -220,4 +220,46 @@ impl Resonator {
             final_delta,
         }
     }
+
+    /// Apply ternary sign thresholding to enhance sparsity preservation
+    ///
+    /// Converts similarity scores to ternary values (-1, 0, +1) using a threshold,
+    /// preserving the sparse ternary nature of VSA vectors while reducing noise.
+    ///
+    /// # Arguments
+    /// * `similarities` - Vector of similarity scores to threshold
+    /// * `threshold` - Minimum absolute similarity to retain (default: 0.1)
+    ///
+    /// # Returns
+    /// Vector of ternary values: -1, 0, or +1
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::resonator::Resonator;
+    ///
+    /// let resonator = Resonator::new();
+    /// let similarities = vec![0.8, -0.3, 0.05, -0.9];
+    /// let ternary = resonator.sign_threshold(&similarities, 0.1);
+    ///
+    /// assert_eq!(ternary, vec![1, -1, 0, -1]);
+    /// ```
+    pub fn sign_threshold(&self, similarities: &[f64], threshold: f64) -> Vec<i8> {
+        similarities
+            .iter()
+            .map(|&sim| {
+                if sim == 0.0 {
+                    0
+                } else if sim.abs() >= threshold {
+                    if sim > 0.0 {
+                        1
+                    } else {
+                        -1
+                    }
+                } else {
+                    0
+                }
+            })
+            .collect()
+    }
 }
