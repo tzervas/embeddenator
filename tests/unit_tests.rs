@@ -579,3 +579,45 @@ fn test_hierarchical_bundling() {
         }
     }
 }
+
+#[test]
+fn test_hierarchical_extraction() {
+    use embeddenator::embrfs::EmbrFS;
+    use tempfile::tempdir;
+
+    let mut fs = EmbrFS::new();
+
+    // Add test files with hierarchical paths
+    let test_files = vec![
+        ("dir1/file1.txt", b"content1"),
+        ("dir1/file2.txt", b"content2"),
+        ("dir1/subdir/file3.txt", b"content3"),
+        ("dir2/file4.txt", b"content4"),
+    ];
+
+    for (path, content) in &test_files {
+        let file_entry = embeddenator::embrfs::FileEntry {
+            path: path.to_string(),
+            is_text: true,
+            size: content.len(),
+            chunks: vec![fs.manifest.total_chunks],
+        };
+        fs.manifest.files.push(file_entry);
+        fs.manifest.total_chunks += 1;
+        fs.engram.codebook.insert(fs.manifest.total_chunks - 1, content.to_vec());
+    }
+
+    // Create hierarchical manifest
+    let hierarchical = fs.bundle_hierarchically(200, false).unwrap();
+
+    // Test hierarchical extraction
+    let temp_dir = tempdir().unwrap();
+    let result = fs.extract_hierarchically(&hierarchical, temp_dir.path(), false);
+    assert!(result.is_ok());
+
+    // Verify files were extracted (even if content is transformed)
+    for (path, _) in &test_files {
+        let extracted_path = temp_dir.path().join(path);
+        assert!(extracted_path.exists(), "File {} should exist", path);
+    }
+}
