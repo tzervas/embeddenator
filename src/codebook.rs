@@ -179,6 +179,7 @@ impl BalancedTernaryWord {
     }
 
     /// Negate all trits in a packed representation
+    #[allow(dead_code)]
     fn negate_trits(packed: u64) -> u64 {
         let mut result: u64 = 0;
         let mut remaining = packed;
@@ -380,14 +381,33 @@ impl Codebook {
 
     /// Initialize semantic markers for outlier detection
     fn initialize_semantic_markers(&mut self) {
+        use sha2::{Digest, Sha256};
+
+        let seed_for = |label: &str| -> [u8; 32] {
+            let mut hasher = Sha256::new();
+            hasher.update(b"embeddenator:semantic_marker:v1:");
+            hasher.update(label.as_bytes());
+            hasher.update(&(self.dimensionality as u64).to_le_bytes());
+            if let Some(salt) = &self.salt {
+                hasher.update(salt);
+            }
+            hasher.finalize().into()
+        };
+
         // High entropy marker
-        self.semantic_markers.push(SparseVec::random());
-        
+        let seed = seed_for("high_entropy");
+        self.semantic_markers
+            .push(SparseVec::from_seed(&seed, self.dimensionality));
+
         // Repetition marker
-        self.semantic_markers.push(SparseVec::random());
-        
+        let seed = seed_for("repetition");
+        self.semantic_markers
+            .push(SparseVec::from_seed(&seed, self.dimensionality));
+
         // Boundary marker (transitions)
-        self.semantic_markers.push(SparseVec::random());
+        let seed = seed_for("boundary");
+        self.semantic_markers
+            .push(SparseVec::from_seed(&seed, self.dimensionality));
     }
 
     /// Project data onto the codebook basis
@@ -514,7 +534,12 @@ impl Codebook {
     }
 
     /// Reconstruct a chunk from coefficients
-    fn reconstruct_chunk(&self, coefficients: &HashMap<u32, BalancedTernaryWord>, chunk_idx: usize, chunk_len: usize) -> Vec<u8> {
+    fn reconstruct_chunk(
+        &self,
+        _coefficients: &HashMap<u32, BalancedTernaryWord>,
+        _chunk_idx: usize,
+        chunk_len: usize,
+    ) -> Vec<u8> {
         // Placeholder - full implementation would combine basis vectors
         // weighted by coefficients
         vec![0u8; chunk_len]

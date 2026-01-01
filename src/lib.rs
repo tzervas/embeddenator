@@ -62,8 +62,11 @@ pub mod correction;
 pub mod dimensional;
 pub mod embrfs;
 pub mod fuse_shim;
+pub mod kernel_interop;
 pub mod resonator;
+pub mod retrieval;
 pub mod ternary;
+pub mod ternary_vec;
 pub mod vsa;
 
 // Re-export main types for convenience
@@ -75,6 +78,12 @@ pub use dimensional::{
 };
 pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
 pub use fuse_shim::{EngramFS, EngramFSBuilder, FileAttr, FileKind};
+pub use kernel_interop::{
+    CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
+    rerank_top_k_by_cosine,
+};
 pub use resonator::Resonator;
+pub use retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
 pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
+pub use ternary_vec::PackedTritVec;
 pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};

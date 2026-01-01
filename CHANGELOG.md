@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Kernel↔VSA interop layer for non-FUSE builds
+  - `VsaBackend` trait + `SparseVecBackend` default implementation
+  - Store- and backend-driven cosine rerank helper
+- Retrieval improvements
+  - Codebook inverted-index builder from map
+  - Candidate rerank stage using exact cosine similarity
+  - Engram codebook query helper used by the CLI
+- Balanced-ternary migration phase-1 equivalence suite
+  - Randomized packed-vs-sparse semantic checks for dot/bind/bundle
+  - Enables safe incremental migration under `bt-phase-1`
+
+### Improved
+- Reversible VSA encode/decode throughput
+  - Removed per-block permutation vector allocations in `SparseVec::encode_block`
+  - Bounded `decode_block` work by the caller’s `expected_size`
+  - Replaced `Vec::contains` membership scans with `binary_search` on sorted indices
+
+### Changed
+- CLI `query` now reports top codebook chunk matches (in addition to root similarity)
+- Test suite cleanup: removed unused imports/vars and addressed deprecated API warnings where practical
+
+### Added
 - **TASK-RES-003**: Resonator-EmbrFS integration for enhanced extraction
   - Optional resonator field in EmbrFS struct for pattern completion
   - `set_resonator()` method for configuring resonator networks

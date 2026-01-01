@@ -9,7 +9,6 @@ use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashSet;
 
 /// Dimension of VSA vectors
 pub const DIM: usize = 10000;
@@ -76,6 +75,86 @@ impl Default for SparseVec {
 }
 
 impl SparseVec {
+    fn contains_sorted(haystack: &[usize], needle: usize) -> bool {
+        haystack.binary_search(&needle).is_ok()
+    }
+
+    fn intersection_count_sorted(a: &[usize], b: &[usize]) -> usize {
+        let mut i = 0usize;
+        let mut j = 0usize;
+        let mut count = 0usize;
+        while i < a.len() && j < b.len() {
+            match a[i].cmp(&b[j]) {
+                std::cmp::Ordering::Less => i += 1,
+                std::cmp::Ordering::Greater => j += 1,
+                std::cmp::Ordering::Equal => {
+                    count += 1;
+                    i += 1;
+                    j += 1;
+                }
+            }
+        }
+        count
+    }
+
+    fn union_sorted(a: &[usize], b: &[usize]) -> Vec<usize> {
+        let mut out = Vec::with_capacity(a.len() + b.len());
+        let mut i = 0usize;
+        let mut j = 0usize;
+
+        while i < a.len() && j < b.len() {
+            match a[i].cmp(&b[j]) {
+                std::cmp::Ordering::Less => {
+                    out.push(a[i]);
+                    i += 1;
+                }
+                std::cmp::Ordering::Greater => {
+                    out.push(b[j]);
+                    j += 1;
+                }
+                std::cmp::Ordering::Equal => {
+                    out.push(a[i]);
+                    i += 1;
+                    j += 1;
+                }
+            }
+        }
+
+        if i < a.len() {
+            out.extend_from_slice(&a[i..]);
+        }
+        if j < b.len() {
+            out.extend_from_slice(&b[j..]);
+        }
+
+        out
+    }
+
+    fn difference_sorted(a: &[usize], b: &[usize]) -> Vec<usize> {
+        let mut out = Vec::with_capacity(a.len());
+        let mut i = 0usize;
+        let mut j = 0usize;
+
+        while i < a.len() && j < b.len() {
+            match a[i].cmp(&b[j]) {
+                std::cmp::Ordering::Less => {
+                    out.push(a[i]);
+                    i += 1;
+                }
+                std::cmp::Ordering::Greater => j += 1,
+                std::cmp::Ordering::Equal => {
+                    i += 1;
+                    j += 1;
+                }
+            }
+        }
+
+        if i < a.len() {
+            out.extend_from_slice(&a[i..]);
+        }
+
+        out
+    }
     /// Create an empty sparse vector
     ///
     /// # Examples
@@ -224,6 +303,10 @@ impl SparseVec {
             return Vec::new();
         }
 
+        if expected_size == 0 {
+            return Vec::new();
+        }
+
         // Calculate path-based shift (same as encoding)
         let path_shift = if let Some(path_str) = path {
             let mut hasher = Sha256::new();
@@ -240,7 +323,7 @@ impl SparseVec {
 
         // For single block case
         if estimated_blocks <= 1 {
-            return Self::decode_block(self, path_shift);
+            return Self::decode_block(self, path_shift, expected_size);
         }
 
         // For multiple blocks, we need to factorize the hierarchical bundle
@@ -252,7 +335,12 @@ impl SparseVec {
         // This is a placeholder for the full hierarchical decoding
         for i in 0..estimated_blocks {
             let block_shift = path_shift + (i * config.base_shift / estimated_blocks.max(1));
-            let block_data = Self::decode_block(self, block_shift);
+            let remaining = expected_size.saturating_sub(result.len());
+            if remaining == 0 {
+                break;
+            }
+            let max_len = remaining.min(config.block_size);
+            let block_data = Self::decode_block(self, block_shift, max_len);
             if block_data.is_empty() {
                 break;
             }
@@ -273,21 +361,12 @@ impl SparseVec {
             return SparseVec::new();
         }
 
-        // Create block index mapping
-        let block_indices: Vec<usize> = (0..data.len()).collect();
-        let mut permuted_indices = block_indices.clone();
-
-        // Apply cyclic permutation based on shift
-        for i in 0..permuted_indices.len() {
-            permuted_indices[i] = (i + shift) % DIM;
-        }
-
         // Map data bytes to vector indices using the permuted mapping
         let mut pos = Vec::new();
         let mut neg = Vec::new();
 
         for (i, &byte) in data.iter().enumerate() {
-            let base_idx = permuted_indices[i % permuted_indices.len()];
+            let base_idx = (i + shift) % DIM;
 
             // Use byte value to determine polarity and offset
             if byte & 0x80 != 0 {
@@ -308,33 +387,27 @@ impl SparseVec {
     }
 
     /// Decode a single block of data
-    fn decode_block(encoded: &SparseVec, shift: usize) -> Vec<u8> {
-        let mut result = Vec::new();
-        let mut index_map = HashSet::new();
-
-        // Collect all indices
-        for &idx in &encoded.pos {
-            index_map.insert(idx);
-        }
-        for &idx in &encoded.neg {
-            index_map.insert(idx);
+    fn decode_block(encoded: &SparseVec, shift: usize, max_len: usize) -> Vec<u8> {
+        if max_len == 0 {
+            return Vec::new();
         }
 
-        // Reconstruct data by reversing the permutation
-        let max_possible_size = index_map.len();
-        for i in 0..max_possible_size {
+        let mut result = Vec::with_capacity(max_len);
+
+        // Reconstruct data by reversing the permutation.
+        // Note: `pos` and `neg` are kept sorted, so membership can be checked via binary search.
+        for i in 0..max_len {
             let base_idx = (i + shift) % DIM;
 
             // Look for indices that map back to this position
             let mut found_byte = None;
             for offset in 0..128u8 {
-                let test_idx_pos = (base_idx + offset as usize) % DIM;
-                let test_idx_neg = (base_idx + offset as usize) % DIM;
+                let test_idx = (base_idx + offset as usize) % DIM;
 
-                if encoded.pos.contains(&test_idx_pos) {
+                if encoded.pos.binary_search(&test_idx).is_ok() {
                     found_byte = Some(offset);
                     break;
-                } else if encoded.neg.contains(&test_idx_neg) {
+                } else if encoded.neg.binary_search(&test_idx).is_ok() {
                     found_byte = Some(offset | 0x80);
                     break;
                 }
@@ -467,45 +540,18 @@ impl SparseVec {
     /// assert!(sim2 > 0.3);
     /// ```
     pub fn bundle(&self, other: &SparseVec) -> SparseVec {
-        let pos_set: HashSet<_> = self.pos.iter().copied().collect();
-        let neg_set: HashSet<_> = self.neg.iter().copied().collect();
-        let other_pos_set: HashSet<_> = other.pos.iter().copied().collect();
-        let other_neg_set: HashSet<_> = other.neg.iter().copied().collect();
+        // Majority voting for two sparse ternary vectors:
+        // - Same sign => keep
+        // - Opposite signs => cancel to 0
+        // - Sign vs 0 => keep sign
+        // This can be expressed via sorted set differences/unions.
+        let pos_a = Self::difference_sorted(&self.pos, &other.neg);
+        let pos_b = Self::difference_sorted(&other.pos, &self.neg);
+        let neg_a = Self::difference_sorted(&self.neg, &other.pos);
+        let neg_b = Self::difference_sorted(&other.neg, &self.pos);
 
-        let mut result_pos: HashSet<usize> = HashSet::new();
-        let mut result_neg: HashSet<usize> = HashSet::new();
-
-        for &idx in &self.pos {
-            if other_pos_set.contains(&idx) || !other_neg_set.contains(&idx) {
-                result_pos.insert(idx);
-            }
-        }
-
-        for &idx in &other.pos {
-            if pos_set.contains(&idx) || !neg_set.contains(&idx) {
-                result_pos.insert(idx);
-            }
-        }
-
-        for &idx in &self.neg {
-            if other_neg_set.contains(&idx) || !other_pos_set.contains(&idx) {
-                result_neg.insert(idx);
-            }
-        }
-
-        for &idx in &other.neg {
-            if neg_set.contains(&idx) || !pos_set.contains(&idx) {
-                result_neg.insert(idx);
-            }
-        }
-
-        result_pos.retain(|&x| !result_neg.contains(&x));
-        result_neg.retain(|&x| !result_pos.contains(&x));
-
-        let mut pos: Vec<_> = result_pos.into_iter().collect();
-        let mut neg: Vec<_> = result_neg.into_iter().collect();
-        pos.sort_unstable();
-        neg.sort_unstable();
+        let pos = Self::union_sorted(&pos_a, &pos_b);
+        let neg = Self::union_sorted(&neg_a, &neg_b);
 
         SparseVec { pos, neg }
     }
@@ -528,24 +574,21 @@ impl SparseVec {
     /// assert!(sim >= -1.0 && sim <= 1.0);
     /// ```
     pub fn bind(&self, other: &SparseVec) -> SparseVec {
-        let pos_set: HashSet<_> = self.pos.iter().copied().collect();
-        let neg_set: HashSet<_> = self.neg.iter().copied().collect();
-
         let mut result_pos = Vec::new();
         let mut result_neg = Vec::new();
 
         for &idx in &other.pos {
-            if pos_set.contains(&idx) {
+            if Self::contains_sorted(&self.pos, idx) {
                 result_pos.push(idx);
-            } else if neg_set.contains(&idx) {
+            } else if Self::contains_sorted(&self.neg, idx) {
                 result_neg.push(idx);
             }
         }
 
         for &idx in &other.neg {
-            if pos_set.contains(&idx) {
+            if Self::contains_sorted(&self.pos, idx) {
                 result_neg.push(idx);
-            } else if neg_set.contains(&idx) {
+            } else if Self::contains_sorted(&self.neg, idx) {
                 result_pos.push(idx);
             }
         }
@@ -579,25 +622,13 @@ impl SparseVec {
     /// assert!(sim < 0.3);
     /// ```
     pub fn cosine(&self, other: &SparseVec) -> f64 {
-        let pos_set: HashSet<_> = self.pos.iter().copied().collect();
-        let neg_set: HashSet<_> = self.neg.iter().copied().collect();
-
-        let mut dot = 0i32;
-        for &idx in &other.pos {
-            if pos_set.contains(&idx) {
-                dot += 1;
-            } else if neg_set.contains(&idx) {
-                dot -= 1;
-            }
-        }
-
-        for &idx in &other.neg {
-            if pos_set.contains(&idx) {
-                dot -= 1;
-            } else if neg_set.contains(&idx) {
-                dot += 1;
-            }
-        }
+        // Sparse ternary dot product:
+        // +1 when signs match, -1 when signs oppose.
+        let pp = Self::intersection_count_sorted(&self.pos, &other.pos) as i32;
+        let nn = Self::intersection_count_sorted(&self.neg, &other.neg) as i32;
+        let pn = Self::intersection_count_sorted(&self.pos, &other.neg) as i32;
+        let np = Self::intersection_count_sorted(&self.neg, &other.pos) as i32;
+        let dot = (pp + nn) - (pn + np);
 
         let self_norm = (self.pos.len() + self.neg.len()) as f64;
         let other_norm = (other.pos.len() + other.neg.len()) as f64;

@@ -61,9 +61,11 @@
 //! ```
 
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+#[cfg(feature = "fuse")]
+use std::ffi::OsStr;
 
 #[cfg(feature = "fuse")]
 use std::path::Path;
