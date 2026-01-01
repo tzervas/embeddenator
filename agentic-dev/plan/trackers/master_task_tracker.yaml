@@ -55,6 +55,20 @@ phases:
           - Property tests for sparsity invariants
         estimate_hours: 8
 
+      - id: TASK-INTEROP-001
+        title: Add kernel↔VSA interop layer (non-FUSE)
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-VSA-001]
+        files: [src/kernel_interop.rs, src/lib.rs, docs/KERNEL_VSA_INTEROP.md]
+        acceptance:
+          - Provide minimal traits bridging kernel/runtime to VSA ops
+          - Avoid FUSE feature entanglement (works in default non-fuse builds)
+          - Include adapter-friendly retrieval/rerank seam for Engram codebook
+          - Tests compile in default and bt-phase-1 builds
+        estimate_hours: 8
+        completed_at: "2026-01-01"
+
   - id: phase_2
     name: resonator_networks
     priority: P0
@@ -195,6 +209,158 @@ phases:
           - Thread-safe vector handling
           - Benchmark improvements
         estimate_hours: 6
+
+      - id: TASK-PERF-003
+        title: Optimize reversible VSA encode/decode hot path
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-VSA-001]
+        files: [src/vsa.rs]
+        acceptance:
+          - Remove per-block permutation allocations in encode
+          - Bound decode work by expected output size
+          - Avoid linear membership scans in decode
+          - All tests passing
+        estimate_hours: 4
+        completed_at: "2026-01-01"
+
+      - id: TASK-PERF-004
+        title: Replace HashSet-heavy VSA ops with merge-based math
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-VSA-001]
+        files: [src/vsa.rs]
+        acceptance:
+          - bundle/bind/cosine avoid HashSet allocations
+          - operations remain deterministic and indices remain sorted
+          - all tests passing
+        estimate_hours: 4
+        completed_at: "2026-01-01"
+
+  - id: phase_10
+    name: semantic_retrieval
+    priority: P1
+    tasks:
+      - id: TASK-RET-001
+        title: Implement inverted index for SparseVec semantic search
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-VSA-001]
+        files: [src/retrieval.rs, src/lib.rs, tests/retrieval_index.rs]
+        acceptance:
+          - Build index from (id, SparseVec)
+          - Query top-k candidates with dot-score accumulation
+          - Unit/integration test validates self-match top hit
+        estimate_hours: 6
+        completed_at: "2026-01-01"
+
+      - id: TASK-RET-002
+        title: Add rerank stage (cosine) + EmbrFS integration
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-RET-001]
+        files: [src/retrieval.rs, src/embrfs.rs, src/cli.rs]
+        acceptance:
+          - Index Engram.codebook for query
+          - Rerank candidates with exact cosine
+          - CLI command can query engrams efficiently
+        estimate_hours: 10
+        completed_at: "2026-01-01"
+
+      - id: TASK-RET-003
+        title: Implement recursive selective unfolding over hierarchical engrams
+        status: pending
+        agent: RustEngineer
+        deps: [TASK-RET-002, TASK-HIE-004]
+        files: [src/embrfs.rs, src/retrieval.rs, docs/RECURSIVE_UNFOLDING.md]
+        notes:
+          - Preliminary plan (2026-01-01): implement a beam-limited traversal over hierarchical sub-engrams.
+          - Add on-demand sub-engram loader + LRU eviction for both sub-engrams and per-sub-engram inverted indices.
+          - Define a stable query API that returns (sub_engram_id, chunk_id, cosine) with recursion bounds.
+          - Tests: bounded recursion, deterministic results on fixture hierarchy, and no unbounded memory growth.
+        acceptance:
+          - Beam-limited descent over sub-engrams
+          - On-demand loading and index eviction policy
+          - Tests for bounded recursion and correctness
+        estimate_hours: 16
+
+      - id: TASK-RET-004
+        title: Differential update for hierarchical engrams
+        status: pending
+        agent: RustEngineer
+        deps: [TASK-RET-003]
+        files: [src/embrfs.rs, src/correction.rs]
+        acceptance:
+          - Detect changed chunks
+          - Recompute only affected leaf vectors
+          - Recompute bundles on affected paths only
+          - Validate reconstruction for modified files
+        estimate_hours: 20
+
+  - id: phase_11
+    name: balanced_ternary_refactor
+    priority: P1
+    tasks:
+      - id: TASK-BT-001
+        title: Add benches and invariants for ternary refactor
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-TERNARY-001]
+        files: [benches/vsa_ops.rs, benches/retrieval.rs, tests/ternary_refactor_invariants.rs, Cargo.toml, docs/THROUGHPUT.md]
+        acceptance:
+          - Bench coverage for bundle/bind/cosine and encode/decode
+          - Invariant tests comparing legacy vs new paths on randomized inputs
+          - Document perf deltas in docs/THROUGHPUT.md
+        estimate_hours: 12
+        completed_at: "2026-01-01"
+
+      - id: TASK-BT-002
+        title: Introduce ternary-native vector representation
+        status: pending
+        agent: RustEngineer
+        deps: [TASK-BT-001]
+        files: [src/ternary.rs, src/vsa.rs]
+        acceptance:
+          - Packed ternary vector type suitable for fast dot/bind/bundle
+          - Adapter to/from SparseVec for interop
+          - Unit tests for round-trips and correctness
+        estimate_hours: 16
+
+      - id: TASK-BT-003
+        title: Add ternary-native fast paths for VSA ops
+        status: pending
+        agent: RustEngineer
+        deps: [TASK-BT-002]
+        files: [src/vsa.rs]
+        acceptance:
+          - bundle/bind/cosine use packed ternary paths where beneficial
+          - No regression in correctness; deterministic results
+          - Bench speedup demonstrated
+        estimate_hours: 16
+
+      - id: TASK-BT-004
+        title: Ternary-native retrieval signatures
+        status: pending
+        agent: RustEngineer
+        deps: [TASK-RET-001, TASK-BT-002]
+        files: [src/retrieval.rs]
+        acceptance:
+          - Add compact ternary signatures for bucketed candidate generation
+          - Multi-probe support for near buckets
+          - Tests validate recall on synthetic datasets
+        estimate_hours: 20
+
+      - id: TASK-BT-005
+        title: Align EmbrFS for selective unfolding and differential updates
+        status: pending
+        agent: RustEngineer
+        deps: [TASK-RET-003, TASK-RET-004, TASK-BT-003]
+        files: [src/embrfs.rs, src/correction.rs, docs/RECURSIVE_UNFOLDING.md]
+        acceptance:
+          - On-demand sub-engram loading + index build
+          - Eviction policy to bound RAM
+          - Differential recomputation for modified shards
+        estimate_hours: 24
         
       - id: TASK-PERF-002
         title: Implement SIMD cosine similarity
@@ -340,13 +506,17 @@ phases:
         estimate_hours: 2
 
 summary:
-  total_tasks: 23
-  completed_tasks: 11
-  phases: 9
+  total_tasks: 33
+  completed_tasks: 16
+  phases: 11
   critical_path: [TASK-VSA-001, TASK-TERNARY-001, TASK-TERNARY-002, TASK-FUSE-001]
   estimated_total_hours: 180
-  last_updated: "2025-12-31T21:00:00Z"
+  last_updated: "2026-01-01T00:00:00Z"
   recent_completions:
+    - TASK-BT-001
+    - TASK-RET-001
+    - TASK-PERF-004
+    - TASK-PERF-003
     - TASK-TERNARY-001
     - TASK-TERNARY-002
     - TASK-FUSE-001

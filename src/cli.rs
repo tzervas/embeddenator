@@ -266,6 +266,19 @@ pub fn run() -> io::Result<()> {
             println!("Query file: {}", query.display());
             println!("Similarity to engram: {:.4}", similarity);
 
+            let top_matches = engram_data.query_codebook(&query_vec, 10);
+            if !top_matches.is_empty() {
+                println!("Top codebook matches:");
+                for m in top_matches {
+                    println!(
+                        "  chunk {}  cosine {:.4}  approx_dot {}",
+                        m.id, m.cosine, m.approx_score
+                    );
+                }
+            } else if verbose {
+                println!("Top codebook matches: (none)");
+            }
+
             if similarity > 0.75 {
                 println!("Status: STRONG MATCH");
             } else if similarity > 0.3 {

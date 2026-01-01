@@ -1,8 +1,13 @@
 //! Unit tests for Vector Symbolic Architecture (VSA)
 
 use embeddenator::vsa::SparseVec;
+use embeddenator::vsa::ReversibleVSAConfig;
 use embeddenator::resonator::Resonator;
 use std::collections::HashSet;
+
+fn enc(data: &[u8]) -> SparseVec {
+    SparseVec::encode_data(data, &ReversibleVSAConfig::default(), None)
+}
 
 #[test]
 fn test_sparse_vec_bundle() {
@@ -108,6 +113,7 @@ fn test_cosine_similarity_ranges() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_from_data_determinism() {
     let data = b"test data for determinism";
     let v1 = SparseVec::from_data(data);
@@ -125,6 +131,7 @@ fn test_from_data_determinism() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_from_data_different_inputs() {
     let data1 = b"first input";
     let data2 = b"second input";
@@ -244,7 +251,7 @@ fn test_reversible_vsaconfig_serialization() {
 
 #[test]
 fn test_permute_identity() {
-    let vec = SparseVec::from_data(b"test data");
+    let vec = enc(b"test data");
     let permuted = vec.permute(0);
     
     // permute(0) should be identical
@@ -254,7 +261,7 @@ fn test_permute_identity() {
 
 #[test]
 fn test_permute_cycle() {
-    let vec = SparseVec::from_data(b"test data");
+    let vec = enc(b"test data");
     let permuted = vec.permute(embeddenator::vsa::DIM);
     
     // permute(DIM) should complete cycle and be identical
@@ -264,7 +271,7 @@ fn test_permute_cycle() {
 
 #[test]
 fn test_permute_changes_indices() {
-    let vec = SparseVec::from_data(b"test data");
+    let vec = enc(b"test data");
     let permuted = vec.permute(100);
     
     // Non-zero shift should change indices (unless all indices happen to map to same positions)
@@ -281,7 +288,7 @@ fn test_permute_changes_indices() {
 
 #[test]
 fn test_permute_round_trip() {
-    let vec = SparseVec::from_data(b"test data");
+    let vec = enc(b"test data");
     let shift = 123;
     
     let permuted = vec.permute(shift);
@@ -294,7 +301,7 @@ fn test_permute_round_trip() {
 
 #[test]
 fn test_permute_orthogonality() {
-    let vec = SparseVec::from_data(b"test data");
+    let vec = enc(b"test data");
     
     // Test multiple shifts to ensure orthogonality
     for shift in [100, 500, 1000, 2500] {
@@ -347,6 +354,8 @@ fn test_bundle_with_config_thinning() {
     let config = ReversibleVSAConfig::default(); // target_sparsity = 200
     
     // Create 10 vectors that will bundle to more than 200 non-zeros
+    // This test relies on the historical `from_data` density characteristics to
+    // ensure bundling exceeds `target_sparsity` and triggers thinning.
     #[allow(deprecated)]
     let vectors: Vec<SparseVec> = (0..10)
         .map(|i| SparseVec::from_data(format!("test data {}", i).as_bytes()))
@@ -375,7 +384,7 @@ fn test_resonator_new() {
 
 #[test]
 fn test_resonator_with_params() {
-    let codebook = vec![SparseVec::from_data(b"pattern1"), SparseVec::from_data(b"pattern2")];
+    let codebook = vec![enc(b"pattern1"), enc(b"pattern2")];
     let resonator = Resonator::with_params(codebook.clone(), 20, 0.0001);
     assert_eq!(resonator.max_iterations, 20);
     assert_eq!(resonator.convergence_threshold, 0.0001);
@@ -384,8 +393,8 @@ fn test_resonator_with_params() {
 
 #[test]
 fn test_resonator_project_clean_input() {
-    let clean = SparseVec::from_data(b"hello");
-    let codebook = vec![clean.clone(), SparseVec::from_data(b"world")];
+    let clean = enc(b"hello");
+    let codebook = vec![clean.clone(), enc(b"world")];
     let resonator = Resonator::with_params(codebook, 10, 0.001);
 
     // Clean input should project to itself
@@ -397,7 +406,7 @@ fn test_resonator_project_clean_input() {
 #[test]
 fn test_resonator_project_empty_codebook() {
     let resonator = Resonator::new();
-    let input = SparseVec::from_data(b"test");
+    let input = enc(b"test");
 
     // Empty codebook should return input unchanged
     let projected = resonator.project(&input);
@@ -408,7 +417,7 @@ fn test_resonator_project_empty_codebook() {
 #[test]
 fn test_resonator_factorize_empty_codebook() {
     let resonator = Resonator::new();
-    let compound = SparseVec::from_data(b"test");
+    let compound = enc(b"test");
 
     let result = resonator.factorize(&compound, 2);
     assert!(result.factors.is_empty());
@@ -418,9 +427,9 @@ fn test_resonator_factorize_empty_codebook() {
 
 #[test]
 fn test_resonator_factorize_zero_factors() {
-    let codebook = vec![SparseVec::from_data(b"pattern1")];
+    let codebook = vec![enc(b"pattern1")];
     let resonator = Resonator::with_params(codebook, 10, 0.001);
-    let compound = SparseVec::from_data(b"test");
+    let compound = enc(b"test");
 
     let result = resonator.factorize(&compound, 0);
     assert!(result.factors.is_empty());
@@ -430,8 +439,8 @@ fn test_resonator_factorize_zero_factors() {
 
 #[test]
 fn test_resonator_factorize_convergence() {
-    let factor1 = SparseVec::from_data(b"hello");
-    let factor2 = SparseVec::from_data(b"world");
+    let factor1 = enc(b"hello");
+    let factor2 = enc(b"world");
     let compound = factor1.bundle(&factor2);
 
     let codebook = vec![factor1.clone(), factor2.clone()];

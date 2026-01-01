@@ -257,7 +257,7 @@ fn test_tryte3_arithmetic_overflow() {
     // Test overflow
     let a = Tryte3::from_i8(13).unwrap(); // MAX
     let b = Tryte3::from_i8(1).unwrap();
-    let (sum, carry) = a.add_with_carry(b, Trit::Z);
+    let (_sum, carry) = a.add_with_carry(b, Trit::Z);
     
     // 13 + 1 = 14 = -13 + 27 = -13 + 3×9 → sum = -13, carry needs to propagate
     // In balanced ternary: 13 = PPP, 1 = P00
