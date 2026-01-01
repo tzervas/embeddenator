@@ -1,0 +1,147 @@
+# Embeddenator VSA Glossary - Machine Reference
+# Purpose: Agent context for domain-specific terminology
+
+terms:
+  # Core VSA Concepts
+  - term: VSA
+    full: Vector Symbolic Architecture
+    alias: [HDC, Hyperdimensional Computing]
+    definition: Computing paradigm using high-dimensional vectors for distributed representations
+    context: Embeddenator uses sparse ternary VSA for filesystem encoding
+    
+  - term: Engram
+    definition: Holographic representation of a filesystem consisting of root hypervector + codebook + manifest
+    components: [root_vector, codebook, manifest]
+    context: Core data structure for storing encoded filesystems
+    
+  - term: SparseVec
+    definition: Sparse ternary vector with {-1, 0, +1} values stored as positive and negative index lists
+    struct: "SparseVec { pos: Vec<usize>, neg: Vec<usize> }"
+    location: src/vsa.rs
+    
+  - term: Bundle
+    symbol: "⊕"
+    operation: Associative superposition via element-wise addition with normalization
+    property: Creates set-like combinations of vectors
+    method: SparseVec::bundle(&self, other: &SparseVec)
+    
+  - term: Bind
+    symbol: "⊙"
+    operation: Non-commutative composition via element-wise multiplication
+    property: Self-inverse (A ⊙ A ≈ I)
+    method: SparseVec::bind(&self, other: &SparseVec)
+    use_case: Associate role-filler pairs (e.g., path ⊙ content)
+    
+  - term: Permutation
+    symbol: "ρ"
+    operation: Cyclic shift for sequence/order encoding
+    property: Orthogonalizes noise across levels
+    status: TO_IMPLEMENT
+    
+  - term: Cosine_Similarity
+    definition: Dot product normalized by magnitudes, returns [-1, 1]
+    threshold_match: ">0.75"
+    threshold_noise: "<0.3"
+    method: SparseVec::cosine(&self, other: &SparseVec)
+    
+  - term: Codebook
+    definition: HashMap mapping chunk IDs to original data bytes
+    purpose: Enables bit-perfect reconstruction after VSA indexing
+    storage: Encoded chunks with integrity vectors
+    
+  - term: Manifest
+    definition: JSON metadata describing filesystem hierarchy, paths, chunk IDs
+    purpose: Guides reconstruction by ordering chunks correctly
+    extension_needed: Nested format for multi-level engrams
+    
+  - term: Crosstalk
+    definition: Interference noise from superposed non-zeros in bundled vectors
+    cause: Accumulates with bundle size
+    mitigation: [high_dimensionality, sparsity, cleanup, resonators]
+    
+  - term: Cleanup
+    definition: Post-unbinding query against codebook to find closest match
+    algorithm: Cosine similarity search, select highest match > threshold
+    guarantees: Bit-perfect if signal > noise
+    
+  - term: Resonator_Network
+    definition: Iterative refinement algorithm for factoring deeply bound compounds
+    algorithm: Project partial unbinds onto item memories, threshold to ternary, iterate
+    convergence: Typically <10 iterations
+    depth_support: 20-30+ hierarchy levels at D=10,000
+    status: TO_IMPLEMENT
+    
+  - term: CDT
+    full: Context-Dependent Thinning
+    definition: Probabilistic dropout to preserve sparsity during bundle/bind
+    purpose: Prevent noise escalation from density growth
+    status: TO_IMPLEMENT
+    
+  - term: Adaptive_Sparsity
+    definition: Keep S·D constant as dimensionality increases
+    formula: "sparsity = target_non_zero / dimensionality"
+    example: "D=100K, S=0.2% → 200 non-zero (same as D=10K, S=2%)"
+    benefit: No computational cost increase with higher dimensions
+    status: TO_IMPLEMENT
+    
+  # Architecture Terms
+  - term: EmbrFS
+    definition: Holographic filesystem implementation in Embeddenator
+    location: src/embrfs.rs
+    operations: [ingest, extract, query]
+    
+  - term: Hierarchical_Encoding
+    definition: Multi-level engram structure for TB+ scale data
+    structure: "Leaf → Directory → Root bundles with ≤1000 items per level"
+    benefit: Distributes noise across levels
+    status: TO_IMPLEMENT
+    
+  - term: FUSE
+    full: Filesystem in Userspace
+    crate: fuser
+    purpose: Mount engrams for on-demand read access
+    status: TO_IMPLEMENT
+
+# Performance Parameters
+parameters:
+  - name: DIM
+    current: 10000
+    recommended: [10000, 50000, 100000]
+    location: src/vsa.rs:15
+    
+  - name: sparsity
+    current: "1% (100 pos + 100 neg)"
+    target_non_zero: 200
+    formula: "DIM / 100"
+    
+  - name: chunk_size
+    default: 4096
+    unit: bytes
+    
+  - name: cosine_threshold_match
+    value: 0.75
+    
+  - name: cosine_threshold_noise
+    value: 0.3
+
+# Crate References
+crates:
+  - name: rayon
+    purpose: Parallel iterators for ingest/extract
+    status: TO_ADD
+    
+  - name: proptest
+    purpose: Property-based testing for VSA invariants
+    status: TO_ADD
+    
+  - name: fuser
+    purpose: FUSE filesystem bindings
+    status: TO_ADD
+    
+  - name: sprs
+    purpose: Optimized sparse tensor operations
+    status: OPTIONAL
+    
+  - name: criterion
+    purpose: Benchmarking suite
+    status: TO_ADD

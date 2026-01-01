@@ -32,6 +32,50 @@ pub struct Manifest {
     pub total_chunks: usize,
 }
 
+/// Hierarchical manifest for multi-level engrams
+#[derive(Serialize, Deserialize, Debug)]
+pub struct HierarchicalManifest {
+    pub version: u32,
+    pub levels: Vec<ManifestLevel>,
+    pub sub_engrams: HashMap<String, SubEngram>,
+}
+
+/// Level in hierarchical manifest
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ManifestLevel {
+    pub level: u32,
+    pub items: Vec<ManifestItem>,
+}
+
+/// Item in manifest level
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ManifestItem {
+    pub path: String,
+    pub sub_engram_id: String,
+}
+
+/// Sub-engram in hierarchical structure
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SubEngram {
+    pub id: String,
+    pub root: SparseVec,
+    pub chunk_count: usize,
+    pub children: Vec<String>,
+}
+
+/// Unified manifest enum for backward compatibility
+#[derive(Serialize, Deserialize, Debug)]
+pub enum UnifiedManifest {
+    Flat(Manifest),
+    Hierarchical(HierarchicalManifest),
+}
+
+impl From<Manifest> for UnifiedManifest {
+    fn from(manifest: Manifest) -> Self {
+        UnifiedManifest::Flat(manifest)
+    }
+}
+
 /// Engram: holographic encoding of a filesystem
 #[derive(Serialize, Deserialize)]
 pub struct Engram {

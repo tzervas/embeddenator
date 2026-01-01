@@ -1,0 +1,16 @@
+tasks:
+  - id: 1
+    title: Refactor to embeddenator-core crate
+    status: pending
+    assigned_to: RustEngineer
+    description: Separate core VSA logic into a reusable library crate.
+  - id: 2
+    title: Implement gRPC snapshotter
+    status: pending
+    assigned_to: RustEngineer
+    description: Add containerd snapshotter plugin for lazy engram loading.
+  - id: 3
+    title: Add selective extract with glob support
+    status: pending
+    assigned_to: VSAExpert
+    description: Implement selective_extract method for pattern-based file retrieval.

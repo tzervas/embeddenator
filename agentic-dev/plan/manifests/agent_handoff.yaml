@@ -1,0 +1,281 @@
+# Agent Handoff Manifest - Embeddenator Gap-Filling Implementation
+# Generated: 2025-12-31T15:00:00Z
+# Purpose: Complete execution plan for multi-agent orchestration
+
+meta:
+  project: embeddenator
+  plan_version: "1.0"
+  total_subtasks: 52
+  total_estimated_hours: 35
+  critical_path_hours: 12
+  generated_from:
+    - context.md
+    - context-1.md
+    - TASK_REGISTRY.md
+    - docs/adr/*
+
+execution_summary:
+  waves: 7
+  parallel_efficiency: 0.65
+  agents_required:
+    - RustEngineer: 28 subtasks
+    - VSAExpert: 10 subtasks
+    - Tester: 8 subtasks
+    - DockerDevOps: 6 subtasks
+
+reference_files:
+  trackers: /tmp/embeddenator-plan.hcEGTr/trackers/
+  glossary: /tmp/embeddenator-plan.hcEGTr/glossaries/vsa_glossary.yaml
+  api_surface: /tmp/embeddenator-plan.hcEGTr/indexes/api_surface.yaml
+  code_patterns: /tmp/embeddenator-plan.hcEGTr/references/code_patterns.yaml
+  subtasks_wave_1: /tmp/embeddenator-plan.hcEGTr/subtasks/wave_1_foundation.yaml
+  subtasks_wave_2: /tmp/embeddenator-plan.hcEGTr/subtasks/wave_2_extensions.yaml
+  subtasks_wave_3_7: /tmp/embeddenator-plan.hcEGTr/subtasks/wave_3_7_core_to_production.yaml
+
+# ============================================================
+# EXECUTION ORDER - Strictly Sequential Waves
+# ============================================================
+
+wave_1:
+  name: Foundation
+  parallel: true
+  description: "VSA config, manifest design, CI setup - no dependencies"
+  subtasks:
+    - SUB-VSA-001-A  # VSAConfig struct
+    - SUB-VSA-001-B  # VSAConfig::new()
+    - SUB-VSA-001-C  # Preset constructors
+    - SUB-VSA-001-D  # Unit tests
+    - SUB-VSA-001-E  # Export from lib.rs
+    - SUB-HIE-001-A  # HierarchicalManifest struct
+    - SUB-HIE-001-B  # Backward-compatible enum
+    - SUB-HIE-001-C  # Design doc
+    - SUB-CI-001-A   # Verify prerequisites
+    - SUB-CI-001-B   # Deploy runner
+    - SUB-CI-001-C   # Trigger workflow
+    - SUB-CI-001-D   # Document results
+  success_criteria:
+    - VSAConfig compiles and tests pass
+    - HierarchicalManifest schema defined
+    - ARM64 runner shows green in GitHub
+  gate: "All subtasks complete before wave 2"
+
+wave_2:
+  name: Extensions
+  parallel: true
+  description: "Permutation, thinning, leaf encoding, SIMD - depends on wave 1"
+  deps: [wave_1]
+  subtasks:
+    - SUB-VSA-002-A  # permute() method
+    - SUB-VSA-002-B  # inverse_permute()
+    - SUB-VSA-002-C  # Permutation tests
+    - SUB-VSA-003-A  # Thinning algorithm design
+    - SUB-VSA-003-B  # thin() method
+    - SUB-VSA-003-C  # Add to bundle
+    - SUB-VSA-003-D  # Property tests
+    - SUB-HIE-002-A  # encode_directory()
+    - SUB-HIE-002-B  # Sub-engram serialization
+    - SUB-HIE-002-C  # Leaf encoding tests
+    - SUB-PERF-002-A # SIMD feature flag
+    - SUB-PERF-002-B # SIMD dot product
+    - SUB-PERF-002-C # SIMD benchmarks
+    - SUB-CI-002-A   # Update trigger config
+    - SUB-CI-002-B   # Verify auto-run
+  success_criteria:
+    - Permutation round-trip works
+    - Thinning preserves signal
+    - Leaf encoding handles 1000 chunks
+    - ARM64 auto-triggers on main
+  gate: "All subtasks complete before wave 3"
+
+wave_3:
+  name: Core Features
+  parallel: partial
+  description: "Resonator base, multi-level bundling, property tests"
+  deps: [wave_2]
+  subtasks:
+    - SUB-RES-001-A  # resonator.rs module
+    - SUB-RES-001-B  # Codebook projection
+    - SUB-RES-001-C  # Iterative refinement
+    - SUB-RES-001-D  # Convergence metrics
+    - SUB-HIE-003-A  # Path role binding
+    - SUB-HIE-003-B  # Level-by-level bundling
+    - SUB-HIE-003-C  # TB-scale test
+    - SUB-TEST-001-A # proptest dependency
+    - SUB-TEST-001-B # Bundle property tests
+    - SUB-TEST-001-C # Bind property tests
+  success_criteria:
+    - Resonator factorizes 2-factor compounds
+    - 3-level hierarchy encodes correctly
+    - Property tests pass 1000+ cases
+  gate: "SUB-RES-001-D and SUB-HIE-003-B complete before wave 4"
+
+wave_4:
+  name: Resonator Refinement
+  parallel: false
+  description: "Ternary thresholding - critical for accuracy"
+  deps: [wave_3]
+  subtasks:
+    - SUB-RES-002-A  # Sign thresholding function
+  success_criteria:
+    - Thresholding maintains sparsity
+  gate: "Complete before wave 5"
+
+wave_5:
+  name: Integration
+  parallel: false
+  description: "Resonator with EmbrFS - enables deep hierarchies"
+  deps: [wave_4]
+  subtasks:
+    - SUB-RES-003-A  # Resonator option in extract
+    - SUB-RES-003-B  # 20+ level test
+  success_criteria:
+    - Both extraction paths work
+    - Deep hierarchies reconstruct 100%
+  gate: "Complete before wave 6"
+
+wave_6:
+  name: Hierarchical Extraction
+  parallel: true
+  description: "Full extraction pipeline and resonator tests"
+  deps: [wave_5]
+  subtasks:
+    - SUB-HIE-004-A  # Manifest traversal
+    - SUB-HIE-004-B  # Hierarchical reassembly
+    - SUB-HIE-004-C  # E2E round-trip test
+    - SUB-TEST-003-A # Resonator convergence tests
+  success_criteria:
+    - Hierarchical extract produces bit-perfect output
+    - Resonator tests pass
+  gate: "Complete before wave 7"
+
+wave_7:
+  name: Performance and FUSE
+  parallel: true
+  description: "Parallelism, E2E tests, FUSE prototype"
+  deps: [wave_6]
+  subtasks:
+    - SUB-PERF-001-A # rayon dependency
+    - SUB-PERF-001-B # Parallel chunk encoding
+    - SUB-TEST-002-A # Synthetic dataset generator
+    - SUB-FUSE-001-A # fuser module
+    - SUB-FUSE-001-B # FUSE read operations
+    - SUB-FUSE-001-C # Docker integration test
+  success_criteria:
+    - Ingest speedup on multi-core
+    - FUSE mount works in Docker
+    - Files readable via mount point
+
+# ============================================================
+# AGENT ASSIGNMENTS
+# ============================================================
+
+agent_workloads:
+  RustEngineer:
+    primary_focus: "Core Rust implementation"
+    subtasks:
+      wave_1: [SUB-VSA-001-A, SUB-VSA-001-B, SUB-VSA-001-C, SUB-VSA-001-D, SUB-VSA-001-E, SUB-HIE-001-A, SUB-HIE-001-B, SUB-HIE-001-C]
+      wave_2: [SUB-HIE-002-A, SUB-HIE-002-B, SUB-HIE-002-C, SUB-PERF-002-A, SUB-PERF-002-B, SUB-PERF-002-C]
+      wave_3: [SUB-RES-001-A, SUB-RES-001-B, SUB-RES-001-C, SUB-RES-001-D, SUB-HIE-003-A, SUB-HIE-003-B, SUB-HIE-003-C]
+      wave_5: [SUB-RES-003-A, SUB-RES-003-B]
+      wave_6: [SUB-HIE-004-A, SUB-HIE-004-B, SUB-HIE-004-C]
+      wave_7: [SUB-PERF-001-A, SUB-PERF-001-B, SUB-FUSE-001-A, SUB-FUSE-001-B, SUB-FUSE-001-C]
+    total: 28
+    
+  VSAExpert:
+    primary_focus: "VSA operations and algorithms"
+    subtasks:
+      wave_2: [SUB-VSA-002-A, SUB-VSA-002-B, SUB-VSA-002-C, SUB-VSA-003-A, SUB-VSA-003-B, SUB-VSA-003-C, SUB-VSA-003-D]
+      wave_4: [SUB-RES-002-A]
+    total: 8
+    
+  Tester:
+    primary_focus: "Property tests and E2E validation"
+    subtasks:
+      wave_3: [SUB-TEST-001-A, SUB-TEST-001-B, SUB-TEST-001-C]
+      wave_6: [SUB-TEST-003-A]
+      wave_7: [SUB-TEST-002-A]
+    total: 5
+    
+  DockerDevOps:
+    primary_focus: "CI/CD and runner management"
+    subtasks:
+      wave_1: [SUB-CI-001-A, SUB-CI-001-B, SUB-CI-001-C, SUB-CI-001-D]
+      wave_2: [SUB-CI-002-A, SUB-CI-002-B]
+    total: 6
+
+# ============================================================
+# SUCCESS METRICS
+# ============================================================
+
+final_acceptance:
+  functional:
+    - "VSAConfig with adaptive sparsity works at 10K/50K/100K dimensions"
+    - "Permutation enables order encoding in hierarchies"
+    - "Context-dependent thinning keeps density bounded"
+    - "Resonator factorizes 5+ factor compounds reliably"
+    - "Hierarchical encoding handles TB-scale synthetic data"
+    - "Bit-perfect reconstruction at 20+ hierarchy levels"
+    - "FUSE mount provides read access to engram files"
+    
+  performance:
+    - "SIMD cosine shows measurable improvement in benchmarks"
+    - "Rayon parallelism speeds up ingest on multi-core"
+    - "Encoding/extraction <100ms for 10K tokens"
+    
+  quality:
+    - "All 33+ tests pass (extended with new tests)"
+    - "Zero clippy warnings maintained"
+    - "Property tests pass 1000+ cases each"
+    - "ARM64 CI runs automatically on main merge"
+
+# ============================================================
+# HANDOFF INSTRUCTIONS FOR AGENTS
+# ============================================================
+
+agent_instructions:
+  general:
+    - "Read glossary before starting: vsa_glossary.yaml"
+    - "Follow existing code patterns in code_patterns.yaml"
+    - "Run cargo test after each change"
+    - "Run cargo clippy before marking subtask complete"
+    - "Update status in tracker files when done"
+    
+  RustEngineer:
+    - "Reference api_surface.yaml for struct/method signatures"
+    - "Use existing SparseVec patterns for new operations"
+    - "Add doc comments with examples for all public APIs"
+    - "Serialize new types with serde derives"
+    
+  VSAExpert:
+    - "Ensure sparsity <5% in all operations"
+    - "Verify ternary values {-1, 0, +1} only"
+    - "Test algebraic properties (associativity, self-inverse)"
+    - "Document mathematical rationale in comments"
+    
+  Tester:
+    - "Use proptest for algebraic invariants"
+    - "Generate deterministic test data with seeds"
+    - "Test edge cases: empty vectors, max size, noise"
+    - "Verify 100% bit-perfect reconstruction"
+    
+  DockerDevOps:
+    - "Follow ARM64_RUNNER_SETUP.md procedures"
+    - "Document all deployment decisions"
+    - "Test workflow manually before enabling auto-trigger"
+    - "Monitor first auto-run for issues"
+
+# ============================================================
+# ROLLBACK PLAN
+# ============================================================
+
+rollback:
+  triggers:
+    - "Bit-perfect reconstruction fails"
+    - "CI pipeline broken for >24h"
+    - "Clippy warnings introduced"
+    - "Test suite drops below 33 tests"
+  procedure:
+    - "git revert to last known-good commit"
+    - "Disable failing feature flags"
+    - "File issue with reproduction steps"
+    - "Notify team of rollback"

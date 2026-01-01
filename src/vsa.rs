@@ -14,6 +14,34 @@ use std::collections::HashSet;
 /// Dimension of VSA vectors
 pub const DIM: usize = 10000;
 
+/// Configuration for VSA operations with adaptive sparsity
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct VSAConfig {
+    pub dimensionality: usize,
+    pub target_non_zero: usize,
+    pub sparsity: f32,
+}
+
+impl VSAConfig {
+    pub fn new(dimensionality: usize) -> Self {
+        let target_non_zero = 200;
+        let sparsity = (target_non_zero as f32) / (dimensionality as f32);
+        VSAConfig { dimensionality, target_non_zero, sparsity }
+    }
+    
+    pub fn high_precision() -> Self {
+        Self::new(100_000)
+    }
+    
+    pub fn balanced() -> Self {
+        Self::new(50_000)
+    }
+    
+    pub fn fast() -> Self {
+        Self::new(10_000)
+    }
+}
+
 /// Sparse ternary vector with positive and negative indices
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SparseVec {
@@ -107,10 +135,51 @@ impl SparseVec {
         indices.shuffle(&mut rng);
 
         let sparsity = DIM / 100;
-        let pos = indices[..sparsity].to_vec();
-        let neg = indices[sparsity..sparsity * 2].to_vec();
+        let mut pos = indices[..sparsity].to_vec();
+        let mut neg = indices[sparsity..sparsity * 2].to_vec();
+
+        pos.sort_unstable();
+        neg.sort_unstable();
 
         SparseVec { pos, neg }
+    }
+
+    /// Bundle operation: associative superposition (A ⊕ B)
+    /// Combines two vectors by majority voting on each dimension
+    ///
+    /// # Arguments
+    /// * `other` - The vector to bundle with self
+    /// * `config` - Optional VSAConfig for controlling sparsity via thinning
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::{SparseVec, VSAConfig};
+    ///
+    /// let vec1 = SparseVec::from_data(b"data1");
+    /// let vec2 = SparseVec::from_data(b"data2");
+    /// let config = VSAConfig::balanced();
+    /// let bundled = vec1.bundle_with_config(&vec2, Some(&config));
+    ///
+    /// // Bundled vector contains superposition of both inputs
+    /// // Should be similar to both original vectors
+    /// let sim1 = vec1.cosine(&bundled);
+    /// let sim2 = vec2.cosine(&bundled);
+    /// assert!(sim1 > 0.3);
+    /// assert!(sim2 > 0.3);
+    /// ```
+    pub fn bundle_with_config(&self, other: &SparseVec, config: Option<&VSAConfig>) -> SparseVec {
+        let mut result = self.bundle(other);
+        
+        // Apply thinning if config provided and result exceeds target sparsity
+        if let Some(cfg) = config {
+            let current_count = result.pos.len() + result.neg.len();
+            if current_count > cfg.target_non_zero {
+                result = result.thin(cfg.target_non_zero);
+            }
+        }
+        
+        result
     }
 
     /// Bundle operation: associative superposition (A ⊕ B)
@@ -273,5 +342,134 @@ impl SparseVec {
         }
 
         dot as f64 / (self_norm.sqrt() * other_norm.sqrt())
+    }
+
+    /// Apply cyclic permutation to vector indices
+    /// Used for encoding sequence order in hierarchical structures
+    ///
+    /// # Arguments
+    /// * `shift` - Number of positions to shift indices cyclically
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let vec = SparseVec::from_data(b"test");
+    /// let permuted = vec.permute(100);
+    ///
+    /// // Permuted vector should have different indices but same structure
+    /// assert_eq!(vec.pos.len(), permuted.pos.len());
+    /// assert_eq!(vec.neg.len(), permuted.neg.len());
+    /// ```
+    pub fn permute(&self, shift: usize) -> SparseVec {
+        let permute_index = |idx: usize| (idx + shift) % DIM;
+
+        let pos: Vec<usize> = self.pos.iter().map(|&idx| permute_index(idx)).collect();
+        let neg: Vec<usize> = self.neg.iter().map(|&idx| permute_index(idx)).collect();
+
+        // Indices must remain sorted for efficient operations
+        let mut pos = pos;
+        let mut neg = neg;
+        pos.sort_unstable();
+        neg.sort_unstable();
+
+        SparseVec { pos, neg }
+    }
+
+    /// Apply inverse cyclic permutation to vector indices
+    /// Decodes sequence order by reversing the permutation shift
+    ///
+    /// # Arguments
+    /// * `shift` - Number of positions to reverse shift indices cyclically
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use embeddenator::SparseVec;
+    ///
+    /// let vec = SparseVec::from_data(b"test");
+    /// let permuted = vec.permute(100);
+    /// let recovered = permuted.inverse_permute(100);
+    ///
+    /// // Round-trip should recover original vector
+    /// assert_eq!(vec.pos, recovered.pos);
+    /// assert_eq!(vec.neg, recovered.neg);
+    /// ```
+    pub fn inverse_permute(&self, shift: usize) -> SparseVec {
+        let inverse_permute_index = |idx: usize| (idx + DIM - (shift % DIM)) % DIM;
+
+        let pos: Vec<usize> = self.pos.iter().map(|&idx| inverse_permute_index(idx)).collect();
+        let neg: Vec<usize> = self.neg.iter().map(|&idx| inverse_permute_index(idx)).collect();
+
+        // Indices must remain sorted for efficient operations
+        let mut pos = pos;
+        let mut neg = neg;
+        pos.sort_unstable();
+        neg.sort_unstable();
+
+        SparseVec { pos, neg }
+    }
+
+    /// Context-Dependent Thinning Algorithm
+    ///
+    /// Thinning controls vector sparsity during bundle operations to prevent
+    /// exponential density growth that degrades VSA performance. The algorithm:
+    ///
+    /// 1. Calculate current density = (pos.len() + neg.len()) as f32 / DIM as f32
+    /// 2. If current_density <= target_density, return unchanged
+    /// 3. Otherwise, randomly sample indices to reduce to target count
+    /// 4. Preserve pos/neg ratio to maintain signal polarity balance
+    /// 5. Use deterministic seeding for reproducible results
+    ///
+    /// Edge Cases:
+    /// - Empty vector: return unchanged
+    /// - target_non_zero = 0: return empty vector (not recommended)
+    /// - target_non_zero >= current: return clone
+    /// - Single polarity vectors: preserve polarity distribution
+    ///
+    /// Performance: O(n log n) due to sorting, where n = target_non_zero
+    pub fn thin(&self, target_non_zero: usize) -> SparseVec {
+        let current_count = self.pos.len() + self.neg.len();
+        
+        // Edge case: already at or below target
+        if current_count <= target_non_zero {
+            return self.clone();
+        }
+        
+        // Edge case: target is zero
+        if target_non_zero == 0 {
+            return SparseVec::new();
+        }
+        
+        // Calculate how many to keep from each polarity
+        let pos_ratio = self.pos.len() as f32 / current_count as f32;
+        let target_pos = (target_non_zero as f32 * pos_ratio).round() as usize;
+        let target_neg = target_non_zero - target_pos;
+        
+        // Randomly sample indices using deterministic seed based on vector content
+        let mut seed = [0u8; 32];
+        seed[0..4].copy_from_slice(&(self.pos.len() as u32).to_le_bytes());
+        seed[4..8].copy_from_slice(&(self.neg.len() as u32).to_le_bytes());
+        seed[8..12].copy_from_slice(&(target_non_zero as u32).to_le_bytes());
+        // Rest remains zero for deterministic seeding
+        let mut rng = rand::rngs::StdRng::from_seed(seed);
+        
+        // Sample positive indices
+        let mut sampled_pos: Vec<usize> = self.pos.clone();
+        sampled_pos.shuffle(&mut rng);
+        sampled_pos.truncate(target_pos);
+        sampled_pos.sort_unstable();
+        
+        // Sample negative indices
+        let mut sampled_neg: Vec<usize> = self.neg.clone();
+        sampled_neg.shuffle(&mut rng);
+        sampled_neg.truncate(target_neg);
+        sampled_neg.sort_unstable();
+        
+        SparseVec {
+            pos: sampled_pos,
+            neg: sampled_neg,
+        }
     }
 }
