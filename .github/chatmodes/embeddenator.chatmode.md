@@ -4,7 +4,7 @@ description: Specialized mode for Embeddenator: Assist with VSA, engrams, and Ru
 argument-hint: Enter your VSA, engram, or Rust query here.
 infer: true
 target: vscode
-tools: ['search', 'usages']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'todo']
 handoffs:
   - label: Plan VSA Math
     agent: vsa-mathematician
