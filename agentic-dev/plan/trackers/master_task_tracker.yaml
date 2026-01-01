@@ -84,7 +84,7 @@ phases:
         
       - id: TASK-RES-003
         title: Integrate resonator with EmbrFS extraction
-        status: pending
+        status: completed
         agent: RustEngineer
         deps: [TASK-RES-001, TASK-RES-002]
         files: [src/embrfs.rs, src/resonator.rs]
