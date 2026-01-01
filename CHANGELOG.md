@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Codebook inverted-index builder from map
   - Candidate rerank stage using exact cosine similarity
   - Engram codebook query helper used by the CLI
+- Hierarchical selective unfolding (foundation)
+  - `SubEngram` carries `chunk_ids` for node-local subset search
+  - Beam-limited hierarchical query (`query_hierarchical_codebook`) with bounded index LRU
+  - Determinism + bounded recursion tests
+  - Directory-backed `SubEngramStore` + manifest/sub-engram save/load helpers
+  - CLI: optional hierarchical selective unfolding output + `query-text` convenience
 - Balanced-ternary migration phase-1 equivalence suite
   - Randomized packed-vs-sparse semantic checks for dot/bind/bundle
   - Enables safe incremental migration under `bt-phase-1`
