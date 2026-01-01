@@ -4,6 +4,7 @@
 //! - Ingesting files/directories into engrams
 //! - Extracting files from engrams
 //! - Querying similarity
+//! - Mounting engrams as FUSE filesystems (requires `fuse` feature)
 
 use crate::embrfs::EmbrFS;
 use crate::vsa::{SparseVec, ReversibleVSAConfig};
@@ -131,6 +132,49 @@ pub enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+
+    /// Mount an engram as a FUSE filesystem (requires --features fuse)
+    #[cfg(feature = "fuse")]
+    #[command(
+        long_about = "Mount an engram as a FUSE filesystem\n\n\
+        This command mounts an engram at the specified mountpoint, making all files\n\
+        accessible through the standard filesystem interface. Files are decoded\n\
+        on-demand from the holographic representation.\n\n\
+        Requirements:\n\
+        • FUSE kernel module must be loaded (modprobe fuse)\n\
+        • libfuse3-dev installed on the system\n\
+        • Build with: cargo build --features fuse\n\n\
+        To unmount:\n\
+          fusermount -u /path/to/mountpoint\n\n\
+        Example:\n\
+          embeddenator mount -e project.engram -m project.json /mnt/engram\n\
+          embeddenator mount --engram backup.engram --mountpoint ~/mnt --allow-other"
+    )]
+    Mount {
+        /// Engram file to mount
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Manifest file with metadata and chunk mappings
+        #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
+        manifest: PathBuf,
+
+        /// Mountpoint directory (must exist and be empty)
+        #[arg(value_name = "MOUNTPOINT", help_heading = "Required")]
+        mountpoint: PathBuf,
+
+        /// Allow other users to access the mount
+        #[arg(long)]
+        allow_other: bool,
+
+        /// Run in foreground (don't daemonize)
+        #[arg(short, long)]
+        foreground: bool,
+
+        /// Enable verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 pub fn run() -> io::Result<()> {
@@ -228,6 +272,108 @@ pub fn run() -> io::Result<()> {
                 println!("Status: Partial match");
             } else {
                 println!("Status: No significant match");
+            }
+
+            Ok(())
+        }
+
+        #[cfg(feature = "fuse")]
+        Commands::Mount {
+            engram,
+            manifest,
+            mountpoint,
+            allow_other,
+            foreground: _foreground,
+            verbose,
+        } => {
+            use crate::fuse_shim::{EngramFS, MountOptions, mount};
+            use crate::embrfs::DEFAULT_CHUNK_SIZE;
+            
+            if verbose {
+                println!(
+                    "Embeddenator v{} - FUSE Mount",
+                    env!("CARGO_PKG_VERSION")
+                );
+                println!("============================");
+            }
+
+            // Load engram and manifest
+            let engram_data = EmbrFS::load_engram(&engram)?;
+            let manifest_data = EmbrFS::load_manifest(&manifest)?;
+            let config = ReversibleVSAConfig::default();
+
+            if verbose {
+                println!("Loaded engram: {}", engram.display());
+                println!("Loaded manifest: {} files", manifest_data.files.len());
+            }
+
+            // Create FUSE filesystem and populate with decoded files
+            let fuse_fs = EngramFS::new(true);
+            
+            for file_entry in &manifest_data.files {
+                // Decode file data using the same approach as EmbrFS::extract
+                let mut reconstructed = Vec::new();
+                
+                for &chunk_id in &file_entry.chunks {
+                    if let Some(chunk_vec) = engram_data.codebook.get(&chunk_id) {
+                        // Decode the sparse vector to bytes
+                        // IMPORTANT: Use the same path as during encoding for correct shift calculation
+                        let decoded = chunk_vec.decode_data(&config, Some(&file_entry.path), DEFAULT_CHUNK_SIZE);
+                        
+                        // Apply correction to guarantee bit-perfect reconstruction
+                        let chunk_data = if let Some(corrected) = engram_data.corrections.apply(chunk_id as u64, &decoded) {
+                            corrected
+                        } else {
+                            // No correction found - use decoded directly
+                            decoded
+                        };
+                        
+                        reconstructed.extend_from_slice(&chunk_data);
+                    }
+                }
+
+                // Truncate to exact file size
+                reconstructed.truncate(file_entry.size);
+                
+                // Add to FUSE filesystem
+                if let Err(e) = fuse_fs.add_file(&file_entry.path, reconstructed) {
+                    if verbose {
+                        eprintln!("Warning: Failed to add {}: {}", file_entry.path, e);
+                    }
+                }
+            }
+
+            if verbose {
+                println!("Populated {} files into FUSE filesystem", fuse_fs.file_count());
+                println!("Total size: {} bytes", fuse_fs.total_size());
+                println!("Mounting at: {}", mountpoint.display());
+                println!();
+            }
+
+            // Verify mountpoint exists
+            if !mountpoint.exists() {
+                return Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("Mountpoint does not exist: {}", mountpoint.display())
+                ));
+            }
+
+            // Configure mount options
+            let options = MountOptions {
+                read_only: true,
+                allow_other,
+                allow_root: !allow_other,
+                fsname: format!("engram:{}", engram.display()),
+            };
+
+            // Mount the filesystem (blocks until unmounted)
+            println!("EngramFS mounted at {}", mountpoint.display());
+            println!("Use 'fusermount -u {}' to unmount", mountpoint.display());
+            
+            mount(fuse_fs, &mountpoint, options)?;
+
+            if verbose {
+                println!("\nUnmounted.");
             }
 
             Ok(())
