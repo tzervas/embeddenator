@@ -132,27 +132,27 @@
 
 ## Phase 3: Feature Enhancements (P2)
 
-### TASK-006: Hierarchical Encoding for Large Datasets [P2, XL, 🔵]
+### TASK-006: Hierarchical Encoding for Large Datasets [P2, XL, 🟡]
 **Assignee:** RUST_DEVELOPER + ARCHITECT  
 **Dependencies:** None  
 **Description:** Implement multi-level hierarchical encoding to handle TB-scale datasets efficiently as mentioned in README.
 
 **Acceptance Criteria:**
-- [ ] Design hierarchical engram structure (3 levels)
+- [x] Design hierarchical engram structure (3 levels)
 - [ ] Implement level 1: Individual file encoding
-- [ ] Implement level 2: Directory summaries
-- [ ] Implement level 3: Root engram of directories
-- [ ] Add CLI options for hierarchical mode
-- [ ] Update serialization format to support hierarchy
-- [ ] Implement hierarchical extraction
-- [ ] Add unit tests for each level
+- [x] Implement level 2: Directory summaries
+- [x] Implement level 3: Root engram of directories
+- [x] Add CLI options for hierarchical mode
+- [x] Update serialization format to support hierarchy
+- [x] Implement hierarchical extraction
+- [x] Add unit tests for each level
 - [ ] Add integration tests for multi-level reconstruction
 - [ ] Performance benchmarks for large datasets (1M+ tokens)
 - [ ] Update documentation with hierarchical mode usage
 
-**Files:** src/embrfs.rs, src/cli.rs, tests/hierarchical_tests.rs, docs/HIERARCHICAL_ENCODING.md  
+**Files:** src/embrfs.rs, src/cli.rs, tests/hierarchical_unfolding.rs, docs/HIERARCHICAL_FORMAT.md, docs/RECURSIVE_UNFOLDING.md  
 **Estimate:** 5-7 days  
-**Status:** 🔵 PENDING
+**Status:** 🟡 IN_PROGRESS
 
 ---
 
@@ -413,7 +413,7 @@ Based on project priorities and dependencies, the recommended next tasks are:
 ### Known Issues
 - ARM64 CI workflow configured but awaiting self-hosted runner deployment
 - Windows/macOS support not yet tested
-- Hierarchical encoding mentioned but not implemented
+- Hierarchical encoding exists; remaining work is end-to-end CLI workflows (bundle artifacts) and multi-level reconstruction integration tests
 
 ### Future Considerations
 - Evaluate making ARM64 a required check after validation

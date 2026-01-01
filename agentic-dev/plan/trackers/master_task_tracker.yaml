@@ -158,6 +158,19 @@ phases:
           - E2E tests
         estimate_hours: 10
 
+      - id: TASK-HIE-005
+        title: Add CLI hierarchical artifact builder
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-HIE-003]
+        files: [src/cli.rs, src/embrfs.rs, src/lib.rs, tests/integration_cli.rs]
+        acceptance:
+          - CLI command produces hierarchical manifest JSON + sub-engrams directory
+          - Artifacts compatible with store-backed selective unfolding query
+          - Integration test validates artifact generation and query does not error
+        estimate_hours: 4
+        completed_at: "2026-01-01"
+
       - id: TASK-PLACEHOLDER-001
         title: Fix resonator recovery implementation
         status: pending
@@ -269,12 +282,18 @@ phases:
 
       - id: TASK-RET-003
         title: Implement recursive selective unfolding over hierarchical engrams
-        status: pending
+        status: in_progress
         agent: RustEngineer
         deps: [TASK-RET-002, TASK-HIE-004]
-        files: [src/embrfs.rs, src/retrieval.rs, docs/RECURSIVE_UNFOLDING.md]
+        files: [src/embrfs.rs, src/lib.rs, docs/RECURSIVE_UNFOLDING.md, tests/hierarchical_unfolding.rs]
         notes:
           - Preliminary plan (2026-01-01): implement a beam-limited traversal over hierarchical sub-engrams.
+          - Implementation (2026-01-01): added `query_hierarchical_codebook` + `HierarchicalQueryBounds` + deterministic beam traversal.
+          - Added `SubEngramStore` seam and `query_hierarchical_codebook_with_store` to enable on-demand sub-engram loading.
+          - Added `SubEngram.chunk_ids` so per-node search can index only the node-local subset of the global codebook.
+          - Implemented bounded LRU cache for per-sub-engram inverted indices (caps memory).
+          - Implemented bounded LRU cache for loaded sub-engrams (caps memory).
+          - Tests added for bounds (beam/max_depth/max_expansions), determinism, and child descent.
           - Add on-demand sub-engram loader + LRU eviction for both sub-engrams and per-sub-engram inverted indices.
           - Define a stable query API that returns (sub_engram_id, chunk_id, cosine) with recursion bounds.
           - Tests: bounded recursion, deterministic results on fixture hierarchy, and no unbounded memory growth.
@@ -283,6 +302,7 @@ phases:
           - On-demand loading and index eviction policy
           - Tests for bounded recursion and correctness
         estimate_hours: 16
+        started_at: "2026-01-01"
 
       - id: TASK-RET-004
         title: Differential update for hierarchical engrams
