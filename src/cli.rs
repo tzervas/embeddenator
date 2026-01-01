@@ -6,7 +6,11 @@
 //! - Querying similarity
 //! - Mounting engrams as FUSE filesystems (requires `fuse` feature)
 
-use crate::embrfs::EmbrFS;
+use crate::embrfs::{
+    DirectorySubEngramStore, EmbrFS, HierarchicalQueryBounds, load_hierarchical_manifest,
+    query_hierarchical_codebook_with_store,
+    save_hierarchical_manifest, save_sub_engrams_dir,
+};
 use crate::vsa::{SparseVec, ReversibleVSAConfig};
 use clap::{Parser, Subcommand};
 use std::fs::File;
@@ -128,7 +132,87 @@ pub enum Commands {
         #[arg(short, long, value_name = "FILE", help_heading = "Required")]
         query: PathBuf,
 
+        /// Optional hierarchical manifest (enables selective unfolding search)
+        #[arg(long, value_name = "FILE")]
+        hierarchical_manifest: Option<PathBuf>,
+
+        /// Directory containing bincode-serialized sub-engrams (used with --hierarchical-manifest)
+        #[arg(long, value_name = "DIR")]
+        sub_engrams_dir: Option<PathBuf>,
+
+        /// Top-k results to print for codebook/hierarchical search
+        #[arg(long, default_value_t = 10, value_name = "K")]
+        k: usize,
+
         /// Enable verbose output showing similarity scores and details
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Query similarity using a literal text string (basic inference-to-vector)
+    #[command(
+        long_about = "Query cosine similarity using a literal text string\n\n\
+        This is a convenience wrapper that encodes the provided text as bytes into a VSA query vector\n\
+        and runs the same retrieval path as `query`."
+    )]
+    QueryText {
+        /// Engram file to query
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Text to encode and search for
+        #[arg(long, value_name = "TEXT", help_heading = "Required")]
+        text: String,
+
+        /// Optional hierarchical manifest (enables selective unfolding search)
+        #[arg(long, value_name = "FILE")]
+        hierarchical_manifest: Option<PathBuf>,
+
+        /// Directory containing bincode-serialized sub-engrams (used with --hierarchical-manifest)
+        #[arg(long, value_name = "DIR")]
+        sub_engrams_dir: Option<PathBuf>,
+
+        /// Top-k results to print for codebook/hierarchical search
+        #[arg(long, default_value_t = 10, value_name = "K")]
+        k: usize,
+
+        /// Enable verbose output showing similarity scores and details
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Build hierarchical retrieval artifacts (manifest + sub-engrams store)
+    #[command(
+        long_about = "Build hierarchical retrieval artifacts from an existing engram+manifest\n\n\
+        This command produces a hierarchical manifest JSON and a directory of sub-engrams\n\
+        suitable for store-backed selective unfolding (DirectorySubEngramStore)."
+    )]
+    BundleHier {
+        /// Input engram file
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Input manifest file
+        #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
+        manifest: PathBuf,
+
+        /// Output hierarchical manifest JSON
+        #[arg(long, default_value = "hier.json", value_name = "FILE")]
+        out_hierarchical_manifest: PathBuf,
+
+        /// Output directory to write bincode sub-engrams
+        #[arg(long, default_value = "sub_engrams", value_name = "DIR")]
+        out_sub_engrams_dir: PathBuf,
+
+        /// Maximum sparsity per level bundle
+        #[arg(long, default_value_t = 500, value_name = "N")]
+        max_level_sparsity: usize,
+
+        /// Embed sub-engrams in the manifest JSON (in addition to writing the directory)
+        #[arg(long, default_value_t = false)]
+        embed_sub_engrams: bool,
+
+        /// Enable verbose output
         #[arg(short, long)]
         verbose: bool,
     },
@@ -244,6 +328,9 @@ pub fn run() -> io::Result<()> {
         Commands::Query {
             engram,
             query,
+            hierarchical_manifest,
+            sub_engrams_dir,
+            k,
             verbose,
         } => {
             if verbose {
@@ -266,7 +353,7 @@ pub fn run() -> io::Result<()> {
             println!("Query file: {}", query.display());
             println!("Similarity to engram: {:.4}", similarity);
 
-            let top_matches = engram_data.query_codebook(&query_vec, 10);
+            let top_matches = engram_data.query_codebook(&query_vec, k);
             if !top_matches.is_empty() {
                 println!("Top codebook matches:");
                 for m in top_matches {
@@ -279,12 +366,149 @@ pub fn run() -> io::Result<()> {
                 println!("Top codebook matches: (none)");
             }
 
+            if let (Some(hier_path), Some(sub_dir)) = (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref()) {
+                let hierarchical = load_hierarchical_manifest(hier_path)?;
+                let store = DirectorySubEngramStore::new(sub_dir);
+                let bounds = HierarchicalQueryBounds {
+                    k,
+                    ..HierarchicalQueryBounds::default()
+                };
+                let hier_hits = query_hierarchical_codebook_with_store(
+                    &hierarchical,
+                    &store,
+                    &engram_data.codebook,
+                    &query_vec,
+                    &bounds,
+                );
+                if !hier_hits.is_empty() {
+                    println!("Top hierarchical matches:");
+                    for h in hier_hits {
+                        println!(
+                            "  sub {}  chunk {}  cosine {:.4}  approx_dot {}",
+                            h.sub_engram_id, h.chunk_id, h.cosine, h.approx_score
+                        );
+                    }
+                } else if verbose {
+                    println!("Top hierarchical matches: (none)");
+                }
+            }
+
             if similarity > 0.75 {
                 println!("Status: STRONG MATCH");
             } else if similarity > 0.3 {
                 println!("Status: Partial match");
             } else {
                 println!("Status: No significant match");
+            }
+
+            Ok(())
+        }
+
+        Commands::QueryText {
+            engram,
+            text,
+            hierarchical_manifest,
+            sub_engrams_dir,
+            k,
+            verbose,
+        } => {
+            if verbose {
+                println!(
+                    "Embeddenator v{} - Holographic Query (Text)",
+                    env!("CARGO_PKG_VERSION")
+                );
+                println!("========================================");
+            }
+
+            let engram_data = EmbrFS::load_engram(&engram)?;
+            let query_vec = SparseVec::encode_data(text.as_bytes(), &ReversibleVSAConfig::default(), None);
+            let similarity = query_vec.cosine(&engram_data.root);
+
+            println!("Query text: {}", text);
+            println!("Similarity to engram: {:.4}", similarity);
+
+            let top_matches = engram_data.query_codebook(&query_vec, k);
+            if !top_matches.is_empty() {
+                println!("Top codebook matches:");
+                for m in top_matches {
+                    println!(
+                        "  chunk {}  cosine {:.4}  approx_dot {}",
+                        m.id, m.cosine, m.approx_score
+                    );
+                }
+            } else if verbose {
+                println!("Top codebook matches: (none)");
+            }
+
+            if let (Some(hier_path), Some(sub_dir)) = (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref()) {
+                let hierarchical = load_hierarchical_manifest(hier_path)?;
+                let store = DirectorySubEngramStore::new(sub_dir);
+                let bounds = HierarchicalQueryBounds {
+                    k,
+                    ..HierarchicalQueryBounds::default()
+                };
+                let hier_hits = query_hierarchical_codebook_with_store(
+                    &hierarchical,
+                    &store,
+                    &engram_data.codebook,
+                    &query_vec,
+                    &bounds,
+                );
+                if !hier_hits.is_empty() {
+                    println!("Top hierarchical matches:");
+                    for h in hier_hits {
+                        println!(
+                            "  sub {}  chunk {}  cosine {:.4}  approx_dot {}",
+                            h.sub_engram_id, h.chunk_id, h.cosine, h.approx_score
+                        );
+                    }
+                } else if verbose {
+                    println!("Top hierarchical matches: (none)");
+                }
+            }
+
+            Ok(())
+        }
+
+        Commands::BundleHier {
+            engram,
+            manifest,
+            out_hierarchical_manifest,
+            out_sub_engrams_dir,
+            max_level_sparsity,
+            embed_sub_engrams,
+            verbose,
+        } => {
+            if verbose {
+                println!(
+                    "Embeddenator v{} - Build Hierarchical Artifacts",
+                    env!("CARGO_PKG_VERSION")
+                );
+                println!("=============================================");
+            }
+
+            let engram_data = EmbrFS::load_engram(&engram)?;
+            let manifest_data = EmbrFS::load_manifest(&manifest)?;
+
+            let mut fs = EmbrFS::new();
+            fs.engram = engram_data;
+            fs.manifest = manifest_data;
+
+            let config = ReversibleVSAConfig::default();
+            let mut hierarchical = fs.bundle_hierarchically(max_level_sparsity, verbose, &config)?;
+
+            // Always write the sub-engrams directory for store-backed retrieval.
+            save_sub_engrams_dir(&hierarchical.sub_engrams, &out_sub_engrams_dir)?;
+
+            if !embed_sub_engrams {
+                hierarchical.sub_engrams.clear();
+            }
+
+            save_hierarchical_manifest(&hierarchical, &out_hierarchical_manifest)?;
+
+            if verbose {
+                println!("Wrote hierarchical manifest: {}", out_hierarchical_manifest.display());
+                println!("Wrote sub-engrams dir: {}", out_sub_engrams_dir.display());
             }
 
             Ok(())
