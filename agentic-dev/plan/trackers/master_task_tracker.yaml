@@ -134,7 +134,7 @@ phases:
         
       - id: TASK-HIE-004
         title: Implement hierarchical extraction
-        status: pending
+        status: completed
         agent: RustEngineer
         deps: [TASK-HIE-003, TASK-RES-003]
         files: [src/embrfs.rs]
