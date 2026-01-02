@@ -32,7 +32,7 @@ The CI/CD pipeline is split into separate workflows to avoid duplication and pro
 
 **Jobs:**
 - Build release binary
-- Run full test suite (33 tests)
+- Run full test suite
 - Run integration tests via orchestrator
 - Upload artifacts on failure
 
@@ -54,7 +54,7 @@ The CI/CD pipeline is split into separate workflows to avoid duplication and pro
 **Jobs:**
 - Verify architecture
 - Build release binary
-- Run full test suite (33 tests)
+- Run full test suite
 - Run integration tests via orchestrator
 - Upload artifacts on failure
 
@@ -127,6 +127,72 @@ Self-hosted ARM64 runners are the **only practical solution** because:
 - ❌ GitHub doesn't provide standard hosted ARM64 runners
 - ❌ QEMU emulation is 5-10x slower and unreliable
 
+---
+
+## Automated Runner Management System
+
+🎉 **NEW**: Embeddenator now includes a comprehensive Python-based automation system for managing self-hosted runners!
+
+### Overview
+
+The `runner_manager.py` script provides complete lifecycle automation:
+- ✨ Automated registration with short-lived tokens
+- 🔄 Complete lifecycle management (register → run → deregister)
+- ⏱️ Auto-deregistration after configurable idle timeout
+- 🎯 Manual mode for persistent runners
+- 🚀 Multi-runner deployment support
+- 📊 Health monitoring and status reporting
+
+### Quick Start
+
+```bash
+# 1. Configure (required: GITHUB_REPOSITORY and GITHUB_TOKEN)
+cp .env.example .env
+# Edit .env with your repository and GitHub PAT
+
+# 2. Run in auto mode (registers, starts, monitors, auto-deregisters when idle)
+python3 runner_manager.py run
+
+# 3. Or run in manual mode (keeps running until stopped)
+RUNNER_MODE=manual python3 runner_manager.py run
+```
+
+### Key Features
+
+**Auto Mode** (Cost Optimized):
+- Registers runner automatically
+- Monitors job queue
+- Auto-deregisters after idle timeout (default: 5 minutes)
+- Perfect for sporadic CI/CD builds
+
+**Manual Mode** (Persistent):
+- Keeps runner alive until explicitly stopped
+- Ideal for development environments
+- Full control over lifecycle
+
+**Multi-Runner Support**:
+```bash
+# Deploy 4 runners for parallel builds
+python3 runner_manager.py run --runner-count 4
+```
+
+### Documentation
+
+For complete documentation, see: [`docs/RUNNER_AUTOMATION.md`](../../docs/RUNNER_AUTOMATION.md)
+
+Topics covered:
+- Configuration options (50+ environment variables)
+- Deployment modes and strategies
+- Advanced features (ephemeral runners, resource management)
+- Troubleshooting and security best practices
+- Integration examples (systemd, Docker, cron)
+
+---
+
+## Manual Self-Hosted Runner Setup
+
+If you prefer manual setup instead of using the automation system:
+
 **Self-Hosted Runner Setup Guide:**
 
 ```bash
@@ -173,6 +239,15 @@ sudo ./svc.sh status
 
 **Purpose:** Build and push multiple OS configurations to GHCR
 
+**Default Targets:** AMD64 only (debian-stable, debian-testing, ubuntu-stable)
+- ARM64 builds available via manual input but not recommended in CI (emulation too slow)
+
+**Features:**
+- Matrix-based parallel builds
+- Configurable via comma-separated input
+- Optional test execution before build
+- GHCR push with proper tagging
+
 **Status:** ✅ Active (manual trigger)
 
 ---
@@ -182,11 +257,37 @@ sudo ./svc.sh status
 
 **Purpose:** Build bleeding-edge images with nightly Rust and latest OS packages
 
-**Targets:**
-- Debian Testing/Sid
-- Ubuntu Devel/Rolling
+**Targets:** AMD64 only (ARM64 emulation too slow for CI)
+- Debian Testing/Sid (amd64)
+- Ubuntu Devel/Rolling (amd64)
+
+**Note:** ARM64 builds should be done locally or on self-hosted ARM64 runners
 
 **Status:** ✅ Active (scheduled)
+
+---
+
+### 7. **build-push-arm64.yml** - ARM64 Image Builds (Self-Hosted)
+**Triggers:** Manual (`workflow_dispatch`)
+
+**Purpose:** Build and push ARM64 images using self-hosted runners (local or QEMU-emulated)
+
+**Runner Options:**
+- **Large runner:** 10 cores, 16GB RAM - builds 4 configs in parallel
+- **Multi runners:** 4x runners with 4 cores, 6GB RAM each - distributed builds
+- **Native ARM64:** Physical ARM64 hardware
+
+**Features:**
+- Disk space management (automatic cleanup)
+- Configurable parallelism based on runner type
+- GHCR push with proper tagging
+- Build metrics and monitoring
+
+**Default Targets:** debian-stable-arm64, debian-testing-arm64, ubuntu-stable-arm64
+
+**Setup:** See [ARM64_RUNNER_SETUP.md](./ARM64_RUNNER_SETUP.md) for detailed instructions
+
+**Status:** ✅ Active (manual trigger, requires self-hosted runner)
 
 ---
 
@@ -207,9 +308,10 @@ On Push to Main:
   └─ ci-arm64.yml (will be enabled post-deployment)
 
 Manual/Scheduled:
-  ├─ build-holographic-os.yml
-  ├─ build-push-images.yml
-  └─ nightly-builds.yml
+  ├─ build-holographic-os.yml (manual)
+  ├─ build-push-images.yml (manual - AMD64 only)
+  ├─ build-push-arm64.yml (manual - ARM64 only, self-hosted)
+  └─ nightly-builds.yml (scheduled daily at 2 AM UTC - AMD64 only)
 ```
 
 **Key Points:**

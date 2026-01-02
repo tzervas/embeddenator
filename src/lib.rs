@@ -57,9 +57,39 @@
 //! - [`cli`]: Command-line interface
 
 pub mod cli;
+pub mod codebook;
+pub mod correction;
+pub mod dimensional;
 pub mod embrfs;
+pub mod fuse_shim;
+pub mod kernel_interop;
+pub mod resonator;
+pub mod retrieval;
+pub mod ternary;
+pub mod ternary_vec;
 pub mod vsa;
 
 // Re-export main types for convenience
+pub use codebook::{Codebook, BalancedTernaryWord, ProjectionResult, SemanticOutlier, WordMetadata};
+pub use correction::{CorrectionStore, CorrectionStats, ChunkCorrection, CorrectionType, ReconstructionVerifier};
+pub use dimensional::{
+    Trit as DimTrit, Tryte, DimensionalConfig, TritDepthConfig,
+    HyperVec, DifferentialEncoder, DifferentialEncoding,
+};
 pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
-pub use vsa::{SparseVec, DIM};
+pub use embrfs::{
+    DirectorySubEngramStore, HierarchicalChunkHit, HierarchicalManifest, HierarchicalQueryBounds,
+    SubEngram, SubEngramStore, UnifiedManifest, load_hierarchical_manifest,
+    query_hierarchical_codebook, query_hierarchical_codebook_with_store, save_hierarchical_manifest,
+    save_sub_engrams_dir,
+};
+pub use fuse_shim::{EngramFS, EngramFSBuilder, FileAttr, FileKind};
+pub use kernel_interop::{
+    CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
+    rerank_top_k_by_cosine,
+};
+pub use resonator::Resonator;
+pub use retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
+pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
+pub use ternary_vec::PackedTritVec;
+pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};

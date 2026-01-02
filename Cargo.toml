@@ -1,8 +1,8 @@
 [package]
 name = "embeddenator"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
-authors = ["Tyler Zervas, and Agentic Embeddenator Contributors"]
+authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
 description = "Sparse ternary VSA holographic computing substrate"
 license = "MIT"
 repository = "https://github.com/tzervas/embeddenator"
@@ -20,6 +20,14 @@ name = "embeddenator"
 path = "src/lib.rs"
 doctest = true
 
+[[bench]]
+name = "vsa_ops"
+harness = false
+
+[[bench]]
+name = "retrieval"
+harness = false
+
 [[bin]]
 name = "embeddenator"
 path = "src/main.rs"
@@ -32,9 +40,43 @@ bincode = "1.3"
 sha2 = "0.10"
 rand = "0.8"
 walkdir = "2.5"
+# FUSE userspace filesystem (Linux/macOS only)
+fuser = { version = "0.16", optional = true }
+libc = "0.2"
 
 [dev-dependencies]
 tempfile = "3.13"
+criterion = "0.5"
+proptest = "1.4"
+
+[features]
+default = []
+fuse = ["fuser"]
+qa = []
+soak-memory = []
+
+# Heavy invariant tests / aggressive randomized checks for ternary refactors.
+ternary-refactor = []
+
+# Balanced-ternary migration phases (testing gates)
+#
+# Enable these progressively as the ternary-native substrate replaces SparseVec
+# internals. Each phase implies the previous phase and enables the heavy
+# refactor invariant suite.
+bt-phase-1 = ["ternary-refactor"]
+bt-phase-2 = ["bt-phase-1"]
+bt-phase-3 = ["bt-phase-2"]
+
+# Convenience for CI/local: run everything currently implemented.
+bt-migration = ["bt-phase-3"]
+
+# These are referenced by cfg-gated test stubs; define them to avoid
+# `unexpected cfg condition value` warnings when compiling tests.
+proptest = []
+afl = []
+
+# Reserved for a future on-disk deterministic baseline codebook loader/generator.
+baseline-codebook = []
 
 [profile.release]
 opt-level = 3
