@@ -14,6 +14,7 @@
 - **Bit-Perfect Reconstruction**: 100% ordered text and binary file recovery
 - **Pure Algebraic Mutations**: Bundle/bind/scalar operations on single root engram
 - **Hierarchical Chunked Encoding**: Designed for TB-scale data
+- **SIMD Acceleration**: Optional AVX2/NEON optimizations for 2-4x query speedup
 - **CLI + Docker**: Complete toolchain with multi-arch container support
 - **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
 - **Dual Versioning**: LTS stable releases + nightly bleeding-edge builds
@@ -907,9 +908,15 @@ cargo run --release -- ingest -i ./input_ws -e root.engram -m manifest.json -v
 ## Performance Tips
 
 1. **Use release builds**: `cargo build --release` is 10-100x faster
-2. **Batch processing**: Ingest multiple directories separately for parallel processing
-3. **SSD storage**: Engram I/O benefits significantly from fast storage
-4. **Memory**: Ensure sufficient RAM for large codebooks (~100 bytes per chunk)
+2. **Enable SIMD acceleration**: For query-heavy workloads, build with `--features simd` and `RUSTFLAGS="-C target-cpu=native"`
+   ```bash
+   # Build with SIMD optimizations
+   RUSTFLAGS="-C target-cpu=native" cargo build --release --features simd
+   ```
+   See [docs/SIMD_OPTIMIZATION.md](docs/SIMD_OPTIMIZATION.md) for details on 2-4x query speedup
+3. **Batch processing**: Ingest multiple directories separately for parallel processing
+4. **SSD storage**: Engram I/O benefits significantly from fast storage
+5. **Memory**: Ensure sufficient RAM for large codebooks (~100 bytes per chunk)
 
 ## License
 

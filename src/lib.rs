@@ -65,6 +65,7 @@ pub mod fuse_shim;
 pub mod kernel_interop;
 pub mod resonator;
 pub mod retrieval;
+pub mod simd_cosine;
 pub mod ternary;
 pub mod ternary_vec;
 pub mod vsa;

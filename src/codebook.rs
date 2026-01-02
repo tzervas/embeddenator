@@ -433,7 +433,8 @@ impl Codebook {
                 .filter(|(_, sim)| *sim > 0.3) // Threshold for relevance
                 .collect();
             
-            best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            // Sort by similarity (descending), treating NaN as less than any value
+            best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Less));
             
             // Take top N matches
             for (basis_id, similarity) in best_matches.iter().take(4) {

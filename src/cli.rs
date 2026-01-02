@@ -301,6 +301,136 @@ pub enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+
+    /// Incremental update operations (add/remove/modify files)
+    #[command(
+        long_about = "Perform incremental updates to an existing engram\n\n\
+        This command enables efficient updates to engrams without full re-ingestion.\n\
+        Use subcommands to add, remove, or modify files, or to compact the engram.\n\n\
+        Subcommands:\n\
+        • add     - Add a new file to the engram\n\
+        • remove  - Mark a file as deleted\n\
+        • modify  - Update an existing file\n\
+        • compact - Rebuild engram without deleted files\n\n\
+        Examples:\n\
+          embeddenator update add -e data.engram -m data.json -f new.txt\n\
+          embeddenator update remove -e data.engram -m data.json -p old.txt\n\
+          embeddenator update modify -e data.engram -m data.json -f changed.txt\n\
+          embeddenator update compact -e data.engram -m data.json"
+    )]
+    #[command(subcommand)]
+    Update(UpdateCommands),
+}
+
+#[derive(Subcommand)]
+pub enum UpdateCommands {
+    /// Add a new file to an existing engram
+    #[command(
+        long_about = "Add a new file to an existing engram without full re-ingestion\n\n\
+        This operation bundles the new file's chunks with the existing root vector\n\
+        using VSA's associative bundle operation. Much faster than full re-ingestion.\n\n\
+        Example:\n\
+          embeddenator update add -e data.engram -m data.json -f new_file.txt"
+    )]
+    Add {
+        /// Engram file to update
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Manifest file to update
+        #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
+        manifest: PathBuf,
+
+        /// File to add to the engram
+        #[arg(short, long, value_name = "FILE", help_heading = "Required")]
+        file: PathBuf,
+
+        /// Logical path in engram (defaults to filename)
+        #[arg(short = 'p', long, value_name = "PATH")]
+        logical_path: Option<String>,
+
+        /// Enable verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Remove a file from the engram (mark as deleted)
+    #[command(
+        long_about = "Mark a file as deleted in the engram manifest\n\n\
+        This operation marks the file as deleted without modifying the root vector,\n\
+        since VSA bundling has no clean inverse. Use 'compact' to truly remove chunks.\n\n\
+        Example:\n\
+          embeddenator update remove -e data.engram -m data.json -p old_file.txt"
+    )]
+    Remove {
+        /// Engram file to update
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Manifest file to update
+        #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
+        manifest: PathBuf,
+
+        /// Logical path of file to remove
+        #[arg(short = 'p', long, value_name = "PATH", help_heading = "Required")]
+        path: String,
+
+        /// Enable verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Modify an existing file in the engram
+    #[command(
+        long_about = "Update an existing file's content in the engram\n\n\
+        This operation marks the old version as deleted and adds the new version.\n\
+        Use 'compact' periodically to clean up old chunks.\n\n\
+        Example:\n\
+          embeddenator update modify -e data.engram -m data.json -f updated.txt"
+    )]
+    Modify {
+        /// Engram file to update
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Manifest file to update
+        #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
+        manifest: PathBuf,
+
+        /// File with new content
+        #[arg(short, long, value_name = "FILE", help_heading = "Required")]
+        file: PathBuf,
+
+        /// Logical path in engram (defaults to filename)
+        #[arg(short = 'p', long, value_name = "PATH")]
+        logical_path: Option<String>,
+
+        /// Enable verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Compact engram by rebuilding without deleted files
+    #[command(
+        long_about = "Rebuild engram from scratch, excluding deleted files\n\n\
+        This operation recreates the engram with only active files, reclaiming space\n\
+        from deleted chunks. Expensive but necessary after many updates.\n\n\
+        Example:\n\
+          embeddenator update compact -e data.engram -m data.json -v"
+    )]
+    Compact {
+        /// Engram file to compact
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Manifest file to update
+        #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
+        manifest: PathBuf,
+
+        /// Enable verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 pub fn run() -> io::Result<()> {
@@ -858,6 +988,187 @@ pub fn run() -> io::Result<()> {
             }
 
             Ok(())
+        }
+
+        Commands::Update(update_cmd) => {
+            match update_cmd {
+                UpdateCommands::Add {
+                    engram,
+                    manifest,
+                    file,
+                    logical_path,
+                    verbose,
+                } => {
+                    if verbose {
+                        println!(
+                            "Embeddenator v{} - Incremental Add",
+                            env!("CARGO_PKG_VERSION")
+                        );
+                        println!("===================================");
+                    }
+
+                    // Load existing engram and manifest
+                    let engram_data = EmbrFS::load_engram(&engram)?;
+                    let manifest_data = EmbrFS::load_manifest(&manifest)?;
+
+                    let mut fs = EmbrFS::new();
+                    fs.engram = engram_data;
+                    fs.manifest = manifest_data;
+
+                    // Determine logical path
+                    let log_path = logical_path.unwrap_or_else(|| {
+                        file.file_name()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("file")
+                            .to_string()
+                    });
+
+                    // Add the file
+                    let config = ReversibleVSAConfig::default();
+                    fs.add_file(&file, log_path.clone(), verbose, &config)?;
+
+                    // Save updated engram and manifest
+                    fs.save_engram(&engram)?;
+                    fs.save_manifest(&manifest)?;
+
+                    if verbose {
+                        println!("\nFile added successfully: {}", log_path);
+                        println!("Updated engram: {}", engram.display());
+                        println!("Updated manifest: {}", manifest.display());
+                    }
+
+                    Ok(())
+                }
+
+                UpdateCommands::Remove {
+                    engram,
+                    manifest,
+                    path,
+                    verbose,
+                } => {
+                    if verbose {
+                        println!(
+                            "Embeddenator v{} - Incremental Remove",
+                            env!("CARGO_PKG_VERSION")
+                        );
+                        println!("======================================");
+                    }
+
+                    // Load existing engram and manifest
+                    let engram_data = EmbrFS::load_engram(&engram)?;
+                    let manifest_data = EmbrFS::load_manifest(&manifest)?;
+
+                    let mut fs = EmbrFS::new();
+                    fs.engram = engram_data;
+                    fs.manifest = manifest_data;
+
+                    // Remove the file
+                    fs.remove_file(&path, verbose)?;
+
+                    // Save updated manifest (engram unchanged)
+                    fs.save_manifest(&manifest)?;
+
+                    if verbose {
+                        println!("\nFile marked as deleted: {}", path);
+                        println!("Updated manifest: {}", manifest.display());
+                        println!("Note: Run 'update compact' to reclaim space");
+                    }
+
+                    Ok(())
+                }
+
+                UpdateCommands::Modify {
+                    engram,
+                    manifest,
+                    file,
+                    logical_path,
+                    verbose,
+                } => {
+                    if verbose {
+                        println!(
+                            "Embeddenator v{} - Incremental Modify",
+                            env!("CARGO_PKG_VERSION")
+                        );
+                        println!("======================================");
+                    }
+
+                    // Load existing engram and manifest
+                    let engram_data = EmbrFS::load_engram(&engram)?;
+                    let manifest_data = EmbrFS::load_manifest(&manifest)?;
+
+                    let mut fs = EmbrFS::new();
+                    fs.engram = engram_data;
+                    fs.manifest = manifest_data;
+
+                    // Determine logical path
+                    let log_path = logical_path.unwrap_or_else(|| {
+                        file.file_name()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("file")
+                            .to_string()
+                    });
+
+                    // Modify the file
+                    let config = ReversibleVSAConfig::default();
+                    fs.modify_file(&file, log_path.clone(), verbose, &config)?;
+
+                    // Save updated engram and manifest
+                    fs.save_engram(&engram)?;
+                    fs.save_manifest(&manifest)?;
+
+                    if verbose {
+                        println!("\nFile modified successfully: {}", log_path);
+                        println!("Updated engram: {}", engram.display());
+                        println!("Updated manifest: {}", manifest.display());
+                        println!("Note: Run 'update compact' periodically to reclaim space");
+                    }
+
+                    Ok(())
+                }
+
+                UpdateCommands::Compact {
+                    engram,
+                    manifest,
+                    verbose,
+                } => {
+                    if verbose {
+                        println!(
+                            "Embeddenator v{} - Compact Engram",
+                            env!("CARGO_PKG_VERSION")
+                        );
+                        println!("===================================");
+                    }
+
+                    // Load existing engram and manifest
+                    let engram_data = EmbrFS::load_engram(&engram)?;
+                    let manifest_data = EmbrFS::load_manifest(&manifest)?;
+
+                    let mut fs = EmbrFS::new();
+                    fs.engram = engram_data;
+                    fs.manifest = manifest_data;
+
+                    // Compact the engram
+                    let config = ReversibleVSAConfig::default();
+                    fs.compact(verbose, &config)?;
+
+                    // Save compacted engram and manifest
+                    fs.save_engram(&engram)?;
+                    fs.save_manifest(&manifest)?;
+
+                    if verbose {
+                        println!("\nEngram compacted successfully");
+                        println!("Saved engram: {}", engram.display());
+                        println!("Saved manifest: {}", manifest.display());
+                        println!(
+                            "Final: {} files, {} chunks",
+                            fs.manifest.files.len(),
+                            fs.manifest.total_chunks
+                        );
+                    }
+
+                    Ok(())
+                }
+            }
         }
     }
 }
