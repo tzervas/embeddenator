@@ -1,6 +1,6 @@
 [package]
 name = "embeddenator"
-version = "0.3.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
 description = "Sparse ternary VSA holographic computing substrate"

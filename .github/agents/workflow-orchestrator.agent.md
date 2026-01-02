@@ -4,7 +4,7 @@ description: Orchestrate Embeddenator tasks with agent handoffs and QA.
 argument-hint: High-level task, e.g., develop engram folding.
 infer: true
 target: vscode
-tools: ['search']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'todo']
 handoffs:
   - label: Plan Math
     agent: vsa-mathematician
