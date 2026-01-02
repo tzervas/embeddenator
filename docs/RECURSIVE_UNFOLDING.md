@@ -61,8 +61,9 @@ Completed (foundation):
 - Tests cover determinism, bounded recursion (`beam_width`, `max_depth`, `max_expansions`), and child descent.
 
 Remaining (to finish TASK-RET-003 fully):
-- Provide a real storage-backed `SubEngramStore` implementation (e.g., directory-backed files) and wire it into a higher-level workflow.
-- Integration hooks (e.g., CLI path or Engram helper) once loader story is decided.
+Completed since this note was written:
+- Directory-backed `SubEngramStore` (`DirectorySubEngramStore`) with `.subengram` blobs.
+- CLI workflow wiring via `bundle-hier` (artifact build) and `query` / `query-text` flags (`--hierarchical-manifest`, `--sub-engrams-dir`).
 
 ## End-to-end workflow (CLI)
 

@@ -118,6 +118,11 @@ Notes:
   - `benches/vsa_ops.rs` (bundle/bind/cosine + reversible encode/decode)
   - `benches/retrieval.rs` (inverted index build/query)
 
+Note:
+- During `cargo bench`, Cargo invokes the unit test harness in libtest's `--bench` mode.
+  This causes normal `#[test]` functions to be reported as `ignored` (printed as `i`), which is expected.
+  Use `cargo test` to run tests.
+
 Packed-path isolation:
 - `cargo bench --features bt-phase-2 --bench vsa_ops -- packed_path`
 
