@@ -99,7 +99,7 @@
 - [ ] ARM64 runner successfully registered and visible in GitHub
 - [ ] Manual workflow dispatch works correctly
 - [ ] Architecture detection validates aarch64
-- [ ] All 33 tests pass on ARM64
+- [ ] All tests pass on ARM64
 - [ ] Integration tests complete successfully
 - [ ] Build artifacts are valid for ARM64
 - [ ] Performance metrics collected and documented
@@ -138,19 +138,18 @@
 **Description:** Implement multi-level hierarchical encoding to handle TB-scale datasets efficiently as mentioned in README.
 
 **Acceptance Criteria:**
-- [x] Design hierarchical engram structure (3 levels)
-- [ ] Implement level 1: Individual file encoding
-- [x] Implement level 2: Directory summaries
-- [x] Implement level 3: Root engram of directories
-- [x] Add CLI options for hierarchical mode
-- [x] Update serialization format to support hierarchy
-- [x] Implement hierarchical extraction
-- [x] Add unit tests for each level
-- [ ] Add integration tests for multi-level reconstruction
-- [ ] Performance benchmarks for large datasets (1M+ tokens)
-- [ ] Update documentation with hierarchical mode usage
+- [x] Design hierarchical manifest + sub-engram structure
+- [x] Implement hierarchical artifact builder (`bundle_hierarchically`) producing `HierarchicalManifest`
+- [x] Add CLI for hierarchical artifacts (`bundle-hier`)
+- [x] Add store-backed selective unfolding query path (`query_hierarchical_codebook_with_store`)
+- [x] Provide directory-backed `SubEngramStore` (`DirectorySubEngramStore`)
+- [x] Add/expand integration tests covering artifact build + selective unfolding results quality
+- [x] Make hierarchical artifact generation deterministic (stable iteration + deterministic serialization)
+- [x] Optional per-node chunk_ids cap via deterministic sharding (`bundle-hier --max-chunks-per-node`)
+- [ ] Performance benchmarks for large datasets
+- [x] Update docs for selective unfolding workflow (see `docs/RECURSIVE_UNFOLDING.md`)
 
-**Files:** src/embrfs.rs, src/cli.rs, tests/hierarchical_unfolding.rs, docs/HIERARCHICAL_FORMAT.md, docs/RECURSIVE_UNFOLDING.md  
+**Files:** src/embrfs.rs, src/cli.rs, tests/hierarchical_artifacts_e2e.rs, tests/hierarchical_determinism.rs, docs/HIERARCHICAL_FORMAT.md, docs/RECURSIVE_UNFOLDING.md  
 **Estimate:** 5-7 days  
 **Status:** 🟡 IN_PROGRESS
 

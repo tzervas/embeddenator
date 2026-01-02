@@ -32,7 +32,7 @@ The CI/CD pipeline is split into separate workflows to avoid duplication and pro
 
 **Jobs:**
 - Build release binary
-- Run full test suite (33 tests)
+- Run full test suite
 - Run integration tests via orchestrator
 - Upload artifacts on failure
 
@@ -54,7 +54,7 @@ The CI/CD pipeline is split into separate workflows to avoid duplication and pro
 **Jobs:**
 - Verify architecture
 - Build release binary
-- Run full test suite (33 tests)
+- Run full test suite
 - Run integration tests via orchestrator
 - Upload artifacts on failure
 

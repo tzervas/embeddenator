@@ -7,21 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for 1.0.0
+- Performance benchmarks for TB-scale hierarchical datasets
+- Complete ARM64 CI validation and auto-trigger on main branch
+- GPU runner support for VSA acceleration research
+- SIMD optimization for hot-path operations
+- Incremental update support for engrams
+- Production monitoring and observability integration
+
+## [0.3.0] - 2026-01-01
+
 ### Added
-- Kernel↔VSA interop layer for non-FUSE builds
-  - `VsaBackend` trait + `SparseVecBackend` default implementation
-  - Store- and backend-driven cosine rerank helper
-- Retrieval improvements
-  - Codebook inverted-index builder from map
-  - Candidate rerank stage using exact cosine similarity
-  - Engram codebook query helper used by the CLI
-- Hierarchical selective unfolding (foundation)
-  - `SubEngram` carries `chunk_ids` for node-local subset search
-  - Beam-limited hierarchical query (`query_hierarchical_codebook`) with bounded index LRU
-  - Determinism + bounded recursion tests
-  - Directory-backed `SubEngramStore` + manifest/sub-engram save/load helpers
-  - CLI: optional hierarchical selective unfolding output + `query-text` convenience
-- Balanced-ternary migration phase-1 equivalence suite
+- **Deterministic hierarchical artifacts**
+  - Stable JSON serialization for `HierarchicalManifest` using sorted keys
+  - Deterministic sub-engram directory writes with sorted iteration
+  - Sorted prefix/file iteration in `bundle_hierarchically` for reproducible output
+- **Optional node sharding with deterministic caps**
+  - New `EmbrFS::bundle_hierarchically_with_options(max_chunks_per_node)` API
+  - CLI flag `bundle-hier --max-chunks-per-node` for bounded per-node indexing
+  - Router+shard architecture for large nodes exceeding chunk caps
+- **Multi-input ingest support**
+  - CLI accepts multiple `-i/--input` arguments (files and/or directories)
+  - Automatic namespacing for multiple directory roots to prevent collisions
+  - Backward-compatible with single directory ingest behavior
+- **Query performance improvements**
+  - `Engram::build_codebook_index()` for reusable inverted index across queries
+  - `Engram::query_codebook_with_index()` eliminates redundant index builds
+  - Increased per-bucket candidate pool in shift-sweep for better global top-k
+  - Hierarchical query now runs once using best shift instead of per-shift
+- **Enhanced test coverage**
+  - New `tests/hierarchical_determinism.rs` validates stable artifact generation
+  - Existing E2E test `tests/hierarchical_artifacts_e2e.rs` covers full workflow
+  - Query shift-sweep correctness test in `tests/query_shift_sweep.rs`
+
+### Changed
+- `ManifestLevel` and `ManifestItem` now derive `Clone` for deterministic serialization
+- CLI ingest signature changed from single `PathBuf` to `Vec<PathBuf>` (repeatable `-i`)
+- Query command now uses bucket-shift sweep terminology instead of "path shift"
+- Updated all documentation to reflect v0.3.0 features and APIs
+
+### Fixed
+- Repaired `EmbrFS::new()` struct initialization after multi-input refactor
+- Corrected `ingest_directory` implementation and added `ingest_directory_with_prefix`
+
+### Documentation
+- Updated README with v0.3.0 feature highlights and multi-input examples
+- Enhanced CLI reference for `ingest`, `query`, `query-text`, and `bundle-hier`
+- Updated `HIERARCHICAL_FORMAT.md` to reflect current prefix-grouping approach
+- Completed `RECURSIVE_UNFOLDING.md` with directory-backed store status
+- Updated `TASK_REGISTRY.md` to mark TASK-006 improvements as completed
+- Marked TASK-HIE-006 as completed in master task tracker
+
+## [0.2.0] - 2025-12-15
   - Randomized packed-vs-sparse semantic checks for dot/bind/bundle
   - Enables safe incremental migration under `bt-phase-1`
 
@@ -157,5 +194,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - rand 0.8: Random vector generation
 - walkdir 2.5: Directory traversal
 
+[0.3.0]: https://github.com/tzervas/embeddenator/releases/tag/v0.3.0
 [0.2.0]: https://github.com/tzervas/embeddenator/releases/tag/v0.2.0
 [0.1.0]: https://github.com/tzervas/embeddenator/releases/tag/v0.1.0

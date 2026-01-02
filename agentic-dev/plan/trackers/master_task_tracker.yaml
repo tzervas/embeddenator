@@ -125,16 +125,31 @@ phases:
         
       - id: TASK-HIE-002
         title: Implement level-0 leaf encoding
-        status: pending
+        status: completed
         agent: RustEngineer
         deps: [TASK-HIE-001]
         files: [src/embrfs.rs]
         notes:
-          - "Tracker drift: current implementation builds hierarchical sub-engrams inside bundle_hierarchically(), and sub-engram bincode serialization is implemented (save_sub_engrams_dir + DirectorySubEngramStore)."
-          - "Open question: explicit <=1000 chunks-per-directory splitting is not enforced as a distinct step; consider re-scoping this task into an explicit leaf-splitting pass if still required."
+          - "Implemented via path-prefix grouping in bundle_hierarchically(), producing SubEngram nodes with chunk_ids and children; artifacts can be persisted with save_sub_engrams_dir + DirectorySubEngramStore."
+          - "Hard caps like <=1000 chunks-per-node are not enforced; bounding is currently via max_level_sparsity (thinning). If we want deterministic sharding/caps for chunk_ids to improve indexing/memory, track it as a separate task (see TASK-HIE-006)."
         acceptance:
-          - Small bundles <=1000 chunks per directory
-          - Sub-engram serialization
+          - Leaf/prefix nodes produced with stable IDs
+          - Sub-engram serialization + store-backed loading supported
+        estimate_hours: 8
+
+      - id: TASK-HIE-006
+        title: Optional sharding/caps for hierarchical nodes
+        status: completed
+        agent: RustEngineer
+        deps: [TASK-HIE-005]
+        files: [src/embrfs.rs, src/cli.rs, tests/hierarchical_determinism.rs]
+        notes:
+          - "Goal: cap per-node chunk_ids (and/or per-prefix item counts) to improve index build time and memory footprint in selective unfolding."
+          - "Implemented deterministic sharding via EmbrFS::bundle_hierarchically_with_options(max_chunks_per_node) and CLI flag bundle-hier --max-chunks-per-node. Large nodes become routers with shard children containing bounded chunk_ids."
+        acceptance:
+          - Deterministic sharding of large nodes with bounded chunk_ids per node
+          - Query results remain deterministic under fixed bounds
+          - Tests cover sharding determinism + correctness
         estimate_hours: 8
         
       - id: TASK-HIE-003
