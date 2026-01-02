@@ -46,3 +46,27 @@ actions-runner*/
 runner_manager.log
 runner_metrics.json
 *.runner.json
+
+# Development artifacts (keep in dev branch only)
+TASK_*.md
+QA_*.md
+UNWRAP*.md
+RWLOCK*.md
+BRANCH_CLEANUP*.md
+context*.md
+workflow_state*.json
+test.txt
+
+# Development automation (keep in dev branch only)
+orchestrator.py
+runner_manager.py
+test_runner.py
+test_runner.rs
+build_holographic_os.py
+ci_build_monitor.sh
+Dockerfile.holographic
+Dockerfile.tool
+os_config.yaml
+agentic-dev/
+runner_automation/
+.context/
