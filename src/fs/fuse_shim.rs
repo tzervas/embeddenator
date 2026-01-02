@@ -463,17 +463,37 @@ impl EngramFS {
         };
 
         // Store file metadata
-        self.inodes.write()
-            .map_err(|_| "Inodes lock poisoned")?
+        self.inodes
+            .write()
+            .unwrap_or_else(|poisoned| {
+                metrics().inc_poison_inodes();
+                logging::warn("WARNING: inodes lock poisoned in add_file, recovering...");
+                poisoned.into_inner()
+            })
             .insert(ino, attr.clone());
-        self.inode_paths.write()
-            .map_err(|_| "Inode paths lock poisoned")?
+        self.inode_paths
+            .write()
+            .unwrap_or_else(|poisoned| {
+                metrics().inc_poison_inode_paths();
+                logging::warn("WARNING: inode_paths lock poisoned in add_file, recovering...");
+                poisoned.into_inner()
+            })
             .insert(ino, path.clone());
-        self.path_inodes.write()
-            .map_err(|_| "Path inodes lock poisoned")?
+        self.path_inodes
+            .write()
+            .unwrap_or_else(|poisoned| {
+                metrics().inc_poison_path_inodes();
+                logging::warn("WARNING: path_inodes lock poisoned in add_file, recovering...");
+                poisoned.into_inner()
+            })
             .insert(path.clone(), ino);
-        self.files.write()
-            .map_err(|_| "Files lock poisoned")?
+        self.files
+            .write()
+            .unwrap_or_else(|poisoned| {
+                metrics().inc_poison_file_cache();
+                logging::warn("WARNING: files lock poisoned in add_file, recovering...");
+                poisoned.into_inner()
+            })
             .insert(
                 ino,
                 FileRecord {
@@ -484,7 +504,13 @@ impl EngramFS {
 
         // Add to parent directory
         let filename = filename(&path).ok_or("Invalid filename")?;
-        self.directories.write().unwrap()
+        self.directories
+            .write()
+            .unwrap_or_else(|poisoned| {
+                metrics().inc_poison_directories();
+                logging::warn("WARNING: directories lock poisoned in add_file, recovering...");
+                poisoned.into_inner()
+            })
             .get_mut(&parent_ino)
             .ok_or("Parent directory not found")?
             .push(DirEntry {

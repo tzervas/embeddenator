@@ -21,9 +21,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-#[cfg(feature = "fuse")]
-use crate::logging;
-
 #[derive(clap::ValueEnum, Clone, Copy, Debug)]
 pub enum CompressionArg {
     None,
