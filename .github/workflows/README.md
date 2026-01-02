@@ -65,9 +65,9 @@ The CI/CD pipeline is split into separate workflows to avoid duplication and pro
 
 **Status:** ⚠️ **CONFIGURED BUT DISABLED** - Ready for self-hosted runners
 
-**Deployment Plan:**
-1. **Phase 1** (Current): Manual testing with self-hosted runners via `workflow_dispatch`
-2. **Phase 2** (After validation): Enable automatic trigger on merge to `main` only
+**Deployment Plan (Backlog / Deprioritized):**
+1. **Phase 1** (Backlog): Manual testing with self-hosted runners via `workflow_dispatch`
+2. **Phase 2** (Post-validation): Enable automatic trigger on merge to `main` only
 3. **Phase 3** (Future): Consider making it a required check if ARM64 becomes critical
 
 **Why Self-Hosted?**
@@ -76,7 +76,7 @@ ARM64 support requires self-hosted runners because GitHub Actions does not provi
 #### ARM64 Configuration and Deployment Roadmap
 
 **Current Status:**
-The ARM64 workflow is fully configured for self-hosted runners but currently disabled pending runner deployment.
+The ARM64 workflow is fully configured for self-hosted runners but currently disabled pending runner deployment. ARM64 enablement is currently deprioritized until runner infrastructure is available.
 
 **Root Cause of Previous Issues:**
 
@@ -95,7 +95,7 @@ The ARM64 workflow was hanging because:
 
 **Deployment Roadmap:**
 
-**Phase 1: Infrastructure Setup** (Pending)
+**Phase 1: Infrastructure Setup** (Pending; backlog)
 - Deploy ARM64 hardware (physical server, VM, or cloud instance)
 - Install GitHub Actions runner software on ARM64 hardware
 - Register runner with labels: `self-hosted`, `linux`, `ARM64`
@@ -178,7 +178,7 @@ python3 runner_manager.py run --runner-count 4
 
 ### Documentation
 
-For complete documentation, see: [`docs/RUNNER_AUTOMATION.md`](../../docs/RUNNER_AUTOMATION.md)
+For complete documentation, see: [`docs/ci/RUNNER_AUTOMATION.md`](../../docs/ci/RUNNER_AUTOMATION.md)
 
 Topics covered:
 - Configuration options (50+ environment variables)
@@ -409,14 +409,14 @@ When adding new workflows:
 | Architecture | Status | Runner Type | Trigger | Notes |
 |--------------|--------|-------------|---------|-------|
 | **amd64 (x86_64)** | ✅ Production | GitHub-hosted | Every PR (required) | Stable, fast |
-| **arm64 (aarch64)** | 🚧 Configured | Self-hosted | Manual only (pending) | Ready for deployment |
+| **arm64 (aarch64)** | ⏸️ Backlog | Self-hosted | Manual only | Deprioritized until runners exist |
 
-**Future ARM64 Timeline:**
+**ARM64 Timeline (Backlog):**
 1. ✅ **Completed**: Root cause analysis and workflow configuration
-2. 🚧 **In Progress**: Self-hosted runner infrastructure setup
-3. ⏳ **Next**: Manual testing and validation
-4. ⏳ **Future**: Auto-trigger on merge to main
-5. ⏳ **Future**: Evaluate as required check (optional)
+2. ⏸️ **Backlog**: Self-hosted runner infrastructure setup
+3. ⏸️ **Backlog**: Manual testing and validation
+4. ⏸️ **Backlog**: Auto-trigger on merge to main
+5. ⏸️ **Optional**: Evaluate as required check
 
 ---
 

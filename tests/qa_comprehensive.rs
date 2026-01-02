@@ -13,6 +13,8 @@
 //! - Fuzz Tests: Random input validation
 //! - Regression Tests: Known bug prevention
 
+#![cfg(feature = "qa")]
+
 use embeddenator::*;
 use std::collections::HashMap;
 use std::fs;
@@ -812,12 +814,13 @@ mod fuzz_tests {
     fn test_fuzz_sparse_vec_from_data() {
         // This would be run with AFL fuzzing
         // For now, just test with some random inputs
+        let cfg = ReversibleVSAConfig::default();
         for _ in 0..100 {
             let random_data: Vec<u8> = (0..rand::random::<usize>() % 1000)
                 .map(|_| rand::random::<u8>())
                 .collect();
 
-            let vec = SparseVec::from_data(&random_data);
+            let vec = SparseVec::encode_data(&random_data, &cfg, None);
             assert!(!vec.pos.is_empty() || !vec.neg.is_empty());
         }
     }

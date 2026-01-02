@@ -151,6 +151,6 @@ See [ADR-005](ADR-005-hologram-package-isolation.md) for detailed implementation
 - Vector Symbolic Architectures: A New Building Block for Artificial General Intelligence (Kleyko et al.)
 - Sparse Distributed Memory (Kanerva, 1988)
 - Embeddenator README.md - Core Concepts section
-- src/vsa.rs - Implementation details
+- src/vsa/vsa.rs - Implementation details
 - [Balanced Ternary](https://en.wikipedia.org/wiki/Balanced_ternary)
 - ADR-005: Hologram-Based Package Isolation (balanced ternary implementation)

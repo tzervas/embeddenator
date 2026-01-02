@@ -18,7 +18,7 @@ This interop layer is intended to:
 ### `VsaBackend`
 A trait capturing the operations the kernel needs, without committing to `SparseVec` vs a future ternary-native packed representation.
 
-Implemented in-tree today in [src/kernel_interop.rs](../src/kernel_interop.rs) as:
+Implemented in-tree today in [src/interop/kernel_interop.rs](../../src/interop/kernel_interop.rs) as:
 - `VsaBackend` (trait)
 - `SparseVecBackend` (default implementation)
 
@@ -50,7 +50,7 @@ The interop module provides a backend/store-driven helper:
 - `rerank_top_k_by_cosine(backend, store, query, candidate_ids, k)`
 
 ## Where this lives (now)
-- Add a new module: `src/kernel_interop.rs`
+- Add a new module: `src/interop/kernel_interop.rs`
 - Keep it dependency-light: only depends on `vsa` types and (optionally) `retrieval`.
 - Expose it from `src/lib.rs` so the CLI/orchestrator can use it.
 

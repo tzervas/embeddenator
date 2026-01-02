@@ -3,7 +3,7 @@
 //! Copyright (c) 2025 Embeddenator Contributors
 //! Licensed under MIT License
 //!
-//! Production Rust implementation of sparse ternary VSA (Vector Symbolic
+//! Pre-1.0 Rust implementation of sparse ternary VSA (Vector Symbolic
 //! Architecture) holographic filesystem and computing substrate.
 //!
 //! # Overview
@@ -56,17 +56,55 @@
 //! - [`embrfs`]: Holographic filesystem layer
 //! - [`cli`]: Command-line interface
 
+#[path = "cli/mod.rs"]
 pub mod cli;
+
+#[path = "core/codebook.rs"]
 pub mod codebook;
+
+#[path = "core/correction.rs"]
 pub mod correction;
+
+#[path = "vsa/dimensional.rs"]
 pub mod dimensional;
+
+#[path = "io/envelope.rs"]
+pub mod envelope;
+
+#[path = "fs/embrfs.rs"]
 pub mod embrfs;
+
+#[path = "fs/fuse_shim.rs"]
 pub mod fuse_shim;
+
+#[path = "interop/kernel_interop.rs"]
 pub mod kernel_interop;
+
+#[path = "obs/logging.rs"]
+pub mod logging;
+
+#[path = "obs/metrics.rs"]
+pub mod metrics;
+
+#[path = "core/resonator.rs"]
 pub mod resonator;
+
+#[path = "retrieval/retrieval.rs"]
 pub mod retrieval;
+
+#[path = "retrieval/signature.rs"]
+pub mod signature;
+
+#[path = "vsa/simd_cosine.rs"]
+pub mod simd_cosine;
+
+#[path = "vsa/ternary.rs"]
 pub mod ternary;
+
+#[path = "vsa/ternary_vec.rs"]
 pub mod ternary_vec;
+
+#[path = "vsa/vsa.rs"]
 pub mod vsa;
 
 // Re-export main types for convenience
@@ -76,6 +114,7 @@ pub use dimensional::{
     Trit as DimTrit, Tryte, DimensionalConfig, TritDepthConfig,
     HyperVec, DifferentialEncoder, DifferentialEncoding,
 };
+pub use envelope::{BinaryWriteOptions, CompressionCodec, PayloadKind};
 pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
 pub use embrfs::{
     DirectorySubEngramStore, HierarchicalChunkHit, HierarchicalManifest, HierarchicalQueryBounds,

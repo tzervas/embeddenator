@@ -9,8 +9,9 @@
 use crate::embrfs::{
     DirectorySubEngramStore, EmbrFS, HierarchicalQueryBounds, load_hierarchical_manifest,
     query_hierarchical_codebook_with_store,
-    save_hierarchical_manifest, save_sub_engrams_dir,
+    save_hierarchical_manifest, save_sub_engrams_dir_with_options,
 };
+use crate::envelope::{BinaryWriteOptions, CompressionCodec};
 use crate::vsa::{SparseVec, ReversibleVSAConfig};
 use clap::{Parser, Subcommand};
 use std::env;
@@ -19,6 +20,26 @@ use std::io::{self, Read};
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
+
+#[cfg(feature = "fuse")]
+use crate::logging;
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
+pub enum CompressionArg {
+    None,
+    Zstd,
+    Lz4,
+}
+
+impl From<CompressionArg> for CompressionCodec {
+    fn from(v: CompressionArg) -> Self {
+        match v {
+            CompressionArg::None => CompressionCodec::None,
+            CompressionArg::Zstd => CompressionCodec::Zstd,
+            CompressionArg::Lz4 => CompressionCodec::Lz4,
+        }
+    }
+}
 
 fn path_to_forward_slash_string(path: &Path) -> String {
     path.components()
@@ -53,7 +74,7 @@ fn logical_path_for_file_input(path: &Path, cwd: &Path) -> String {
 #[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "Holographic computing substrate using sparse ternary VSA")]
 #[command(
-    long_about = "Embeddenator - A production-grade holographic computing substrate using Vector Symbolic Architecture (VSA)\n\n\
+    long_about = "Embeddenator - A pre-1.0 holographic computing substrate using Vector Symbolic Architecture (VSA)\n\n\
     Embeddenator encodes entire filesystems into holographic 'engrams' using sparse ternary vectors,\n\
     enabling bit-perfect reconstruction and algebraic operations on data.\n\n\
     Key Features:\n\
@@ -104,6 +125,14 @@ pub enum Commands {
         /// Output engram file containing holographic encoding
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
         engram: PathBuf,
+
+        /// Optional compression for the output engram (default: none)
+        #[arg(long, default_value = "none", value_enum)]
+        engram_compression: CompressionArg,
+
+        /// Optional compression level (codec-dependent; used for zstd)
+        #[arg(long, value_name = "LEVEL")]
+        engram_compression_level: Option<i32>,
 
         /// Output manifest file containing file metadata and chunk mappings
         #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
@@ -242,6 +271,14 @@ pub enum Commands {
         #[arg(long, default_value = "sub_engrams", value_name = "DIR")]
         out_sub_engrams_dir: PathBuf,
 
+        /// Optional compression for the output `.subengram` blobs (default: none)
+        #[arg(long, default_value = "none", value_enum)]
+        sub_engram_compression: CompressionArg,
+
+        /// Optional compression level (codec-dependent; used for zstd)
+        #[arg(long, value_name = "LEVEL")]
+        sub_engram_compression_level: Option<i32>,
+
         /// Maximum sparsity per level bundle
         #[arg(long, default_value_t = 500, value_name = "N")]
         max_level_sparsity: usize,
@@ -311,6 +348,8 @@ pub fn run() -> io::Result<()> {
             input,
             engram,
             manifest,
+            engram_compression,
+            engram_compression_level,
             verbose,
         } => {
             if verbose {
@@ -365,7 +404,13 @@ pub fn run() -> io::Result<()> {
                 }
             }
 
-            fs.save_engram(&engram)?;
+            fs.save_engram_with_options(
+                &engram,
+                BinaryWriteOptions {
+                    codec: engram_compression.into(),
+                    level: engram_compression_level,
+                },
+            )?;
             fs.save_manifest(&manifest)?;
 
             if verbose {
@@ -716,6 +761,8 @@ pub fn run() -> io::Result<()> {
             max_level_sparsity,
             max_chunks_per_node,
             embed_sub_engrams,
+            sub_engram_compression,
+            sub_engram_compression_level,
             verbose,
         } => {
             if verbose {
@@ -742,7 +789,14 @@ pub fn run() -> io::Result<()> {
             )?;
 
             // Always write the sub-engrams directory for store-backed retrieval.
-            save_sub_engrams_dir(&hierarchical.sub_engrams, &out_sub_engrams_dir)?;
+            save_sub_engrams_dir_with_options(
+                &hierarchical.sub_engrams,
+                &out_sub_engrams_dir,
+                BinaryWriteOptions {
+                    codec: sub_engram_compression.into(),
+                    level: sub_engram_compression_level,
+                },
+            )?;
 
             if !embed_sub_engrams {
                 hierarchical.sub_engrams.clear();
@@ -788,41 +842,15 @@ pub fn run() -> io::Result<()> {
                 println!("Loaded manifest: {} files", manifest_data.files.len());
             }
 
-            // Create FUSE filesystem and populate with decoded files
-            let fuse_fs = EngramFS::new(true);
-            
-            for file_entry in &manifest_data.files {
-                // Decode file data using the same approach as EmbrFS::extract
-                let mut reconstructed = Vec::new();
-                
-                for &chunk_id in &file_entry.chunks {
-                    if let Some(chunk_vec) = engram_data.codebook.get(&chunk_id) {
-                        // Decode the sparse vector to bytes
-                        // IMPORTANT: Use the same path as during encoding for correct shift calculation
-                        let decoded = chunk_vec.decode_data(&config, Some(&file_entry.path), DEFAULT_CHUNK_SIZE);
-                        
-                        // Apply correction to guarantee bit-perfect reconstruction
-                        let chunk_data = if let Some(corrected) = engram_data.corrections.apply(chunk_id as u64, &decoded) {
-                            corrected
-                        } else {
-                            // No correction found - use decoded directly
-                            decoded
-                        };
-                        
-                        reconstructed.extend_from_slice(&chunk_data);
-                    }
-                }
-
-                // Truncate to exact file size
-                reconstructed.truncate(file_entry.size);
-                
-                // Add to FUSE filesystem
-                if let Err(e) = fuse_fs.add_file(&file_entry.path, reconstructed) {
-                    if verbose {
-                        eprintln!("Warning: Failed to add {}: {}", file_entry.path, e);
-                    }
-                }
-            }
+            // Production-hardening: build a metadata-only filesystem and decode chunks on-demand
+            // during reads. This avoids preloading all file bytes into memory at mount time.
+            let fuse_fs = EngramFS::from_engram(
+                engram_data,
+                manifest_data,
+                config,
+                DEFAULT_CHUNK_SIZE,
+                true,
+            );
 
             if verbose {
                 println!("Populated {} files into FUSE filesystem", fuse_fs.file_count());

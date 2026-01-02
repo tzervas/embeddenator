@@ -1,6 +1,6 @@
 # Embeddenator Version Roadmap
 
-## Current State: v0.3.0 (2026-01-01)
+## Current State: v0.19.3 (2026-01-02)
 
 ### Completed Features
 - ✅ Core VSA implementation with sparse ternary vectors
@@ -15,43 +15,40 @@
 - ✅ Correction store for guaranteed reconstruction
 - ✅ Resonator networks for pattern completion
 
-### Progress to 1.0.0
+### Progress to v0.19.3
 
-**Current Version: 0.3.0** (60% toward 1.0.0)
+**Current Version: 0.19.3** (stable pre-1.0 milestone)
 
-**Remaining for 1.0.0:**
+**Completed for v0.19.3:**
 
 #### P0: Critical Path (Required for 1.0.0)
-- [ ] **ARM64 CI validation** (TASK-004, TASK-005)
-  - Self-hosted runner deployment and testing
-  - Enable auto-trigger on main branch
-  - Est: 2-3 days
-- [ ] **Performance benchmarks** (TASK-006 final item)
-  - TB-scale dataset validation
-  - Hierarchical query performance metrics
-  - Throughput benchmarks for encode/decode
-  - Est: 1-2 days
-- [ ] **Production stability**
-  - Error handling audit
-  - Edge case validation
-  - Memory usage profiling
-  - Est: 2-3 days
-
-#### P1: High Priority (Strongly recommended for 1.0.0)
-- [ ] **Incremental update support** (TASK-007)
+- ✅ **Incremental update support** (TASK-007)
   - Add/remove/modify files without full re-ingestion
-  - Manifest consistency maintenance
-  - Est: 3-4 days
-- [ ] **SIMD optimization** (TASK-009)
-  - Accelerated cosine similarity computation
-  - Feature-gated with fallback
-  - Est: 3-4 days
-- [ ] **Expanded property-based testing** (TASK-010)
-  - VSA algebraic invariants
-  - Reconstruction guarantees
-  - Est: 1-2 days
+  - Hybrid VSA bundle + soft-delete approach
+  - Periodic compaction support
+  - CLI update subcommands
+  - 18 comprehensive tests
+- ✅ **SIMD optimization** (TASK-009)
+  - AVX2 (x86_64) and NEON (aarch64) implementations
+  - Feature-gated with scalar fallback
+  - Stable Rust (no nightly required)
+  - 16 dedicated tests
+  - Accuracy within 1e-10 of scalar
+- ✅ **Expanded property-based testing** (TASK-010)
+  - 28 property tests covering VSA algebraic properties
+  - 23,000+ property checks
+  - Bundling, binding, permutation properties validated
+  - Sparsity and stress testing
+  - Documented limitations for production use
 
-#### P2: Nice-to-Have (Post-1.0.0)
+#### Backlog: Infrastructure-dependent (Deprioritized)
+- ⏸️ **ARM64 CI validation** (TASK-004, TASK-005)
+  - Backlog: infrastructure-dependent (self-hosted ARM64 runner availability)
+  - ARM64 runtime support exists; local validation is possible
+  - CI workflow remains configured/manual-only until runners exist
+  - Not scheduled for near-term delivery
+
+#### P2: Nice-to-Have (Post-v0.19.3)
 - [ ] **Compression options** (TASK-008)
   - Optional zstd/lz4 compression
   - Backward compatibility
@@ -66,6 +63,7 @@
 
 ### Version Milestones
 
+<<<<<<< Updated upstream
 #### v0.4.0 (Target: Q1 2026)
 - ARM64 CI fully operational
 - Performance benchmarks validated
@@ -84,9 +82,28 @@
 - Production deployment validation
 - API stability guarantee
 
+=======
+#### v0.19.3 (Released: January 2, 2026) ✅
+- Stable pre-1.0 milestone: core feature set, extensive QA, and deterministic artifacts
+- Incremental update support (TASK-007)
+- SIMD optimizations (TASK-009)
+- Performance benchmarks validated (TASK-006)
+- Expanded property-based testing (TASK-010)
+- Production stability audit + error recovery suite
+
+#### v0.20.0 (Planned: Q1 2026)
+- GPU acceleration research (infrastructure-dependent)
+- Additional performance optimizations
+
+#### v0.21.0 (Planned: Q2 2026)
+- Optional compression (zstd/lz4) (TASK-008)
+- FUSE mount production hardening
+- Enhanced monitoring and observability
+
+>>>>>>> Stashed changes
 ### Feature Comparison
 
-| Feature | v0.1.0 | v0.2.0 | v0.3.0 | v1.0.0 |
+| Feature | v0.1.0 | v0.2.0 | v0.3.0 | v0.19.3 |
 |---------|--------|--------|--------|--------|
 | Core VSA | ✅ | ✅ | ✅ | ✅ |
 | Basic ingest/extract | ✅ | ✅ | ✅ | ✅ |
@@ -105,11 +122,8 @@
 
 ### Breaking Changes Policy
 
-- **Pre-1.0.0**: Minor versions (0.x.0) may include breaking API changes
-- **Post-1.0.0**: Semantic versioning strictly followed
-  - Major version for breaking changes
-  - Minor version for backward-compatible features
-  - Patch version for bug fixes
+- **Pre-1.0.0 (current)**: Minor versions (0.x.0) may include breaking API changes
+- **Patch versions** (0.x.y) are reserved for fixes and small improvements
 
 ### Ownership and Copyright
 

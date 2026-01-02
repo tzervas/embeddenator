@@ -3,7 +3,7 @@
 **Project:** Embeddenator Self-Hosted CI/CD System  
 **Version:** 1.0  
 **Last Updated:** 2025-12-22  
-**Status:** Active Development  
+**Status:** Backlog / Deprioritized (as of 2026-01-02)  
 **Document Owner:** DevOps Engineering Team
 
 ---
@@ -34,13 +34,15 @@ The Embeddenator project requires self-hosted GitHub Actions runners to support 
 4. **Automation**: Fully automated runner lifecycle management
 5. **Reliability**: High availability with automatic recovery and health monitoring
 
-### Success Criteria
+### Success Criteria (Targets)
 
-- ✅ ARM64 CI workflow completes successfully on self-hosted runners
-- ✅ Runner automation system manages lifecycle without manual intervention
-- ✅ Cost savings >50% compared to cloud-based alternatives
-- ✅ Build time <15 minutes for full test suite on ARM64
-- ✅ Zero manual runner management required during normal operation
+These are target outcomes for the self-hosted CI initiative. As of 2026-01-02, ARM64 runner deployment and ARM64 CI validation are infrastructure-dependent and currently deprioritized.
+
+- 🎯 ARM64 CI workflow completes successfully on self-hosted runners
+- 🎯 Runner automation system manages lifecycle without manual intervention
+- 🎯 Cost savings >50% compared to cloud-based alternatives
+- 🎯 Build time <15 minutes for full test suite on ARM64
+- 🎯 Zero manual runner management required during normal operation
 
 ---
 
@@ -70,6 +72,8 @@ Implement self-hosted runner infrastructure with:
 
 ## Current State
 
+*Note:* This document captures the design/spec for self-hosted CI. Infrastructure deployment and ARM64 CI validation are currently infrastructure-dependent and deprioritized; treat the phases below as a reference plan unless explicitly reactivated.
+
 ### Completed ✅
 
 - **v0.1.0 Release**: Core VSA implementation with AMD64 CI
@@ -85,15 +89,15 @@ Implement self-hosted runner infrastructure with:
 - **CI/CD Workflow Separation**: Three workflows (pre-checks, amd64, arm64)
 - **Documentation**: Comprehensive README, workflow docs, runner automation guide
 
-### In Progress 🚧
+### Backlog ⏸️
 
-- **ARM64 Infrastructure Deployment**: Hardware/VM provisioning
-- **Self-Hosted Runner Deployment**: Physical deployment pending
-- **ARM64 CI Testing**: Validation workflow ready but untested
+- **ARM64 Infrastructure Deployment**: Hardware/VM provisioning (not currently staffed)
+- **Self-Hosted Runner Deployment**: Physical deployment pending (deprioritized)
+- **ARM64 CI Testing**: Validation workflow ready but untested (requires runners)
 
-### Pending ⏳
+### Future / Backlog ⏸️
 
-- **ARM64 Auto-Trigger**: Enable automatic runs on main branch
+- **ARM64 Auto-Trigger**: Enable automatic runs on main branch (post-validation)
 - **GPU Runner Configuration**: Hardware acquisition and setup
 - **Production Monitoring**: Observability and alerting setup
 
@@ -254,9 +258,9 @@ Implement self-hosted runner infrastructure with:
 5. Validate artifact generation
 
 **Success Criteria**:
-- ✅ Workflow completes in <15 minutes
-- ✅ All tests pass
-- ✅ Artifacts uploaded correctly
+- 🎯 Workflow completes in <15 minutes
+- 🎯 All tests pass
+- 🎯 Artifacts uploaded correctly
 
 #### Phase 2: Auto Mode Testing
 1. Enable auto mode with 5-minute idle timeout
@@ -265,18 +269,18 @@ Implement self-hosted runner infrastructure with:
 4. Trigger new workflow and verify auto-registration
 
 **Success Criteria**:
-- ✅ Auto-deregistration after idle timeout
-- ✅ Re-registration on new job
-- ✅ No manual intervention required
+- 🎯 Auto-deregistration after idle timeout
+- 🎯 Re-registration on new job
+- 🎯 No manual intervention required
 
 ---
 
 ## Future Roadmap
 
-### Phase 1: Current (2025 Q1)
+### Phase 1: Historical Plan (2025 Q1)
 - ✅ Runner automation framework complete
-- 🚧 ARM64 runner deployment
-- ⏳ ARM64 CI enablement
+- ⏸️ ARM64 runner deployment (backlog)
+- ⏸️ ARM64 CI enablement (backlog)
 
 ### Phase 2: GPU Support (2025 Q2)
 - GPU runner deployment
@@ -301,6 +305,6 @@ Implement self-hosted runner infrastructure with:
 
 ---
 
-**Document Status**: ACTIVE  
-**Review Schedule**: Quarterly  
-**Next Review**: 2025-03-22
+**Document Status**: DEPRIORITIZED / BACKLOG  
+**Review Schedule**: As-needed (on reactivation)  
+**Next Review**: TBD

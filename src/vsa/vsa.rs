@@ -466,7 +466,9 @@ impl SparseVec {
     /// use embeddenator::SparseVec;
     ///
     /// let data = b"hello world";
+    /// #[allow(deprecated)]
     /// let vec1 = SparseVec::from_data(data);
+    /// #[allow(deprecated)]
     /// let vec2 = SparseVec::from_data(data);
     ///
     /// // Same input produces same vector (deterministic)
@@ -518,9 +520,9 @@ impl SparseVec {
     /// ```
     /// use embeddenator::{SparseVec, ReversibleVSAConfig};
     ///
-    /// let vec1 = SparseVec::from_data(b"data1");
-    /// let vec2 = SparseVec::from_data(b"data2");
     /// let config = ReversibleVSAConfig::default();
+    /// let vec1 = SparseVec::encode_data(b"data1", &config, None);
+    /// let vec2 = SparseVec::encode_data(b"data2", &config, None);
     /// let bundled = vec1.bundle_with_config(&vec2, Some(&config));
     ///
     /// // Bundled vector contains superposition of both inputs
@@ -552,10 +554,11 @@ impl SparseVec {
     /// # Examples
     ///
     /// ```
-    /// use embeddenator::SparseVec;
+    /// use embeddenator::{SparseVec, ReversibleVSAConfig};
     ///
-    /// let vec1 = SparseVec::from_data(b"data1");
-    /// let vec2 = SparseVec::from_data(b"data2");
+    /// let config = ReversibleVSAConfig::default();
+    /// let vec1 = SparseVec::encode_data(b"data1", &config, None);
+    /// let vec2 = SparseVec::encode_data(b"data2", &config, None);
     /// let bundled = vec1.bundle(&vec2);
     ///
     /// // Bundled vector contains superposition of both inputs
@@ -736,13 +739,14 @@ impl SparseVec {
     /// # Examples
     ///
     /// ```
-    /// use embeddenator::SparseVec;
+    /// use embeddenator::{SparseVec, ReversibleVSAConfig};
     ///
-    /// let vec = SparseVec::from_data(b"test");
+    /// let config = ReversibleVSAConfig::default();
+    /// let vec = SparseVec::encode_data(b"test", &config, None);
     /// let bound = vec.bind(&vec);
     ///
     /// // Bind with self should produce high similarity (self-inverse property)
-    /// let identity = SparseVec::from_data(b"identity");
+    /// let identity = SparseVec::encode_data(b"identity", &config, None);
     /// let sim = bound.cosine(&identity);
     /// // Result is approximately identity, so similarity varies
     /// assert!(sim >= -1.0 && sim <= 1.0);
@@ -870,8 +874,11 @@ impl SparseVec {
     /// ```
     /// use embeddenator::SparseVec;
     ///
+    /// #[allow(deprecated)]
     /// let vec1 = SparseVec::from_data(b"hello");
+    /// #[allow(deprecated)]
     /// let vec2 = SparseVec::from_data(b"hello");
+    /// #[allow(deprecated)]
     /// let vec3 = SparseVec::from_data(b"world");
     ///
     /// // Identical data produces identical vectors
@@ -938,9 +945,10 @@ impl SparseVec {
     /// # Examples
     ///
     /// ```
-    /// use embeddenator::SparseVec;
+    /// use embeddenator::{SparseVec, ReversibleVSAConfig};
     ///
-    /// let vec = SparseVec::from_data(b"test");
+    /// let config = ReversibleVSAConfig::default();
+    /// let vec = SparseVec::encode_data(b"test", &config, None);
     /// let permuted = vec.permute(100);
     ///
     /// // Permuted vector should have different indices but same structure
@@ -971,9 +979,10 @@ impl SparseVec {
     /// # Examples
     ///
     /// ```
-    /// use embeddenator::SparseVec;
+    /// use embeddenator::{SparseVec, ReversibleVSAConfig};
     ///
-    /// let vec = SparseVec::from_data(b"test");
+    /// let config = ReversibleVSAConfig::default();
+    /// let vec = SparseVec::encode_data(b"test", &config, None);
     /// let permuted = vec.permute(100);
     /// let recovered = permuted.inverse_permute(100);
     ///

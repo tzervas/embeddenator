@@ -370,8 +370,8 @@ sudo systemctl status github-runner-manager
 ### Further Documentation
 
 For complete automation features, see:
-- [Runner Automation Guide](../../docs/RUNNER_AUTOMATION.md)
-- [Self-Hosted CI Project Spec](../../docs/SELF_HOSTED_CI_PROJECT_SPEC.md)
+- [Runner Automation Guide](../../docs/ci/RUNNER_AUTOMATION.md)
+- [Self-Hosted CI Project Spec](../../docs/ci/SELF_HOSTED_CI_PROJECT_SPEC.md)
 
 ### 2. Docker Daemon Configuration
 
@@ -855,8 +855,8 @@ After validation is complete:
 ## Additional Resources
 
 - [GitHub Actions Self-Hosted Runner Docs](https://docs.github.com/en/actions/hosting-your-own-runners)
-- [Runner Automation Guide](../../docs/RUNNER_AUTOMATION.md)
-- [Self-Hosted CI Project Spec](../../docs/SELF_HOSTED_CI_PROJECT_SPEC.md)
+- [Runner Automation Guide](../../docs/ci/RUNNER_AUTOMATION.md)
+- [Self-Hosted CI Project Spec](../../docs/ci/SELF_HOSTED_CI_PROJECT_SPEC.md)
 - [CI/CD Workflow Documentation](./README.md)
 - [Embeddenator Task Registry](../../TASK_REGISTRY.md)
 
@@ -864,4 +864,4 @@ After validation is complete:
 
 **Last Updated:** 2025-12-22  
 **Document Version:** 2.0  
-**Status:** Production Ready
+**Status:** Reference Guide (ARM64 enablement currently backlog / infrastructure-dependent)

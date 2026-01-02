@@ -24,12 +24,17 @@ use crate::vsa::{SparseVec, ReversibleVSAConfig, DIM};
 use crate::resonator::Resonator;
 use crate::correction::{CorrectionStore, CorrectionStats};
 use crate::retrieval::{RerankedResult, TernaryInvertedIndex};
+use crate::envelope::{BinaryWriteOptions, PayloadKind, unwrap_auto, wrap_or_legacy};
+use crate::metrics::metrics;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+
+#[cfg(feature = "metrics")]
+use std::time::Instant;
 use walkdir::WalkDir;
 
 /// Default chunk size for file encoding (4KB)
@@ -227,28 +232,32 @@ impl<V> LruCache<V> {
         None
     }
 
-    fn insert(&mut self, key: String, value: V) {
+    fn insert(&mut self, key: String, value: V) -> usize {
         if self.cap == 0 {
-            return;
+            return 0;
         }
 
         if self.map.contains_key(&key) {
             self.map.insert(key.clone(), value);
             self.touch(&key);
-            return;
+            return 0;
         }
 
         self.map.insert(key.clone(), value);
         self.order.push(key);
 
+        let mut evicted = 0usize;
         while self.map.len() > self.cap {
             if let Some(evict) = self.order.first().cloned() {
                 self.order.remove(0);
                 self.map.remove(&evict);
+                evicted += 1;
             } else {
                 break;
             }
         }
+
+        evicted
     }
 
     fn touch(&mut self, key: &str) {
@@ -296,7 +305,8 @@ impl SubEngramStore for DirectorySubEngramStore {
     fn load(&self, id: &str) -> Option<SubEngram> {
         let path = self.path_for_id(id);
         let data = fs::read(path).ok()?;
-        bincode::deserialize(&data).ok()
+        let decoded = unwrap_auto(PayloadKind::SubEngramBincode, &data).ok()?;
+        bincode::deserialize(&decoded).ok()
     }
 }
 
@@ -350,6 +360,15 @@ pub fn save_sub_engrams_dir<P: AsRef<Path>>(
     sub_engrams: &HashMap<String, SubEngram>,
     dir: P,
 ) -> io::Result<()> {
+    save_sub_engrams_dir_with_options(sub_engrams, dir, BinaryWriteOptions::default())
+}
+
+/// Save a set of sub-engrams to a directory (bincode per sub-engram), optionally compressed.
+pub fn save_sub_engrams_dir_with_options<P: AsRef<Path>>(
+    sub_engrams: &HashMap<String, SubEngram>,
+    dir: P,
+    opts: BinaryWriteOptions,
+) -> io::Result<()> {
     let dir = dir.as_ref();
     fs::create_dir_all(dir)?;
 
@@ -359,8 +378,9 @@ pub fn save_sub_engrams_dir<P: AsRef<Path>>(
     for id in ids {
         let sub = sub_engrams.get(id).expect("sub_engram id");
         let encoded = bincode::serialize(sub).map_err(io::Error::other)?;
+        let maybe_wrapped = wrap_or_legacy(PayloadKind::SubEngramBincode, opts, &encoded)?;
         let path = dir.join(format!("{}.subengram", escape_sub_engram_id(id)));
-        fs::write(path, encoded)?;
+        fs::write(path, maybe_wrapped)?;
     }
     Ok(())
 }
@@ -387,10 +407,15 @@ fn get_cached_sub_engram(
     id: &str,
 ) -> Option<SubEngram> {
     if let Some(v) = cache.get(id) {
+        metrics().inc_sub_cache_hit();
         return Some(v.clone());
     }
+    metrics().inc_sub_cache_miss();
     let loaded = store.load(id)?;
-    cache.insert(id.to_string(), loaded.clone());
+    let evicted = cache.insert(id.to_string(), loaded.clone());
+    for _ in 0..evicted {
+        metrics().inc_sub_cache_eviction();
+    }
     Some(loaded)
 }
 
@@ -420,6 +445,9 @@ pub fn query_hierarchical_codebook_with_store(
     if bounds.k == 0 || hierarchical.levels.is_empty() {
         return Vec::new();
     }
+
+    #[cfg(feature = "metrics")]
+    let start = Instant::now();
 
     let mut sub_cache: LruCache<SubEngram> = LruCache::new(bounds.max_open_engrams);
     let mut index_cache: LruCache<RemappedInvertedIndex> = LruCache::new(bounds.max_open_indices);
@@ -462,11 +490,16 @@ pub fn query_hierarchical_codebook_with_store(
         expansions += 1;
 
         let idx = if let Some(existing) = index_cache.get(&node.sub_engram_id) {
+            metrics().inc_index_cache_hit();
             existing
         } else {
+            metrics().inc_index_cache_miss();
             let built = RemappedInvertedIndex::build(&sub.chunk_ids, codebook);
-            index_cache.insert(node.sub_engram_id.clone(), built);
-            // Safe: we just inserted it.
+            let evicted = index_cache.insert(node.sub_engram_id.clone(), built);
+            for _ in 0..evicted {
+                metrics().inc_index_cache_eviction();
+            }
+            // SAFETY: we just inserted the key, so get() must succeed immediately after
             index_cache
                 .get(&node.sub_engram_id)
                 .expect("index cache insert")
@@ -530,6 +563,10 @@ pub fn query_hierarchical_codebook_with_store(
             .then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id))
     });
     out.truncate(bounds.k);
+
+    #[cfg(feature = "metrics")]
+    metrics().record_hier_query(start.elapsed());
+
     out
 }
 
@@ -872,15 +909,26 @@ impl EmbrFS {
 
     /// Save engram to file
     pub fn save_engram<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
+        self.save_engram_with_options(path, BinaryWriteOptions::default())
+    }
+
+    /// Save engram to file, optionally compressed.
+    pub fn save_engram_with_options<P: AsRef<Path>>(
+        &self,
+        path: P,
+        opts: BinaryWriteOptions,
+    ) -> io::Result<()> {
         let encoded = bincode::serialize(&self.engram).map_err(io::Error::other)?;
-        fs::write(path, encoded)?;
+        let maybe_wrapped = wrap_or_legacy(PayloadKind::EngramBincode, opts, &encoded)?;
+        fs::write(path, maybe_wrapped)?;
         Ok(())
     }
 
     /// Load engram from file
     pub fn load_engram<P: AsRef<Path>>(path: P) -> io::Result<Engram> {
         let data = fs::read(path)?;
-        bincode::deserialize(&data).map_err(io::Error::other)
+        let decoded = unwrap_auto(PayloadKind::EngramBincode, &data)?;
+        bincode::deserialize(&decoded).map_err(io::Error::other)
     }
 
     /// Save manifest to JSON file

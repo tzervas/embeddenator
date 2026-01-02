@@ -158,6 +158,6 @@ python3 runner_manager.py run
 
 - .github/workflows/ARM64_RUNNER_SETUP.md - Complete deployment guide
 - runner_automation/ - Python automation package
-- docs/RUNNER_AUTOMATION.md - Architecture documentation
-- docs/SELF_HOSTED_CI_PROJECT_SPEC.md - Project specification
+- [docs/ci/RUNNER_AUTOMATION.md](../ci/RUNNER_AUTOMATION.md) - Architecture documentation
+- [docs/ci/SELF_HOSTED_CI_PROJECT_SPEC.md](../ci/SELF_HOSTED_CI_PROJECT_SPEC.md) - Project specification
 - .github/workflows/ci-arm64.yml - ARM64 workflow configuration

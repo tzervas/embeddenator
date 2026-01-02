@@ -6,6 +6,9 @@ name: CI arm64 Build and Test
 # pending runner setup. Once self-hosted ARM64 runners are configured with the
 # required labels, this workflow can be enabled.
 #
+# NOTE (2026-01-02): ARM64 runner deployment/validation is currently infrastructure-
+# dependent and deprioritized. This workflow is kept as a ready-to-enable template.
+#
 # REQUIRED SETUP:
 # 1. Set up self-hosted GitHub Actions runner(s) on ARM64 hardware
 # 2. Configure runners with labels: ["self-hosted", "linux", "ARM64"]

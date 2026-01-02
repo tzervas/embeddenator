@@ -1,6 +1,6 @@
 # Embeddenator — Holographic Computing Substrate
 
-**Version 0.3.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+**Version 0.19.3** | Pre-1.0 Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
 
 **Author:** Tyler Zervas <tz-dev@vectorweight.com>  
 **License:** MIT  
@@ -17,8 +17,8 @@
 - **CLI + Docker**: Complete toolchain with multi-arch container support
 - **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
 - **Dual Versioning**: LTS stable releases + nightly bleeding-edge builds
-- **Production-Grade**: Comprehensive test suite with zero clippy warnings
-- **Multi-Architecture**: amd64 supported; arm64 supported via self-hosted runners (CI validation pending)
+- **Engineering-Focused**: Comprehensive test suite and strong invariants (pre-1.0; behavior and APIs may evolve)
+- **Multi-Architecture**: amd64 supported; arm64 runtime support exists, but ARM64 CI validation via self-hosted runners is backlog (infrastructure-dependent)
 - **Test Runner**: Intelligent validation with debug logging (v0.2.0)
 
 ## What's New in v0.3.0
@@ -103,6 +103,18 @@ cd embeddenator
 # Build with Cargo
 cargo build --release
 
+# Optional: enable compression codecs (required to write/read compressed engrams)
+# - compression-zstd: zstd support
+# - compression-lz4:  lz4 support
+# - compression:      enables both
+cargo build --release --features compression
+
+# Optional: enable observability
+# - logging: structured logs (configured via EMBEDDENATOR_LOG or RUST_LOG; default off)
+# - metrics: internal counters/timers (poison recovery, cache hit/miss/evict, query timing)
+# - observability: enables both
+cargo build --release --features observability
+
 # Or use the orchestrator
 python3 orchestrator.py --mode build --verbose
 ```
@@ -173,6 +185,10 @@ Required:
 
 Options:
   -e, --engram <FILE>     Output engram file [default: root.engram]
+  --engram-compression <none|zstd|lz4>
+                       Optional compression codec for the output engram [default: none]
+  --engram-compression-level <LEVEL>
+                       Optional compression level (codec-dependent; used for zstd)
   -m, --manifest <FILE>   Output manifest file [default: manifest.json]
   -v, --verbose           Enable verbose output with progress and statistics
   -h, --help             Print help information
@@ -187,6 +203,9 @@ Examples:
   # With verbose output
   embeddenator ingest -i ~/Documents -e docs.engram -v
 
+  # Compressed output (requires building with matching compression feature)
+  embeddenator ingest -i ./myproject -e project.engram --engram-compression zstd --engram-compression-level 3
+
   # Custom filenames
   embeddenator ingest --input ./data --engram backup.engram --manifest backup.json
 ```
@@ -198,6 +217,14 @@ Examples:
 - Encodes chunks using sparse ternary VSA
 - Creates holographic superposition in root vector
 - Saves engram (holographic data) and manifest (metadata)
+
+**Compression notes:**
+- Compressed engrams are opt-in via `--engram-compression`.
+- Compression/decompression is feature-gated at build time: enable `compression-zstd`, `compression-lz4`, or `compression`.
+
+**Hierarchical artifacts compression:**
+- `bundle-hier` can optionally compress the on-disk `.subengram` blobs via `--sub-engram-compression {none|zstd|lz4}`.
+- Reading store-backed hierarchical artifacts (`--sub-engrams-dir`) requires building with the matching compression feature if those blobs were compressed.
 
 ### `extract` - Reconstruct Files
 
@@ -565,14 +592,14 @@ Three separate workflows eliminate duplication and provide clear responsibilitie
 | Architecture | Status | Runner Type | Trigger | Notes |
 |--------------|--------|-------------|---------|-------|
 | **amd64 (x86_64)** | ✅ Production | GitHub-hosted (ubuntu-latest) | Every PR (required check) | Stable, 5-7min |
-| **arm64 (aarch64)** | 🚧 Ready | Self-hosted (pending deployment) | Manual only | Will enable on merge to main |
+| **arm64 (aarch64)** | ⏸️ Backlog | Self-hosted (not deployed) | Manual only | Enablement deprioritized until runners exist |
 
 **ARM64 Deployment Roadmap:**
 - ✅ **Phase 1**: Root cause analysis completed - GitHub doesn't provide standard ARM64 runners
 - ✅ **Phase 2**: Workflow configured for self-hosted runners with labels `["self-hosted", "linux", "ARM64"]`
-- 🚧 **Phase 3**: Deploy self-hosted ARM64 infrastructure (in progress)
-- ⏳ **Phase 4**: Manual testing and validation
-- ⏳ **Phase 5**: Enable automatic trigger on merge to main only
+- ⏸️ **Phase 3**: Deploy self-hosted ARM64 infrastructure (backlog / deprioritized)
+- ⏸️ **Phase 4**: Manual testing and validation (when runners are available)
+- ⏸️ **Phase 5**: Enable automatic trigger on merge to main only (post-validation)
 
 **Why Self-Hosted for ARM64?**
 - GitHub Actions doesn't provide standard hosted ARM64 runners
@@ -907,9 +934,15 @@ cargo run --release -- ingest -i ./input_ws -e root.engram -m manifest.json -v
 ## Performance Tips
 
 1. **Use release builds**: `cargo build --release` is 10-100x faster
-2. **Batch processing**: Ingest multiple directories separately for parallel processing
-3. **SSD storage**: Engram I/O benefits significantly from fast storage
-4. **Memory**: Ensure sufficient RAM for large codebooks (~100 bytes per chunk)
+2. **Enable SIMD acceleration**: For query-heavy workloads, build with `--features simd` and `RUSTFLAGS="-C target-cpu=native"`
+   ```bash
+   # Build with SIMD optimizations
+   RUSTFLAGS="-C target-cpu=native" cargo build --release --features simd
+   ```
+  See [docs/performance/SIMD_OPTIMIZATION.md](docs/performance/SIMD_OPTIMIZATION.md) for details on 2-4x query speedup
+3. **Batch processing**: Ingest multiple directories separately for parallel processing
+4. **SSD storage**: Engram I/O benefits significantly from fast storage
+5. **Memory**: Ensure sufficient RAM for large codebooks (~100 bytes per chunk)
 
 ## License
 

@@ -60,9 +60,14 @@
 //! embeddenator = { version = "0.2", features = ["fuse"] }
 //! ```
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+use crate::logging;
+use crate::metrics::metrics;
+use crate::embrfs::Engram;
+use crate::vsa::ReversibleVSAConfig;
 
 #[cfg(feature = "fuse")]
 use std::ffi::OsStr;
@@ -203,6 +208,94 @@ pub struct CachedFile {
     pub attr: FileAttr,
 }
 
+#[derive(Clone, Debug)]
+struct BackedFile {
+    path: String,
+    chunks: Vec<usize>,
+    size: usize,
+}
+
+#[derive(Clone, Debug)]
+enum FileStorage {
+    /// File bytes are already present in-memory (used by the builder/tests).
+    Preloaded(Vec<u8>),
+    /// File is backed by an engram and should be decoded on-demand.
+    Backed(BackedFile),
+}
+
+#[derive(Clone, Debug)]
+struct FileRecord {
+    storage: FileStorage,
+    attr: FileAttr,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct ChunkKey {
+    ino: Ino,
+    chunk_id: u64,
+}
+
+struct ChunkCache {
+    map: HashMap<ChunkKey, Vec<u8>>,
+    order: VecDeque<ChunkKey>,
+    total_bytes: usize,
+    max_entries: usize,
+    max_bytes: usize,
+}
+
+impl ChunkCache {
+    fn new(max_entries: usize, max_bytes: usize) -> Self {
+        Self {
+            map: HashMap::new(),
+            order: VecDeque::new(),
+            total_bytes: 0,
+            max_entries,
+            max_bytes,
+        }
+    }
+
+    fn get(&mut self, key: ChunkKey) -> Option<&[u8]> {
+        if self.map.contains_key(&key) {
+            // touch
+            if let Some(pos) = self.order.iter().position(|k| *k == key) {
+                self.order.remove(pos);
+            }
+            self.order.push_back(key);
+        }
+        self.map.get(&key).map(|v| v.as_slice())
+    }
+
+    fn insert(&mut self, key: ChunkKey, value: Vec<u8>) {
+        if self.max_entries == 0 || self.max_bytes == 0 {
+            return;
+        }
+
+        let value_len = value.len();
+        if value_len > self.max_bytes {
+            // Don't cache single entries bigger than the entire cache.
+            return;
+        }
+
+        if let Some(existing) = self.map.remove(&key) {
+            self.total_bytes = self.total_bytes.saturating_sub(existing.len());
+            if let Some(pos) = self.order.iter().position(|k| *k == key) {
+                self.order.remove(pos);
+            }
+        }
+
+        self.total_bytes += value_len;
+        self.map.insert(key, value);
+        self.order.push_back(key);
+
+        while self.map.len() > self.max_entries || self.total_bytes > self.max_bytes {
+            let Some(evict) = self.order.pop_front() else { break };
+            if let Some(v) = self.map.remove(&evict) {
+                self.total_bytes = self.total_bytes.saturating_sub(v.len());
+            }
+        }
+    }
+}
+
 /// The EngramFS FUSE filesystem implementation
 ///
 /// This provides a read-only view of decoded engram data as a standard
@@ -221,8 +314,20 @@ pub struct EngramFS {
     /// Directory contents (parent_ino -> entries)
     directories: Arc<RwLock<HashMap<Ino, Vec<DirEntry>>>>,
     
-    /// Cached file data (ino -> data)
-    file_cache: Arc<RwLock<HashMap<Ino, CachedFile>>>,
+    /// File records (ino -> backing/preloaded bytes + attrs)
+    files: Arc<RwLock<HashMap<Ino, FileRecord>>>,
+
+    /// Optional engram backing for on-demand decode.
+    engram: Option<Arc<Engram>>,
+
+    /// Decode config used for on-demand reads.
+    decode_config: Option<ReversibleVSAConfig>,
+
+    /// Chunk size used for decode.
+    chunk_size: usize,
+
+    /// Small LRU chunk cache to avoid repeated decode on hot reads.
+    chunk_cache: Arc<RwLock<ChunkCache>>,
     
     /// Next available inode number
     next_ino: Arc<RwLock<Ino>>,
@@ -249,15 +354,44 @@ impl EngramFS {
             inode_paths: Arc::new(RwLock::new(HashMap::new())),
             path_inodes: Arc::new(RwLock::new(HashMap::new())),
             directories: Arc::new(RwLock::new(HashMap::new())),
-            file_cache: Arc::new(RwLock::new(HashMap::new())),
+            files: Arc::new(RwLock::new(HashMap::new())),
             next_ino: Arc::new(RwLock::new(2)), // Start after root
             read_only,
             attr_ttl: Duration::from_secs(1),
             entry_ttl: Duration::from_secs(1),
+
+            engram: None,
+            decode_config: None,
+            chunk_size: 4096,
+            // Default: keep this small and bounded for production safety.
+            chunk_cache: Arc::new(RwLock::new(ChunkCache::new(16_384, 64 * 1024 * 1024))),
         };
 
         // Initialize root directory
         fs.init_root();
+        fs
+    }
+
+    /// Construct an EngramFS backed by an engram+manifest.
+    ///
+    /// This is the production mount path: we populate directory structure and
+    /// file metadata only, and decode chunk data on-demand during reads.
+    pub fn from_engram(
+        engram: Engram,
+        manifest: crate::embrfs::Manifest,
+        decode_config: ReversibleVSAConfig,
+        chunk_size: usize,
+        read_only: bool,
+    ) -> Self {
+        let mut fs = Self::new(read_only);
+        fs.engram = Some(Arc::new(engram));
+        fs.decode_config = Some(decode_config);
+        fs.chunk_size = chunk_size;
+
+        for file_entry in &manifest.files {
+            let _ = fs.add_backed_file(&file_entry.path, file_entry.chunks.clone(), file_entry.size);
+        }
+
         fs
     }
 
@@ -301,7 +435,12 @@ impl EngramFS {
         let path = normalize_path(path);
         
         // Check if already exists
-        if self.path_inodes.read().unwrap().contains_key(&path) {
+        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_path_inodes();
+            logging::warn("WARNING: path_inodes lock poisoned, recovering...");
+            poisoned.into_inner()
+        });
+        if path_inodes.contains_key(&path) {
             return Err("File already exists");
         }
 
@@ -323,15 +462,97 @@ impl EngramFS {
             ..Default::default()
         };
 
-        // Store file
-        self.inodes.write().unwrap().insert(ino, attr.clone());
-        self.inode_paths.write().unwrap().insert(ino, path.clone());
-        self.path_inodes.write().unwrap().insert(path.clone(), ino);
-        self.file_cache.write().unwrap().insert(ino, CachedFile { data, attr });
+        // Store file metadata
+        self.inodes.write()
+            .map_err(|_| "Inodes lock poisoned")?
+            .insert(ino, attr.clone());
+        self.inode_paths.write()
+            .map_err(|_| "Inode paths lock poisoned")?
+            .insert(ino, path.clone());
+        self.path_inodes.write()
+            .map_err(|_| "Path inodes lock poisoned")?
+            .insert(path.clone(), ino);
+        self.files.write()
+            .map_err(|_| "Files lock poisoned")?
+            .insert(
+                ino,
+                FileRecord {
+                    storage: FileStorage::Preloaded(data),
+                    attr,
+                },
+            );
 
         // Add to parent directory
         let filename = filename(&path).ok_or("Invalid filename")?;
         self.directories.write().unwrap()
+            .get_mut(&parent_ino)
+            .ok_or("Parent directory not found")?
+            .push(DirEntry {
+                ino,
+                name: filename.to_string(),
+                kind: FileKind::RegularFile,
+            });
+
+        Ok(ino)
+    }
+
+    /// Add a file whose bytes are backed by an engram and decoded on-demand.
+    pub fn add_backed_file(&self, path: &str, chunks: Vec<usize>, size: usize) -> Result<Ino, &'static str> {
+        let path = normalize_path(path);
+
+        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_path_inodes();
+            logging::warn("WARNING: path_inodes lock poisoned, recovering...");
+            poisoned.into_inner()
+        });
+        if path_inodes.contains_key(&path) {
+            return Err("File already exists");
+        }
+        drop(path_inodes);
+
+        let parent_path = parent_path(&path).ok_or("Invalid path")?;
+        let parent_ino = self.ensure_directory(&parent_path)?;
+
+        let ino = self.alloc_ino();
+        let size_u64 = size as u64;
+
+        let attr = FileAttr {
+            ino,
+            size: size_u64,
+            blocks: (size_u64 + 511) / 512,
+            kind: FileKind::RegularFile,
+            perm: 0o644,
+            nlink: 1,
+            ..Default::default()
+        };
+
+        self.inodes
+            .write()
+            .map_err(|_| "Inodes lock poisoned")?
+            .insert(ino, attr.clone());
+        self.inode_paths
+            .write()
+            .map_err(|_| "Inode paths lock poisoned")?
+            .insert(ino, path.clone());
+        self.path_inodes
+            .write()
+            .map_err(|_| "Path inodes lock poisoned")?
+            .insert(path.clone(), ino);
+        self.files
+            .write()
+            .map_err(|_| "Files lock poisoned")?
+            .insert(
+                ino,
+                FileRecord {
+                    storage: FileStorage::Backed(BackedFile { path: path.clone(), chunks, size }),
+                    attr,
+                },
+            );
+
+        let filename = filename(&path).ok_or("Invalid filename")?;
+        self.directories
+            .write()
+            .map_err(|_| "Directories lock poisoned")?
             .get_mut(&parent_ino)
             .ok_or("Parent directory not found")?
             .push(DirEntry {
@@ -353,7 +574,12 @@ impl EngramFS {
         }
 
         // Check if already exists
-        if let Some(&ino) = self.path_inodes.read().unwrap().get(&path) {
+        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_path_inodes();
+            logging::warn("WARNING: path_inodes lock poisoned in ensure_directory, recovering...");
+            poisoned.into_inner()
+        });
+        if let Some(&ino) = path_inodes.get(&path) {
             return Ok(ino);
         }
 
@@ -400,37 +626,144 @@ impl EngramFS {
     /// Lookup a path and return its inode
     pub fn lookup_path(&self, path: &str) -> Option<Ino> {
         let path = normalize_path(path);
-        self.path_inodes.read().unwrap().get(&path).copied()
+        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_path_inodes();
+            logging::warn("WARNING: path_inodes lock poisoned in lookup_path, recovering...");
+            poisoned.into_inner()
+        });
+        path_inodes.get(&path).copied()
     }
 
     /// Get file attributes by inode
     pub fn get_attr(&self, ino: Ino) -> Option<FileAttr> {
-        self.inodes.read().unwrap().get(&ino).cloned()
+        let inodes = self.inodes.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_inodes();
+            logging::warn("WARNING: inodes lock poisoned in get_attr, recovering...");
+            poisoned.into_inner()
+        });
+        inodes.get(&ino).cloned()
     }
 
     /// Read file data
     pub fn read_data(&self, ino: Ino, offset: u64, size: u32) -> Option<Vec<u8>> {
-        let cache = self.file_cache.read().unwrap();
-        let cached = cache.get(&ino)?;
-        
-        let start = offset as usize;
-        let end = std::cmp::min(start + size as usize, cached.data.len());
-        
-        if start >= cached.data.len() {
+        if size == 0 {
             return Some(Vec::new());
         }
-        
-        Some(cached.data[start..end].to_vec())
+
+        let offset_usize = match usize::try_from(offset) {
+            Ok(v) => v,
+            Err(_) => return Some(Vec::new()),
+        };
+
+        let files = self.files.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_file_cache();
+            logging::warn("WARNING: files lock poisoned in read_data, recovering...");
+            poisoned.into_inner()
+        });
+        let rec = files.get(&ino)?;
+
+        match &rec.storage {
+            FileStorage::Preloaded(data) => {
+                if offset_usize >= data.len() {
+                    return Some(Vec::new());
+                }
+                let end = std::cmp::min(offset_usize.saturating_add(size as usize), data.len());
+                Some(data[offset_usize..end].to_vec())
+            }
+            FileStorage::Backed(backed) => {
+                let max_len = backed.size;
+                if offset_usize >= max_len {
+                    return Some(Vec::new());
+                }
+                let end = std::cmp::min(offset_usize.saturating_add(size as usize), max_len);
+                Some(self.read_backed_range(ino, backed, offset_usize, end))
+            }
+        }
+    }
+
+    fn read_backed_range(&self, ino: Ino, backed: &BackedFile, start: usize, end: usize) -> Vec<u8> {
+        if start >= end {
+            return Vec::new();
+        }
+
+        let Some(engram) = self.engram.as_ref() else {
+            return Vec::new();
+        };
+        let Some(cfg) = self.decode_config.as_ref() else {
+            return Vec::new();
+        };
+
+        let chunk_size = self.chunk_size;
+        if chunk_size == 0 {
+            return Vec::new();
+        }
+
+        let start_chunk = start / chunk_size;
+        let end_chunk = (end - 1) / chunk_size;
+        if start_chunk >= backed.chunks.len() {
+            return Vec::new();
+        }
+
+        let mut out = Vec::with_capacity(end - start);
+        let last_chunk = end_chunk.min(backed.chunks.len().saturating_sub(1));
+
+        for chunk_index in start_chunk..=last_chunk {
+            let chunk_id = backed.chunks[chunk_index] as u64;
+            let key = ChunkKey { ino, chunk_id };
+
+            // Try cache first.
+            if let Ok(mut cache) = self.chunk_cache.write() {
+                if let Some(bytes) = cache.get(key) {
+                    let (a, b) = slice_chunk_bounds(start, end, chunk_index, chunk_size);
+                    if a < b && b <= bytes.len() {
+                        out.extend_from_slice(&bytes[a..b]);
+                        continue;
+                    }
+                }
+            }
+
+            // Decode chunk.
+            let Some(chunk_vec) = engram.codebook.get(&(chunk_id as usize)) else {
+                continue;
+            };
+            let decoded = chunk_vec.decode_data(cfg, Some(&backed.path), chunk_size);
+            let chunk_bytes = if let Some(corrected) = engram.corrections.apply(chunk_id, &decoded) {
+                corrected
+            } else {
+                decoded
+            };
+
+            // Cache decoded chunk (best-effort).
+            if let Ok(mut cache) = self.chunk_cache.write() {
+                cache.insert(key, chunk_bytes.clone());
+            }
+
+            let (a, b) = slice_chunk_bounds(start, end, chunk_index, chunk_size);
+            if a < b && b <= chunk_bytes.len() {
+                out.extend_from_slice(&chunk_bytes[a..b]);
+            }
+        }
+
+        out
     }
 
     /// Read directory contents
     pub fn read_dir(&self, ino: Ino) -> Option<Vec<DirEntry>> {
-        self.directories.read().unwrap().get(&ino).cloned()
+        let directories = self.directories.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_directories();
+            logging::warn("WARNING: directories lock poisoned in read_dir, recovering...");
+            poisoned.into_inner()
+        });
+        directories.get(&ino).cloned()
     }
 
     /// Lookup entry in directory by name
     pub fn lookup_entry(&self, parent_ino: Ino, name: &str) -> Option<Ino> {
-        let dirs = self.directories.read().unwrap();
+        let dirs = self.directories.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_directories();
+            logging::warn("WARNING: directories lock poisoned in lookup_entry, recovering...");
+            poisoned.into_inner()
+        });
         let entries = dirs.get(&parent_ino)?;
         entries.iter().find(|e| e.name == name).map(|e| e.ino)
     }
@@ -441,25 +774,40 @@ impl EngramFS {
             return Some(ROOT_INO); // Root's parent is itself
         }
         
-        let paths = self.inode_paths.read().unwrap();
+        let paths = self.inode_paths.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_inode_paths();
+            logging::warn("WARNING: inode_paths lock poisoned in get_parent, recovering...");
+            poisoned.into_inner()
+        });
         let path = paths.get(&ino)?;
         let parent = parent_path(path)?;
         
-        let path_inodes = self.path_inodes.read().unwrap();
+        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_path_inodes();
+            logging::warn("WARNING: path_inodes lock poisoned in get_parent, recovering...");
+            poisoned.into_inner()
+        });
         path_inodes.get(&parent).copied()
     }
 
     /// Get total number of files
     pub fn file_count(&self) -> usize {
-        self.file_cache.read().unwrap().len()
+        let files = self.files.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_file_cache();
+            logging::warn("WARNING: files lock poisoned in file_count, recovering...");
+            poisoned.into_inner()
+        });
+        files.len()
     }
 
     /// Get total size of all files
     pub fn total_size(&self) -> u64 {
-        self.file_cache.read().unwrap()
-            .values()
-            .map(|f| f.attr.size)
-            .sum()
+        let files = self.files.read().unwrap_or_else(|poisoned| {
+            metrics().inc_poison_file_cache();
+            logging::warn("WARNING: files lock poisoned in total_size, recovering...");
+            poisoned.into_inner()
+        });
+        files.values().map(|f| f.attr.size).sum()
     }
 
     /// Check if filesystem is read-only
@@ -508,6 +856,18 @@ impl fuser::Filesystem for EngramFS {
         name: &OsStr,
         reply: fuser::ReplyEntry,
     ) {
+        match self.get_attr(parent) {
+            Some(attr) if attr.kind == FileKind::Directory => {}
+            Some(_) => {
+                reply.error(libc::ENOTDIR);
+                return;
+            }
+            None => {
+                reply.error(libc::ENOENT);
+                return;
+            }
+        }
+
         let name = match name.to_str() {
             Some(n) => n,
             None => {
@@ -562,6 +922,23 @@ impl fuser::Filesystem for EngramFS {
         _lock_owner: Option<u64>,
         reply: fuser::ReplyData,
     ) {
+        if offset < 0 {
+            reply.error(libc::EINVAL);
+            return;
+        }
+
+        match self.get_attr(ino) {
+            Some(attr) if attr.kind == FileKind::Directory => {
+                reply.error(libc::EISDIR);
+                return;
+            }
+            Some(_) => {}
+            None => {
+                reply.error(libc::ENOENT);
+                return;
+            }
+        }
+
         match self.read_data(ino, offset as u64, size) {
             Some(data) => {
                 reply.data(&data);
@@ -580,10 +957,17 @@ impl fuser::Filesystem for EngramFS {
         flags: i32,
         reply: fuser::ReplyOpen,
     ) {
-        // Check if file exists
-        if self.get_attr(ino).is_none() {
-            reply.error(libc::ENOENT);
-            return;
+        // Check if file exists and is a file.
+        match self.get_attr(ino) {
+            Some(attr) if attr.kind == FileKind::Directory => {
+                reply.error(libc::EISDIR);
+                return;
+            }
+            Some(_) => {}
+            None => {
+                reply.error(libc::ENOENT);
+                return;
+            }
         }
 
         // Check for write flags on read-only filesystem
@@ -643,6 +1027,11 @@ impl fuser::Filesystem for EngramFS {
         offset: i64,
         mut reply: fuser::ReplyDirectory,
     ) {
+        if offset < 0 {
+            reply.error(libc::EINVAL);
+            return;
+        }
+
         let mut entries: Vec<(u64, fuser::FileType, String)> = Vec::new();
 
         // Add . and ..
@@ -658,7 +1047,11 @@ impl fuser::Filesystem for EngramFS {
         }
 
         // Skip entries before offset and emit remaining
-        for (i, (ino, kind, name)) in entries.into_iter().enumerate().skip(offset as usize) {
+        for (i, (ino, kind, name)) in entries
+            .into_iter()
+            .enumerate()
+            .skip(offset as usize)
+        {
             // Reply returns true if buffer is full
             if reply.add(ino, (i + 1) as i64, kind, &name) {
                 break;
@@ -738,6 +1131,14 @@ impl fuser::Filesystem for EngramFS {
             }
         }
     }
+}
+
+fn slice_chunk_bounds(start: usize, end: usize, chunk_index: usize, chunk_size: usize) -> (usize, usize) {
+    let chunk_start = chunk_index * chunk_size;
+    let chunk_end = chunk_start + chunk_size;
+    let a = start.saturating_sub(chunk_start);
+    let b = end.saturating_sub(chunk_start).min(chunk_end - chunk_start);
+    (a, b)
 }
 
 // =============================================================================

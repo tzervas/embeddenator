@@ -276,7 +276,7 @@ For parallel bundling/scoring:
 
 2) Extract leaf crates first
 - Move `src/ternary.rs` → `crates/embeddenator-ternary/src/lib.rs`.
-- Move `src/vsa.rs` → `crates/embeddenator-vsa/src/lib.rs`.
+- Move `src/vsa/vsa.rs` → `crates/embeddenator-vsa/src/lib.rs`.
 - Add minimal `Cargo.toml`s with only needed deps.
 
 3) Re-export through the facade

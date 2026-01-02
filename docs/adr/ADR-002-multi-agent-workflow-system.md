@@ -115,5 +115,5 @@ Defined specialized agent roles:
 
 - TASK_REGISTRY.md - Complete task breakdown
 - .github/multi-agent-rust.agent.md - Agent configuration
-- docs/SELF_HOSTED_CI_PROJECT_SPEC.md - Project architecture
+- [docs/ci/SELF_HOSTED_CI_PROJECT_SPEC.md](../ci/SELF_HOSTED_CI_PROJECT_SPEC.md) - Project architecture
 - PR #12 - Example of multi-agent workflow in action

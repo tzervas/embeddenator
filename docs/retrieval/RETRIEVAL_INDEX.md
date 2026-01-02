@@ -10,7 +10,7 @@ To scale, we separate retrieval into:
 2. **Exact reranking** (cosine / dot on a small candidate set)
 
 ## Current implementation
-- Module: `src/retrieval.rs`
+- Module: `src/retrieval/retrieval.rs`
 - Type: `TernaryInvertedIndex`
 
 ### Data structure
@@ -27,9 +27,12 @@ For a query vector $q$:
 This yields candidate generation cost proportional to postings touched, not total corpus size.
 
 ## Next steps (planned)
-- Rerank stage:
-  - Use exact cosine similarity on candidates (`SparseVec::cosine`) after candidate generation.
-- Add optional signatures (ternary LSH / multi-probe) for further speedups.
+- ✅ Rerank stage:
+  - Exact cosine similarity on candidates (`SparseVec::cosine`) after candidate generation.
+- ✅ Optional signatures (ternary LSH / multi-probe) for further speedups.
+  - Module: `src/retrieval/signature.rs`
+  - Type: `TernarySignatureIndex`
+  - Candidate generation: signature buckets + optional radius-1 multi-probe
 - Integrate with EmbrFS:
   - Index `Engram.codebook` and/or hierarchical sub-engrams.
 
