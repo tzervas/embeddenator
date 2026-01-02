@@ -63,26 +63,6 @@
 
 ### Version Milestones
 
-<<<<<<< Updated upstream
-#### v0.4.0 (Target: Q1 2026)
-- ARM64 CI fully operational
-- Performance benchmarks validated
-- Incremental update support
-- SIMD optimizations
-
-#### v0.5.0 (Target: Q2 2026)
-- Production stability validated
-- Comprehensive property-based test coverage
-- GPU acceleration prototype
-- Compression options
-
-#### v1.0.0 (Target: Q2-Q3 2026)
-- All P0 and P1 tasks completed
-- Full documentation and examples
-- Production deployment validation
-- API stability guarantee
-
-=======
 #### v0.19.3 (Released: January 2, 2026) ✅
 - Stable pre-1.0 milestone: core feature set, extensive QA, and deterministic artifacts
 - Incremental update support (TASK-007)
@@ -90,17 +70,23 @@
 - Performance benchmarks validated (TASK-006)
 - Expanded property-based testing (TASK-010)
 - Production stability audit + error recovery suite
+- Optional compression envelope (EDN1 format, zstd/lz4 feature-gated)
+- Feature-gated observability (logging + metrics)
+- FUSE production hardening (on-demand decode, poison recovery)
+- Retrieval index with rerank stage
+- Optional ternary signature index
 
 #### v0.20.0 (Planned: Q1 2026)
 - GPU acceleration research (infrastructure-dependent)
 - Additional performance optimizations
+- ARM64 CI validation (pending self-hosted runner availability)
 
-#### v0.21.0 (Planned: Q2 2026)
-- Optional compression (zstd/lz4) (TASK-008)
-- FUSE mount production hardening
-- Enhanced monitoring and observability
+#### v1.0.0 (Target: Q2-Q3 2026)
+- All P0 and P1 tasks completed
+- Full documentation and examples
+- Production deployment validation
+- API stability guarantee
 
->>>>>>> Stashed changes
 ### Feature Comparison
 
 | Feature | v0.1.0 | v0.2.0 | v0.3.0 | v0.19.3 |
