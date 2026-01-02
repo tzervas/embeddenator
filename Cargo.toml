@@ -28,6 +28,14 @@ harness = false
 name = "retrieval"
 harness = false
 
+[[bench]]
+name = "hierarchical_scale"
+harness = false
+
+[[bench]]
+name = "query_hierarchical"
+harness = false
+
 [[bin]]
 name = "embeddenator"
 path = "src/main.rs"
