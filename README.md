@@ -1,6 +1,9 @@
 # Embeddenator — Holographic Computing Substrate
 
-**Version 0.2.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+**Version 0.3.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+
+**Author:** Tyler Zervas <tz-dev@vectorweight.com>  
+**License:** MIT  
 
 [![CI](https://github.com/tzervas/embeddenator/workflows/CI/badge.svg)](https://github.com/tzervas/embeddenator/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -14,14 +17,23 @@
 - **CLI + Docker**: Complete toolchain with multi-arch container support
 - **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
 - **Dual Versioning**: LTS stable releases + nightly bleeding-edge builds
-- **Production-Grade**: 33 comprehensive tests with zero clippy warnings
-- **Multi-Architecture**: Native amd64 support (arm64 via self-hosted runners - coming soon)
+- **Production-Grade**: Comprehensive test suite with zero clippy warnings
+- **Multi-Architecture**: amd64 supported; arm64 supported via self-hosted runners (CI validation pending)
 - **Test Runner**: Intelligent validation with debug logging (v0.2.0)
+
+## What's New in v0.3.0
+
+- 🎯 **Deterministic hierarchical artifacts** - Stable manifest/sub-engram generation with sorted iteration
+- 📊 **Optional node sharding** - `--max-chunks-per-node` cap for bounded per-node indexing cost
+- 📂 **Multi-input ingest** - Ingest files and/or multiple directories with automatic namespacing
+- ⚡ **Query performance** - Reusable codebook index across shift-sweep + increased candidate pool
+- 🧪 **Expanded test coverage** - New determinism and E2E hierarchical artifact tests
+- 📚 **Updated documentation** - CLI reference, hierarchical format, and selective unfolding guides
 
 ## What's New in v0.2.0
 
 - ✨ **6 comprehensive E2E regression tests** including critical engram modification test
-- 🧪 **33 total tests** (6 e2e + 7 integration + 11 unit + 9 doc tests)
+- 🧪 **Comprehensive test suite** (unit + integration + e2e + doc tests)
 - 🔍 **Intelligent test runner** with accurate counting and debug mode
 - 📦 **Dual versioning strategy** for OS builds (LTS + nightly)
 - 🎯 **Zero clippy warnings** (29 fixes applied)
@@ -39,13 +51,45 @@ Embeddenator uses sparse ternary vectors to represent data holographically:
 - **Bind (⊙)**: Non-commutative composition - `A ⊙ A ≈ I` (self-inverse)
 - **Cosine Similarity**: Algebraic cleanup - correct match >0.75, noise <0.3
 
+The ternary representation {-1, 0, +1} is **hardware-optimized** for 64-bit CPUs:
+- 39-40 trits encode optimally in a 64-bit register (39 for signed, 40 for unsigned)
+- No SIMD extensions required (AVX/AVX2 optional for acceleration)
+- Based on balanced ternary mathematics for efficient computation
+
+**Scalability through Adaptive Sparsity**:
+- Current: 10,000 dimensions @ ~1% sparsity (200 non-zero elements)
+- Balanced: 50,000 dimensions @ 0.4% sparsity (200 non-zero, 100× better collision resistance)
+- High-precision: 100,000 dimensions @ 0.2% sparsity (200 non-zero, 10,000× better collision resistance)
+- **Key insight**: Constant non-zero elements → constant computational cost regardless of dimensionality
+- See [ADR-006](docs/adr/ADR-006-dimensionality-sparsity-scaling.md) for detailed analysis
+
 ### Engrams
 
 An **engram** is a holographic encoding of an entire filesystem or dataset:
 
 - Single root vector containing superposition of all chunks
-- Codebook mapping chunk IDs to original data
+- Secure codebook with VSA-lens encoded data (not plaintext)
 - Manifest tracking file structure and metadata
+
+**Security**: The codebook does NOT store plaintext data. Chunks are encoded using a VSA-lens reversible encoding mechanism that is:
+- Mathematically trivial to decode WITH the master key
+- Computationally infeasible without the master key  
+- Quantum resistant (no algebraic structure for quantum algorithms)
+- Enables selective decryption (decrypt only needed chunks)
+
+See [ADR-007](docs/adr/ADR-007-codebook-security.md) for details on the VSA-as-a-lens security model.
+
+### Hologram Package Isolation (Advanced)
+
+**Package factoralization** enables selective manipulation of packages within holographic containers:
+
+- **Isolate packages**: Extract individual packages without full reconstruction
+- **Complementary bundling**: Bundle everything *except* target package(s)
+- **Compact encoding**: Balanced ternary representation (~39× compression)
+- **Selective updates**: Update packages without touching the rest of the system
+- **Differential distribution**: Ship only updated packages as compact holograms
+
+See [ADR-005](docs/adr/ADR-005-hologram-package-isolation.md) for technical details on hologram factoralization, balanced ternary encoding, and 64-bit register optimization.
 
 ## Quick Start
 
@@ -99,7 +143,7 @@ python3 orchestrator.py --mode clean
 
 ## CLI Reference
 
-Embeddenator provides three main commands for working with holographic engrams:
+Embeddenator provides the following commands for working with holographic engrams:
 
 ### `embeddenator --help`
 
@@ -113,17 +157,19 @@ embeddenator --help
 embeddenator ingest --help
 embeddenator extract --help
 embeddenator query --help
+embeddenator query-text --help
+embeddenator bundle-hier --help
 ```
 
 ### `ingest` - Create Holographic Engram
 
-Recursively process files and encode them into a holographic engram.
+Process one or more files and/or directories and encode them into a holographic engram.
 
 ```bash
-embeddenator ingest [OPTIONS] --input <DIR>
+embeddenator ingest [OPTIONS] --input <PATH>...
 
 Required:
-  -i, --input <DIR>       Input directory to ingest (recursively processes all files)
+  -i, --input <PATH>...   Input file(s) and/or directory(ies) to ingest
 
 Options:
   -e, --engram <FILE>     Output engram file [default: root.engram]
@@ -135,6 +181,9 @@ Examples:
   # Basic ingestion
   embeddenator ingest -i ./myproject -e project.engram -m project.json
 
+  # Mix files and directories (repeat -i/--input)
+  embeddenator ingest -i ./src -i ./README.md -e project.engram -m project.json
+
   # With verbose output
   embeddenator ingest -i ~/Documents -e docs.engram -v
 
@@ -143,7 +192,8 @@ Examples:
 ```
 
 **What it does:**
-- Recursively scans the input directory
+- Recursively scans any input directories
+- Ingests any input files directly
 - Chunks files (4KB default)
 - Encodes chunks using sparse ternary VSA
 - Creates holographic superposition in root vector
@@ -195,6 +245,9 @@ Required:
 
 Options:
   -e, --engram <FILE>     Engram file to query [default: root.engram]
+  --hierarchical-manifest <FILE>  Optional hierarchical manifest (selective unfolding)
+  --sub-engrams-dir <DIR>         Directory of `.subengram` files (used with --hierarchical-manifest)
+  --k <K>              Top-k results to print for codebook/hierarchical search [default: 10]
   -v, --verbose           Enable verbose output with similarity details
   -h, --help             Print help information
 
@@ -214,10 +267,40 @@ Examples:
 - Computes cosine similarity with engram
 - Returns similarity score
 
+If `--hierarchical-manifest` and `--sub-engrams-dir` are provided, it also runs a store-backed hierarchical query and prints the top hierarchical matches.
+
 **Similarity interpretation:**
 - **>0.75**: Strong match, likely contains similar content
 - **0.3-0.75**: Moderate similarity, some shared patterns  
 - **<0.3**: Low similarity, likely unrelated content
+
+### `query-text` - Similarity Search (Text)
+
+Encode a literal text string as a query vector and run the same retrieval path as `query`.
+
+```bash
+embeddenator query-text -e root.engram --text "search phrase" --k 10
+
+# With hierarchical selective unfolding:
+embeddenator query-text -e root.engram --text "search phrase" \
+  --hierarchical-manifest hier.json --sub-engrams-dir ./sub_engrams --k 10
+```
+
+### `bundle-hier` - Build Hierarchical Retrieval Artifacts
+
+Build a hierarchical manifest and a directory of sub-engrams from an existing flat `root.engram` + `manifest.json`. This enables store-backed selective unfolding queries.
+
+```bash
+embeddenator bundle-hier -e root.engram -m manifest.json \
+  --out-hierarchical-manifest hier.json \
+  --out-sub-engrams-dir ./sub_engrams
+
+# Optional: deterministically shard large nodes (bounds per-node indexing cost)
+embeddenator bundle-hier -e root.engram -m manifest.json \
+  --max-chunks-per-node 2000 \
+  --out-hierarchical-manifest hier.json \
+  --out-sub-engrams-dir ./sub_engrams
+```
 
 ## Docker Usage
 
@@ -326,6 +409,7 @@ Typical performance characteristics:
    - `pos`: Indices with +1 value
    - `neg`: Indices with -1 value
    - Efficient operations: bundle, bind, cosine similarity
+   - Hardware-optimized: 39-40 trits per 64-bit register
 
 2. **EmbrFS**: Holographic filesystem layer
    - Chunked encoding (4KB default)
@@ -336,6 +420,46 @@ Typical performance characteristics:
    - Ingest: directory → engram
    - Extract: engram → directory
    - Query: similarity search
+
+### Architecture Decision Records (ADRs)
+
+Comprehensive architectural documentation is available in `docs/adr/`:
+
+- **[ADR-001](docs/adr/ADR-001-sparse-ternary-vsa.md)**: Sparse Ternary VSA
+  - Core VSA design and sparse ternary vectors
+  - Balanced ternary mathematics and hardware optimization
+  - 64-bit register encoding (39-40 trits per register)
+  
+- **[ADR-002](docs/adr/ADR-002-multi-agent-workflow-system.md)**: Multi-Agent Workflow System
+  
+- **[ADR-003](docs/adr/ADR-003-self-hosted-runner-architecture.md)**: Self-Hosted Runner Architecture
+  
+- **[ADR-004](docs/adr/ADR-004-holographic-os-container-design.md)**: Holographic OS Container Design
+  - Configuration-driven builder for Debian/Ubuntu
+  - Dual versioning strategy (LTS + nightly)
+  - Package isolation capabilities
+  
+- **[ADR-005](docs/adr/ADR-005-hologram-package-isolation.md)**: Hologram-Based Package Isolation
+  - Factoralization of holographic containers
+  - Balanced ternary encoding for compact representation
+  - Package-level granular updates
+  - Hardware optimization strategy for 64-bit CPUs
+
+- **[ADR-006](docs/adr/ADR-006-dimensionality-sparsity-scaling.md)**: Dimensionality and Sparsity Scaling
+  - Scaling holographic space to TB-scale datasets
+  - Adaptive sparsity strategy (maintain constant computational cost)
+  - Performance analysis and collision probability projections
+  - Impact on 100% bit-perfect guarantee
+  - Deep operation resilience for factoralization
+
+- **[ADR-007](docs/adr/ADR-007-codebook-security.md)**: Codebook Security and Reversible Encoding
+  - VSA-as-a-lens cryptographic primitive
+  - Quantum-resistant encoding mechanism
+  - Mathematically trivial with key, impossible without
+  - Bulk encryption with selective decryption
+  - Integration with holographic indexing
+
+See `docs/adr/README.md` for the complete ADR index.
 
 ### File Format
 
@@ -375,14 +499,23 @@ The documentation includes:
 ### Running Tests
 
 ```bash
-# All tests (33 total: 24 regular + 9 doc tests)
-cargo test
+# Recommended: everything Cargo considers testable (lib/bin/tests/examples/benches)
+cargo test --workspace --all-targets
 
-# Just unit/integration/e2e tests
-cargo test --lib --tests
-
-# Just documentation tests
+# Doc tests only
 cargo test --doc
+
+# Optimized build tests (useful before benchmarking)
+cargo test --release --workspace --all-targets
+
+# Feature-gated correctness/perf gates
+cargo test --workspace --all-targets --features "bt-phase-2 proptest"
+
+# Long-running/expensive tests are explicitly opt-in:
+# - QA memory scaling (requires env var + ignored flag)
+EMBEDDENATOR_RUN_QA_MEMORY=1 cargo test --features qa --test memory_scaled -- --ignored --nocapture
+# - Multi-GB soak test (requires env var + ignored flag)
+EMBEDDENATOR_RUN_SOAK=1 cargo test --release --features soak-memory --test soak_memory -- --ignored --nocapture
 
 # Integration tests via orchestrator
 python3 orchestrator.py --mode test --verbose
@@ -390,6 +523,13 @@ python3 orchestrator.py --mode test --verbose
 # Full test suite
 python3 orchestrator.py --mode full --verbose
 ```
+
+Notes:
+- Seeing many tests marked as "ignored" during `cargo bench` is expected: Cargo runs the unit test
+  harness in libtest's `--bench` mode, which skips normal `#[test]` functions (it prints `i` for each).
+  Use `cargo test` (commands above) to actually execute tests.
+- `cargo test --workspace --all-targets` will also compile/run Criterion benches in a fast "smoke" mode
+  (they print `Testing ... Success`). This is intended to catch broken benches early.
 
 ### CI/CD and Build Monitoring
 
@@ -442,6 +582,123 @@ Three separate workflows eliminate duplication and provide clear responsibilitie
 
 See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 setup guide.
 
+### Self-Hosted Runner Automation
+
+Embeddenator includes a comprehensive Python-based automation system for managing GitHub Actions self-hosted runners with complete lifecycle management and **multi-architecture support**:
+
+**Features:**
+- ✨ Automated registration with short-lived tokens
+- 🔄 Complete lifecycle management (register → run → deregister)
+- ⏱️ Configurable auto-deregistration after idle timeout
+- 🎯 Manual mode for persistent runners
+- 🚀 Multi-runner deployment support
+- 🏗️ **Multi-architecture support (x64, ARM64, RISC-V)**
+- 🔧 **QEMU emulation for cross-architecture runners**
+- 📊 Health monitoring and status reporting
+- 🧹 Automatic cleanup of Docker resources
+- ⚙️ Flexible configuration via .env file or CLI arguments
+
+**Supported Architectures:**
+- **x64 (AMD64)** - Native x86_64 runners
+- **ARM64 (aarch64)** - ARM64 runners (native or emulated via QEMU)
+- **RISC-V (riscv64)** - RISC-V runners (native or emulated via QEMU)
+
+**Quick Start:**
+
+```bash
+# 1. Copy and configure environment file
+cp .env.example .env
+# Edit .env and set GITHUB_REPOSITORY and GITHUB_TOKEN
+
+# 2. Run in auto mode (registers, starts, monitors, auto-deregisters when idle)
+python3 runner_manager.py run
+
+# 3. Or use manual mode (keeps running until stopped)
+RUNNER_MODE=manual python3 runner_manager.py run
+```
+
+**Multi-Architecture Examples:**
+
+```bash
+# Deploy ARM64 runners on x86_64 hardware (with emulation, auto-detect runtime)
+RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Deploy runners for all architectures
+RUNNER_TARGET_ARCHITECTURES=x64,arm64,riscv64 RUNNER_COUNT=6 python3 runner_manager.py run
+
+# Deploy with automatic QEMU installation (requires sudo)
+RUNNER_EMULATION_AUTO_INSTALL=true RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Use specific emulation method (docker, podman, or qemu)
+RUNNER_EMULATION_METHOD=podman RUNNER_TARGET_ARCHITECTURES=arm64 python3 runner_manager.py run
+
+# Use Docker for emulation
+RUNNER_EMULATION_METHOD=docker RUNNER_TARGET_ARCHITECTURES=arm64,riscv64 python3 runner_manager.py run
+```
+
+**Individual Commands:**
+
+```bash
+# Register runner(s)
+python3 runner_manager.py register
+
+# Start runner service(s)
+python3 runner_manager.py start
+
+# Monitor and manage lifecycle
+python3 runner_manager.py monitor
+
+# Check status
+python3 runner_manager.py status
+
+# Stop and deregister
+python3 runner_manager.py stop
+```
+
+**Advanced Usage:**
+
+```bash
+# Deploy multiple runners
+python3 runner_manager.py run --runner-count 4
+
+# Custom labels
+python3 runner_manager.py register --labels self-hosted,linux,ARM64,large
+
+# Auto-deregister after 10 minutes of inactivity
+RUNNER_IDLE_TIMEOUT=600 python3 runner_manager.py run
+```
+
+**Configuration Options:**
+
+Key environment variables (see `.env.example` for full list):
+- `GITHUB_REPOSITORY` - Repository to register runners for (required)
+- `GITHUB_TOKEN` - Personal access token with repo scope (required)
+- `RUNNER_MODE` - Deployment mode: `auto` (default) or `manual`
+- `RUNNER_IDLE_TIMEOUT` - Auto-deregister timeout in seconds (default: 300)
+- `RUNNER_COUNT` - Number of runners to deploy (default: 1)
+- `RUNNER_LABELS` - Comma-separated runner labels
+- `RUNNER_EPHEMERAL` - Enable ephemeral runners (deregister after one job)
+- `RUNNER_TARGET_ARCHITECTURES` - Target architectures: `x64`, `arm64`, `riscv64` (comma-separated)
+- `RUNNER_ENABLE_EMULATION` - Enable QEMU emulation for cross-architecture (default: true)
+- `RUNNER_EMULATION_METHOD` - Emulation method: `auto`, `qemu`, `docker`, `podman` (default: auto)
+- `RUNNER_EMULATION_AUTO_INSTALL` - Auto-install QEMU if missing (default: false, requires sudo)
+
+See `.env.example` for complete configuration documentation.
+
+**Deployment Modes:**
+
+1. **Auto Mode** (default): Runners automatically deregister after being idle for a specified timeout
+   - Perfect for cost optimization
+   - Ideal for CI/CD pipelines with sporadic builds
+   - Runners terminate when queue is empty
+
+2. **Manual Mode**: Runners keep running until manually stopped
+   - Best for development environments
+   - Useful for persistent infrastructure
+   - Explicit control over runner lifecycle
+
+See `.github/workflows/README.md` for complete CI/CD documentation and ARM64 setup guide.
+
 ### Project Structure
 
 ```
@@ -456,6 +713,18 @@ embeddenator/
 ├── Dockerfile.tool             # Static binary packaging
 ├── Dockerfile.holographic      # Holographic OS container
 ├── orchestrator.py             # Unified build/test/deploy
+├── runner_manager.py           # Self-hosted runner automation entry point (NEW)
+├── runner_automation/          # Runner automation package (NEW)
+│   ├── __init__.py            # Package initialization (v1.1.0)
+│   ├── config.py              # Configuration management
+│   ├── github_api.py          # GitHub API client
+│   ├── installer.py           # Runner installation
+│   ├── runner.py              # Individual runner lifecycle
+│   ├── manager.py             # Multi-runner orchestration
+│   ├── emulation.py           # QEMU emulation for cross-arch (NEW)
+│   ├── cli.py                 # Command-line interface
+│   └── README.md              # Package documentation
+├── .env.example                # Runner configuration template (NEW)
 ├── ci_build_monitor.sh         # CI hang detection and monitoring
 ├── generate_docs.sh            # Documentation generation
 ├── .github/
@@ -648,9 +917,21 @@ MIT License - see LICENSE file for details
 
 ## References
 
+### Vector Symbolic Architectures (VSA)
 - Vector Symbolic Architectures: [Kanerva, P. (2009)](https://redwood.berkeley.edu/wp-content/uploads/2021/08/KanervaHyperdimensionalComputing09-JCSS.pdf)
 - Sparse Distributed Representations
 - Holographic Reduced Representations (HRR)
+
+### Ternary Computing and Hardware Optimization
+- [Balanced Ternary](https://en.wikipedia.org/wiki/Balanced_ternary) - Wikipedia overview
+- [Ternary Computing](https://homepage.divms.uiowa.edu/~jones/ternary/) - Historical and mathematical foundations
+- Three-Valued Logic and Quantum Computing
+- Optimal encoding: 39-40 trits in 64-bit registers (39 for signed, 40 for unsigned)
+
+### Architecture Documentation
+- [ADR-001: Sparse Ternary VSA](docs/adr/ADR-001-sparse-ternary-vsa.md) - Core design and hardware optimization
+- [ADR-005: Hologram Package Isolation](docs/adr/ADR-005-hologram-package-isolation.md) - Balanced ternary implementation
+- [Complete ADR Index](docs/adr/README.md) - All architecture decision records
 
 ## Support
 
