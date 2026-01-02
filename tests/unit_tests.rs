@@ -643,6 +643,7 @@ fn test_embrfs_resonator_integration() {
         is_text: true,
         size: test_data.len(),
         chunks: vec![0],
+        deleted: false,
     };
     embrfs.manifest.files.push(file_entry);
     embrfs.manifest.total_chunks = 1;
@@ -676,6 +677,7 @@ fn test_embrfs_without_resonator_fallback() {
         is_text: true,
         size: test_data.len(),
         chunks: vec![0],
+        deleted: false,
     };
     embrfs.manifest.files.push(file_entry);
     embrfs.manifest.total_chunks = 1;
@@ -715,6 +717,7 @@ fn test_hierarchical_bundling() {
             is_text: true,
             size: content.len(),
             chunks: vec![fs.manifest.total_chunks],
+            deleted: false,
         };
         fs.manifest.files.push(file_entry);
         // Create a SparseVec from the content for the codebook
@@ -766,6 +769,7 @@ fn test_hierarchical_extraction() {
             is_text: true,
             size: content.len(),
             chunks: vec![fs.manifest.total_chunks],
+            deleted: false,
         };
         fs.manifest.files.push(file_entry);
         // Create a SparseVec from the content for the codebook

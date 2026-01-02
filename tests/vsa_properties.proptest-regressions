@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 28769605540828ac31e9a5aa58810d29cf0440770616ce2bb5318d0e607b2806 # shrinks to data = SparseVec { pos: [36, 37, 8432], neg: [] }, key = SparseVec { pos: [8432], neg: [] }
+cc 8edbb26cd2d506162e09d26963025386b87aae1951b46284ce98e3c64c299c5f # shrinks to data = SparseVec { pos: [3332], neg: [] }, key1 = SparseVec { pos: [3332], neg: [] }, key2 = SparseVec { pos: [0, 3332], neg: [] }

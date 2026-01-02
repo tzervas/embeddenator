@@ -320,6 +320,7 @@ fn test_manifest_with_invalid_paths() {
         is_text: true,
         size: 100,
         chunks: vec![999],
+        deleted: false,
     });
 
     let modified_path = temp_dir.path().join("modified.manifest.json");

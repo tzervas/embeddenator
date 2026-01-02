@@ -36,6 +36,10 @@ harness = false
 name = "query_hierarchical"
 harness = false
 
+[[bench]]
+name = "simd_cosine"
+harness = false
+
 [[bin]]
 name = "embeddenator"
 path = "src/main.rs"
@@ -62,6 +66,7 @@ default = []
 fuse = ["fuser"]
 qa = []
 soak-memory = []
+simd = []
 
 # Heavy invariant tests / aggressive randomized checks for ternary refactors.
 ternary-refactor = []
