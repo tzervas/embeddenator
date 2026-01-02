@@ -1,7 +1,16 @@
+#[cfg(any(not(feature = "compression-zstd"), not(feature = "compression-lz4")))]
 use embeddenator::envelope::unwrap_auto;
+
+#[cfg(any(not(feature = "compression-zstd"), not(feature = "compression-lz4")))]
 use embeddenator::PayloadKind;
 
-fn make_fake_envelope(kind: PayloadKind, codec: u8, uncompressed_len: u64, payload: &[u8]) -> Vec<u8> {
+#[cfg(any(not(feature = "compression-zstd"), not(feature = "compression-lz4")))]
+fn make_fake_envelope(
+    kind: PayloadKind,
+    codec: u8,
+    uncompressed_len: u64,
+    payload: &[u8],
+) -> Vec<u8> {
     let mut out = Vec::with_capacity(16 + payload.len());
     out.extend_from_slice(b"EDN1");
     out.push(kind as u8);

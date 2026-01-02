@@ -3,11 +3,11 @@
 //! Verifies that SIMD implementations produce identical results to scalar
 //! implementation and maintains all expected mathematical properties.
 
-use embeddenator::simd_cosine::{cosine_scalar, cosine_simd};
+use embeddenator::simd_cosine::cosine_scalar;
 use embeddenator::{ReversibleVSAConfig, SparseVec};
 
 #[cfg(feature = "simd")]
-use embeddenator::simd_cosine::{cosine_simd, cosine_scalar};
+use embeddenator::simd_cosine::cosine_simd;
 
 #[test]
 fn test_cosine_scalar_basic() {
@@ -42,8 +42,8 @@ fn test_cosine_properties() {
     let c = SparseVec::encode_data(b"gamma", &cfg, None);
 
     // Symmetry: cosine(a, b) == cosine(b, a)
-    let sim_ab = a.cosine_scalar(&b);
-    let sim_ba = b.cosine_scalar(&a);
+    let sim_ab = cosine_scalar(&a, &b);
+    let sim_ba = cosine_scalar(&b, &a);
     assert!(
         (sim_ab - sim_ba).abs() < 1e-10,
         "Cosine should be symmetric: {} vs {}",
@@ -52,7 +52,7 @@ fn test_cosine_properties() {
     );
 
     // Self-similarity: cosine(a, a) should be 1.0
-    let sim_aa = a.cosine_scalar(&a);
+    let sim_aa = cosine_scalar(&a, &a);
     assert!(
         (sim_aa - 1.0).abs() < 0.01,
         "Self-similarity should be 1.0, got {}",
@@ -62,7 +62,7 @@ fn test_cosine_properties() {
     // Range: cosine should be in [-1, 1]
     for vec1 in [&a, &b, &c] {
         for vec2 in [&a, &b, &c] {
-            let sim = vec1.cosine_scalar(vec2);
+            let sim = cosine_scalar(vec1, vec2);
             assert!(
                 sim >= -1.0 && sim <= 1.0,
                 "Cosine should be in [-1, 1], got {}",
