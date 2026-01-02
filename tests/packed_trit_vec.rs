@@ -40,3 +40,33 @@ fn packed_dot_matches_sparse_intersections() {
     let dot_sparse = (pp + nn) - (pn + np);
     assert_eq!(dot_packed, dot_sparse);
 }
+
+#[test]
+fn packed_bundle_matches_sparse_bundle() {
+    let config = ReversibleVSAConfig::default();
+    let a = SparseVec::encode_data(b"bundle-a", &config, None);
+    let b = SparseVec::encode_data(b"bundle-b", &config, None);
+
+    let sparse = a.bundle(&b);
+    let packed = PackedTritVec::from_sparsevec(&a, DIM)
+        .bundle(&PackedTritVec::from_sparsevec(&b, DIM))
+        .to_sparsevec();
+
+    assert_eq!(packed.pos, sparse.pos);
+    assert_eq!(packed.neg, sparse.neg);
+}
+
+#[test]
+fn packed_bind_matches_sparse_bind() {
+    let config = ReversibleVSAConfig::default();
+    let a = SparseVec::encode_data(b"bind-a", &config, None);
+    let b = SparseVec::encode_data(b"bind-b", &config, None);
+
+    let sparse = a.bind(&b);
+    let packed = PackedTritVec::from_sparsevec(&a, DIM)
+        .bind(&PackedTritVec::from_sparsevec(&b, DIM))
+        .to_sparsevec();
+
+    assert_eq!(packed.pos, sparse.pos);
+    assert_eq!(packed.neg, sparse.neg);
+}

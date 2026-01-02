@@ -173,6 +173,80 @@ fn test_cli_query() {
 }
 
 #[test]
+fn test_cli_bundle_hier_produces_artifacts() {
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    create_test_input(&temp_dir).expect("Failed to create test input");
+
+    let input = temp_dir.path().join("input");
+    let engram = temp_dir.path().join("test.engram");
+    let manifest = temp_dir.path().join("test.manifest.json");
+
+    // Ingest first
+    let ingest_output = Command::new(embeddenator_bin())
+        .args([
+            "ingest",
+            "-i",
+            input.to_str().unwrap(),
+            "-e",
+            engram.to_str().unwrap(),
+            "-m",
+            manifest.to_str().unwrap(),
+        ])
+        .output()
+        .expect("Failed to run ingest");
+    assert!(ingest_output.status.success());
+
+    let hier_manifest = temp_dir.path().join("hier.json");
+    let sub_dir = temp_dir.path().join("sub_engrams");
+
+    // Build hierarchical artifacts
+    let bundle_output = Command::new(embeddenator_bin())
+        .args([
+            "bundle-hier",
+            "-e",
+            engram.to_str().unwrap(),
+            "-m",
+            manifest.to_str().unwrap(),
+            "--out-hierarchical-manifest",
+            hier_manifest.to_str().unwrap(),
+            "--out-sub-engrams-dir",
+            sub_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("Failed to run bundle-hier");
+
+    assert!(
+        bundle_output.status.success(),
+        "bundle-hier failed: {}",
+        String::from_utf8_lossy(&bundle_output.stderr)
+    );
+    assert!(hier_manifest.exists(), "hierarchical manifest not created");
+    assert!(sub_dir.exists(), "sub-engrams dir not created");
+
+    // Ensure query-text can run with hierarchical args.
+    let query_output = Command::new(embeddenator_bin())
+        .args([
+            "query-text",
+            "-e",
+            engram.to_str().unwrap(),
+            "--text",
+            "Hello",
+            "--hierarchical-manifest",
+            hier_manifest.to_str().unwrap(),
+            "--sub-engrams-dir",
+            sub_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("Failed to run query-text");
+
+    assert!(
+        query_output.status.success(),
+        "query-text failed: {}",
+        String::from_utf8_lossy(&query_output.stderr)
+    );
+}
+
+#[test]
 fn test_cli_version() {
     let output = Command::new(embeddenator_bin())
         .arg("--version")

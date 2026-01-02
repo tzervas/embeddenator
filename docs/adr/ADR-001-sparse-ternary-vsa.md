@@ -38,6 +38,15 @@ The implementation uses Rust's `HashMap<usize, i8>` to efficiently store only no
 
 ## Consequences
 
+## Update (2026-01-01)
+
+The project now supports multiple bundling semantics:
+
+- A fast pairwise conflict-cancel bundle (`SparseVec::bundle`) which is commutative but generally **not associative** across 3+ vectors.
+- An explicit associative multiway bundle (`SparseVec::bundle_sum_many`) for order-independent aggregation.
+
+See ADR-008 for the current bundling semantics and future cost-aware hybrid notes.
+
 ### Positive
 
 - **Memory Efficiency**: Sparse storage dramatically reduces memory footprint

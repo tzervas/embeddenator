@@ -49,6 +49,33 @@ Note: this will become much cleaner once baseline codebook subcrates land, becau
 
 ## Preliminary plan for TASK-RET-003 (2026-01-01)
 
+## Implementation status (2026-01-01)
+
+Completed (foundation):
+- Added a public hierarchical query entrypoint `query_hierarchical_codebook(...)` with bounds via `HierarchicalQueryBounds`.
+- Added a store/loader seam (`SubEngramStore`) and a store-backed query entrypoint (`query_hierarchical_codebook_with_store(...)`).
+- Beam-limited traversal with deterministic tie-breaking.
+- Per-node inverted index construction over `SubEngram.chunk_ids` with a bounded LRU cache for indices.
+- Bounded LRU cache for loaded sub-engrams (via `max_open_engrams`).
+- `SubEngram` now carries `chunk_ids` so retrieval can avoid indexing the entire global codebook.
+- Tests cover determinism, bounded recursion (`beam_width`, `max_depth`, `max_expansions`), and child descent.
+
+Remaining (to finish TASK-RET-003 fully):
+Completed since this note was written:
+- Directory-backed `SubEngramStore` (`DirectorySubEngramStore`) with `.subengram` blobs.
+- CLI workflow wiring via `bundle-hier` (artifact build) and `query` / `query-text` flags (`--hierarchical-manifest`, `--sub-engrams-dir`).
+
+## End-to-end workflow (CLI)
+
+1) Ingest as usual:
+- `embeddenator ingest -i ./input -e root.engram -m manifest.json`
+
+2) Build hierarchical retrieval artifacts (manifest + sub-engrams directory):
+- `embeddenator bundle-hier -e root.engram -m manifest.json --out-hierarchical-manifest hier.json --out-sub-engrams-dir ./sub_engrams`
+
+3) Query with selective unfolding:
+- `embeddenator query-text -e root.engram --text "search" --hierarchical-manifest hier.json --sub-engrams-dir ./sub_engrams`
+
 ### What we are building
 Add a retrieval path that searches hierarchical engrams without materializing or indexing the entire corpus at once.
 

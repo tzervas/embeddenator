@@ -59,10 +59,13 @@ The hierarchical engram format extends Embeddenator's flat engram structure to s
 
 ## Encoding Process
 
-1. **Level 0**: Encode individual files into small bundles (≤1000 chunks)
-2. **Level 1**: Bundle directory contents with path role binding
-3. **Higher Levels**: Recursively bundle sub-engrams
-4. **Root**: Final bundle of top-level sub-engrams
+The current implementation builds hierarchical retrieval artifacts by grouping entries by **path prefixes** at each depth level:
+
+1. For each file path, generate all prefixes (`a`, `a/b`, `a/b/c.txt`, ...).
+2. For each prefix, bundle the file-chunk vectors for files under that prefix into a **component bundle**.
+3. Apply a deterministic permutation based on a hash of the prefix and the current level.
+4. Apply sparsity control via `max_level_sparsity` (thinning) to keep bundles bounded.
+5. Persist a `HierarchicalManifest` mapping prefixes to `SubEngram` nodes, with `children` pointing to immediate next-level prefixes.
 
 ## Backward Compatibility
 
@@ -77,11 +80,9 @@ pub enum UnifiedManifest {
 
 Existing engrams deserialize as `Flat`, new hierarchical ones as `Hierarchical`.
 
-## Size Limits
+## Size and Bounds
 
-- **Max chunks per sub-engram**: 1000 (configurable)
-- **Max sub-engrams per level**: 1000
-- **Max hierarchy depth**: 30 levels
+The implementation bounds vector growth via `max_level_sparsity` (thinning). The number of referenced chunks (via `SubEngram.chunk_ids`) depends on the dataset and is not currently hard-capped by a fixed “items-per-node” limit.
 
 ## Benefits
 

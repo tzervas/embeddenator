@@ -626,7 +626,7 @@ Watch the workflow run and verify:
 - ✅ Runner picks up the job (status changes from "Queued" to "Running")
 - ✅ Architecture detection shows aarch64
 - ✅ Rust build completes successfully
-- ✅ All 33 tests pass
+- ✅ All tests pass
 - ✅ Integration tests complete
 - ✅ Build artifacts are uploaded (if job fails)
 
@@ -755,7 +755,7 @@ tail -100 ~/actions-runner-*/_diag/Runner_*.log
 Before enabling automatic triggering on the main branch:
 
 - [ ] ✅ Manual workflow runs complete successfully 3+ times
-- [ ] ✅ All 33 tests pass consistently
+- [ ] ✅ All tests pass consistently
 - [ ] ✅ Build time within acceptable range (<15 min for native ARM64)
 - [ ] ✅ Resource usage monitored and within limits
 - [ ] ✅ Disk cleanup automation working

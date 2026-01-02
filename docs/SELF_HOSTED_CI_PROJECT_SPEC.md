@@ -73,7 +73,7 @@ Implement self-hosted runner infrastructure with:
 ### Completed ✅
 
 - **v0.1.0 Release**: Core VSA implementation with AMD64 CI
-- **v0.2.0 Release**: Comprehensive test suite (33 tests), clippy fixes
+- **v0.2.0 Release**: Comprehensive test suite, clippy fixes
 - **Runner Automation Framework**: Complete Python-based automation system
   - Auto-registration with short-lived tokens
   - Lifecycle management (register → run → monitor → deregister)
@@ -250,7 +250,7 @@ Implement self-hosted runner infrastructure with:
 1. Deploy single ARM64 runner
 2. Manually trigger `ci-arm64.yml` workflow
 3. Verify architecture detection (`uname -m` → `aarch64`)
-4. Confirm all 33 tests pass
+4. Confirm all tests pass
 5. Validate artifact generation
 
 **Success Criteria**:
