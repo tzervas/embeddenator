@@ -357,7 +357,9 @@ pub fn save_sub_engrams_dir<P: AsRef<Path>>(
     ids.sort();
 
     for id in ids {
-        let sub = sub_engrams.get(id).expect("sub_engram id");
+        // Safe: id comes from keys(), so get() must succeed
+        let sub = sub_engrams.get(id)
+            .expect("sub_engram id from keys() must exist in HashMap");
         let encoded = bincode::serialize(sub).map_err(io::Error::other)?;
         let path = dir.join(format!("{}.subengram", escape_sub_engram_id(id)));
         fs::write(path, encoded)?;
@@ -466,10 +468,10 @@ pub fn query_hierarchical_codebook_with_store(
         } else {
             let built = RemappedInvertedIndex::build(&sub.chunk_ids, codebook);
             index_cache.insert(node.sub_engram_id.clone(), built);
-            // Safe: we just inserted it.
+            // Safe: we just inserted the key, so get() must succeed immediately after
             index_cache
                 .get(&node.sub_engram_id)
-                .expect("index cache insert")
+                .expect("index_cache.get() must succeed immediately after insert()")
         };
 
         let mut local_hits = idx.query_top_k_reranked(query, codebook, bounds.candidate_k, bounds.k);
@@ -1054,7 +1056,9 @@ impl EmbrFS {
             return Self::extract(&self.engram, &self.manifest, output_dir, verbose, config);
         }
 
-        let _resonator = self.resonator.as_ref().unwrap();
+        // Safe: we just checked is_none() above and returned early
+        let _resonator = self.resonator.as_ref()
+            .expect("resonator is Some after is_none() check");
         let output_dir = output_dir.as_ref();
 
         if verbose {

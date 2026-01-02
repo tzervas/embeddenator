@@ -90,24 +90,65 @@
 
 ---
 
-### TASK-004: ARM64 CI Workflow Testing and Validation [P0, L, 🔵]
-**Assignee:** DEVOPS_ENGINEER + TEST_ENGINEER  
+### TASK-004: ARM64 CI Workflow Testing and Validation [P0, L, ⚠️]
+**Assignee:** INTEGRATION_SPECIALIST (DEVOPS_ENGINEER + TEST_ENGINEER)  
 **Dependencies:** TASK-003  
 **Description:** Test ARM64 CI workflow with self-hosted runners and validate all functionality.
 
 **Acceptance Criteria:**
-- [ ] ARM64 runner successfully registered and visible in GitHub
-- [ ] Manual workflow dispatch works correctly
+- [x] Runner health check completed (Phase 1)
+- [ ] ARM64 runner successfully registered and visible in GitHub ⚠️ BLOCKER
+- [ ] Manual workflow dispatch works correctly (Phase 2 - BLOCKED)
 - [ ] Architecture detection validates aarch64
 - [ ] All tests pass on ARM64
 - [ ] Integration tests complete successfully
-- [ ] Build artifacts are valid for ARM64
+- [ ] Build artifacts are valid for ARM64 (Phase 3 - BLOCKED)
 - [ ] Performance metrics collected and documented
 - [ ] Known limitations documented
+- [x] Comprehensive documentation and resolution path (Phase 4)
 
-**Files:** .github/workflows/ci-arm64.yml, docs/ARM64_TEST_RESULTS.md  
-**Estimate:** 2-3 days  
-**Status:** 🔵 PENDING
+**Status:** ⚠️ BLOCKED - Infrastructure not ready (50% complete)  
+**Blocker:** Zero self-hosted ARM64 runners registered with repository  
+**Resolution:** Deploy runner using runner_manager.py (see TASK_004_RUNNER_QUICKSTART.md)
+
+**Execution Report (2026-01-01):**
+- ✅ Phase 1: Runner Health Check - COMPLETE
+  - Verified no runners registered (total_count: 0)
+  - Validated workflow exists (ID: 220132581, state: active)
+  - Confirmed GitHub CLI authentication working
+  
+- ❌ Phase 2: Manual Workflow Trigger - BLOCKED
+  - Cannot execute without runners
+  - Workflow command prepared but not executed
+  
+- ❌ Phase 3: Validate Artifacts - BLOCKED
+  - Requires successful workflow execution
+  
+- ✅ Phase 4: Document Results - COMPLETE
+  - Created docs/ARM64_TEST_RESULTS.md (comprehensive status)
+  - Created TASK_004_STATUS_REPORT.md (executive summary)
+  - Created TASK_004_RUNNER_QUICKSTART.md (deployment guide)
+
+**Deliverables:**
+- [x] docs/ARM64_TEST_RESULTS.md - Comprehensive status report with setup options
+- [x] TASK_004_STATUS_REPORT.md - Executive summary and blocker analysis
+- [x] TASK_004_RUNNER_QUICKSTART.md - Step-by-step deployment guide
+
+**Next Actions:**
+1. Deploy ARM64 runner (3 options provided: QEMU/Oracle/AWS)
+2. Verify runner registration: `gh api repos/.../actions/runners`
+3. Execute manual workflow trigger
+4. Complete phases 2-3 validation
+5. Update documentation with actual test results
+
+**Files:** 
+- .github/workflows/build-push-arm64.yml (workflow verified)
+- docs/ARM64_TEST_RESULTS.md (updated with status)
+- TASK_004_STATUS_REPORT.md (new)
+- TASK_004_RUNNER_QUICKSTART.md (new)
+
+**Estimate:** 2-3 days (1-2 hours runner setup + validation)  
+**Time to Unblock:** 1-2 hours with provided deployment options
 
 ---
 
@@ -151,7 +192,25 @@
 
 **Files:** src/embrfs.rs, src/cli.rs, tests/hierarchical_artifacts_e2e.rs, tests/hierarchical_determinism.rs, docs/HIERARCHICAL_FORMAT.md, docs/RECURSIVE_UNFOLDING.md  
 **Estimate:** 5-7 days  
-**Status:** 🟡 IN_PROGRESS
+**Status:** � REVIEW
+
+**Note:** TASK-HIE-006 (deterministic sharding) completed 2026-01-01.
+
+---
+
+### TASK-HIE-007: Multi-Input Ingest Support [P1, M, ✅]
+**Assignee:** RUST_DEVELOPER  
+**Dependencies:** None  
+**Description:** Support multiple input paths for ingest with automatic namespacing to enable encoding from multiple directory roots in a single command.
+
+**Acceptance Criteria:**
+- [x] CLI accepts repeatable -i/--input arguments
+- [x] Automatic namespace prefixing for multiple roots
+- [x] Backward-compatible with single directory mode
+
+**Files:** src/cli.rs, src/embrfs.rs  
+**Estimate:** 1-2 days  
+**Status:** ✅ APPROVED (Completed 2026-01-01)
 
 ---
 
@@ -220,6 +279,22 @@
 **Files:** src/vsa.rs, Cargo.toml, benches/simd_bench.rs  
 **Estimate:** 3-4 days  
 **Status:** 🔵 PENDING
+
+---
+
+### TASK-RET-005: Query Performance Optimization [P1, S, ✅]
+**Assignee:** RUST_DEVELOPER  
+**Dependencies:** None  
+**Description:** Optimize codebook query with index reuse and improved shift-sweep parameters to reduce query latency for large codebooks.
+
+**Acceptance Criteria:**
+- [x] build_codebook_index() for reusable inverted index
+- [x] query_codebook_with_index() eliminates redundant builds
+- [x] Increased per-bucket candidate pools
+
+**Files:** src/retrieval.rs, tests/retrieval_index.rs  
+**Estimate:** 4-8 hours  
+**Status:** ✅ APPROVED (Completed 2026-01-01)
 
 ---
 
@@ -402,7 +477,8 @@ Based on project priorities and dependencies, the recommended next tasks are:
 
 ## Notes
 
-### Recent Completions (v0.2.0)
+### Recent Completions (v0.3.0)
+- ✅ Deterministic hierarchical artifacts, node sharding, multi-input ingest, query optimization
 - ✅ Comprehensive E2E regression tests (5 tests)
 - ✅ Test organization and cleanup (33 total tests)
 - ✅ Clippy fixes (zero warnings)
@@ -422,6 +498,6 @@ Based on project priorities and dependencies, the recommended next tasks are:
 
 ---
 
-**Last Updated:** 2025-12-22  
+**Last Updated:** 2026-01-01  
 **Document Version:** 1.0  
 **Maintained by:** PROJECT_MANAGER

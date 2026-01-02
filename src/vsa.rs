@@ -257,7 +257,10 @@ impl SparseVec {
             let mut hasher = Sha256::new();
             hasher.update(path_str.as_bytes());
             let hash = hasher.finalize();
-            let path_hash = u32::from_le_bytes(hash[0..4].try_into().unwrap()) as usize;
+            // SHA256 always produces 32 bytes, but verify slice is valid
+            let hash_bytes: [u8; 4] = hash[0..4].try_into()
+                .expect("SHA256 hash is always at least 4 bytes");
+            let path_hash = u32::from_le_bytes(hash_bytes) as usize;
             (path_hash % config.max_path_depth) * config.base_shift
         } else {
             0
@@ -281,7 +284,9 @@ impl SparseVec {
         if encoded_blocks.is_empty() {
             SparseVec::new()
         } else if encoded_blocks.len() == 1 {
-            encoded_blocks.into_iter().next().unwrap()
+            // Safe: we just checked len() == 1, so next() must return Some
+            encoded_blocks.into_iter().next()
+                .expect("encoded_blocks has exactly one element")
         } else {
             // Hierarchical bundling: combine in binary tree fashion
             Self::hierarchical_bundle(&encoded_blocks)
@@ -328,7 +333,10 @@ impl SparseVec {
             let mut hasher = Sha256::new();
             hasher.update(path_str.as_bytes());
             let hash = hasher.finalize();
-            let path_hash = u32::from_le_bytes(hash[0..4].try_into().unwrap()) as usize;
+            // SHA256 always produces 32 bytes, but verify slice is valid
+            let hash_bytes: [u8; 4] = hash[0..4].try_into()
+                .expect("SHA256 hash is always at least 4 bytes");
+            let path_hash = u32::from_le_bytes(hash_bytes) as usize;
             (path_hash % config.max_path_depth) * config.base_shift
         } else {
             0
@@ -641,7 +649,9 @@ impl SparseVec {
         let mut neg = Vec::new();
 
         let mut iter = contributions.into_iter();
-        let (mut current_idx, mut acc) = iter.next().unwrap();
+        // Safe: we checked contributions.is_empty() above and returned early if empty
+        let (mut current_idx, mut acc) = iter.next()
+            .expect("contributions is non-empty after early return check");
 
         for (idx, value) in iter {
             if idx == current_idx {
@@ -720,7 +730,10 @@ impl SparseVec {
 
         if expected_colliding_dims <= collision_budget_dims {
             let mut iter = collected.into_iter();
-            let mut acc = iter.next().unwrap().clone();
+            // Safe: hierarchical_bundle is only called when collected.len() > 1
+            let mut acc = iter.next()
+                .expect("hierarchical_bundle called with non-empty collection")
+                .clone();
             for v in iter {
                 acc = acc.bundle(v);
             }

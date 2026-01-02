@@ -31,6 +31,12 @@ Each ADR follows this structure:
 | [ADR-005](ADR-005-hologram-package-isolation.md) | Hologram-Based Package Isolation and Factoralization | Proposed | 2025-12-23 |
 | [ADR-006](ADR-006-dimensionality-sparsity-scaling.md) | Dimensionality and Sparsity Scaling in Holographic Space | Proposed | 2025-12-23 |
 | [ADR-007](ADR-007-codebook-security.md) | Codebook Security and Reversible Encoding | Proposed | 2025-12-23 |
+| [ADR-008](ADR-008-bundling-semantics-and-cost-aware-hybrid.md) | Bundling Semantics and Cost-Aware Hybrid | Proposed | 2026-01-01 |
+| [ADR-009](ADR-009-deterministic-hierarchical-artifacts.md) | Deterministic Hierarchical Artifact Generation | Accepted | 2026-01-01 |
+| [ADR-010](ADR-010-router-shard-bounded-indexing.md) | Router+Shard Architecture for Bounded Node Indexing | Accepted | 2026-01-01 |
+| [ADR-011](ADR-011-multi-input-namespace-management.md) | Multi-Input Ingest and Namespace Management | Accepted | 2026-01-01 |
+| [ADR-012](ADR-012-reusable-codebook-index.md) | Reusable Codebook Index for Query Performance | Accepted | 2026-01-01 |
+| [ADR-013](ADR-013-hierarchical-manifest-format.md) | Hierarchical Manifest Format and Versioning | Accepted | 2026-01-01 |
 
 ## Creating a New ADR
 

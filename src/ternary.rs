@@ -738,7 +738,9 @@ mod tests {
     #[test]
     fn test_tryte3_bind_self_inverse() {
         for v in Tryte3::MIN_VALUE..=Tryte3::MAX_VALUE {
-            let tryte = Tryte3::from_i8(v).unwrap();
+            // Safe: v is in valid range [MIN_VALUE, MAX_VALUE]
+            let tryte = Tryte3::from_i8(v)
+                .expect("from_i8 must succeed for values in valid range");
             let bound = tryte * tryte;
             
             // Self-bind should produce all P (or Z for zero trits)
