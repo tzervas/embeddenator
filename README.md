@@ -1,6 +1,9 @@
 # Embeddenator — Holographic Computing Substrate
 
-**Version 0.2.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+**Version 0.3.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+
+**Author:** Tyler Zervas <tz-dev@vectorweight.com>  
+**License:** MIT  
 
 [![CI](https://github.com/tzervas/embeddenator/workflows/CI/badge.svg)](https://github.com/tzervas/embeddenator/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -14,14 +17,23 @@
 - **CLI + Docker**: Complete toolchain with multi-arch container support
 - **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
 - **Dual Versioning**: LTS stable releases + nightly bleeding-edge builds
-- **Production-Grade**: 33 comprehensive tests with zero clippy warnings
-- **Multi-Architecture**: Native amd64 support (arm64 via self-hosted runners - coming soon)
+- **Production-Grade**: Comprehensive test suite with zero clippy warnings
+- **Multi-Architecture**: amd64 supported; arm64 supported via self-hosted runners (CI validation pending)
 - **Test Runner**: Intelligent validation with debug logging (v0.2.0)
+
+## What's New in v0.3.0
+
+- 🎯 **Deterministic hierarchical artifacts** - Stable manifest/sub-engram generation with sorted iteration
+- 📊 **Optional node sharding** - `--max-chunks-per-node` cap for bounded per-node indexing cost
+- 📂 **Multi-input ingest** - Ingest files and/or multiple directories with automatic namespacing
+- ⚡ **Query performance** - Reusable codebook index across shift-sweep + increased candidate pool
+- 🧪 **Expanded test coverage** - New determinism and E2E hierarchical artifact tests
+- 📚 **Updated documentation** - CLI reference, hierarchical format, and selective unfolding guides
 
 ## What's New in v0.2.0
 
 - ✨ **6 comprehensive E2E regression tests** including critical engram modification test
-- 🧪 **33 total tests** (6 e2e + 7 integration + 11 unit + 9 doc tests)
+- 🧪 **Comprehensive test suite** (unit + integration + e2e + doc tests)
 - 🔍 **Intelligent test runner** with accurate counting and debug mode
 - 📦 **Dual versioning strategy** for OS builds (LTS + nightly)
 - 🎯 **Zero clippy warnings** (29 fixes applied)
@@ -131,7 +143,7 @@ python3 orchestrator.py --mode clean
 
 ## CLI Reference
 
-Embeddenator provides three main commands for working with holographic engrams:
+Embeddenator provides the following commands for working with holographic engrams:
 
 ### `embeddenator --help`
 
@@ -145,17 +157,19 @@ embeddenator --help
 embeddenator ingest --help
 embeddenator extract --help
 embeddenator query --help
+embeddenator query-text --help
+embeddenator bundle-hier --help
 ```
 
 ### `ingest` - Create Holographic Engram
 
-Recursively process files and encode them into a holographic engram.
+Process one or more files and/or directories and encode them into a holographic engram.
 
 ```bash
-embeddenator ingest [OPTIONS] --input <DIR>
+embeddenator ingest [OPTIONS] --input <PATH>...
 
 Required:
-  -i, --input <DIR>       Input directory to ingest (recursively processes all files)
+  -i, --input <PATH>...   Input file(s) and/or directory(ies) to ingest
 
 Options:
   -e, --engram <FILE>     Output engram file [default: root.engram]
@@ -167,6 +181,9 @@ Examples:
   # Basic ingestion
   embeddenator ingest -i ./myproject -e project.engram -m project.json
 
+  # Mix files and directories (repeat -i/--input)
+  embeddenator ingest -i ./src -i ./README.md -e project.engram -m project.json
+
   # With verbose output
   embeddenator ingest -i ~/Documents -e docs.engram -v
 
@@ -175,7 +192,8 @@ Examples:
 ```
 
 **What it does:**
-- Recursively scans the input directory
+- Recursively scans any input directories
+- Ingests any input files directly
 - Chunks files (4KB default)
 - Encodes chunks using sparse ternary VSA
 - Creates holographic superposition in root vector
@@ -227,6 +245,9 @@ Required:
 
 Options:
   -e, --engram <FILE>     Engram file to query [default: root.engram]
+  --hierarchical-manifest <FILE>  Optional hierarchical manifest (selective unfolding)
+  --sub-engrams-dir <DIR>         Directory of `.subengram` files (used with --hierarchical-manifest)
+  --k <K>              Top-k results to print for codebook/hierarchical search [default: 10]
   -v, --verbose           Enable verbose output with similarity details
   -h, --help             Print help information
 
@@ -246,10 +267,40 @@ Examples:
 - Computes cosine similarity with engram
 - Returns similarity score
 
+If `--hierarchical-manifest` and `--sub-engrams-dir` are provided, it also runs a store-backed hierarchical query and prints the top hierarchical matches.
+
 **Similarity interpretation:**
 - **>0.75**: Strong match, likely contains similar content
 - **0.3-0.75**: Moderate similarity, some shared patterns  
 - **<0.3**: Low similarity, likely unrelated content
+
+### `query-text` - Similarity Search (Text)
+
+Encode a literal text string as a query vector and run the same retrieval path as `query`.
+
+```bash
+embeddenator query-text -e root.engram --text "search phrase" --k 10
+
+# With hierarchical selective unfolding:
+embeddenator query-text -e root.engram --text "search phrase" \
+  --hierarchical-manifest hier.json --sub-engrams-dir ./sub_engrams --k 10
+```
+
+### `bundle-hier` - Build Hierarchical Retrieval Artifacts
+
+Build a hierarchical manifest and a directory of sub-engrams from an existing flat `root.engram` + `manifest.json`. This enables store-backed selective unfolding queries.
+
+```bash
+embeddenator bundle-hier -e root.engram -m manifest.json \
+  --out-hierarchical-manifest hier.json \
+  --out-sub-engrams-dir ./sub_engrams
+
+# Optional: deterministically shard large nodes (bounds per-node indexing cost)
+embeddenator bundle-hier -e root.engram -m manifest.json \
+  --max-chunks-per-node 2000 \
+  --out-hierarchical-manifest hier.json \
+  --out-sub-engrams-dir ./sub_engrams
+```
 
 ## Docker Usage
 
@@ -448,14 +499,23 @@ The documentation includes:
 ### Running Tests
 
 ```bash
-# All tests (33 total: 24 regular + 9 doc tests)
-cargo test
+# Recommended: everything Cargo considers testable (lib/bin/tests/examples/benches)
+cargo test --workspace --all-targets
 
-# Just unit/integration/e2e tests
-cargo test --lib --tests
-
-# Just documentation tests
+# Doc tests only
 cargo test --doc
+
+# Optimized build tests (useful before benchmarking)
+cargo test --release --workspace --all-targets
+
+# Feature-gated correctness/perf gates
+cargo test --workspace --all-targets --features "bt-phase-2 proptest"
+
+# Long-running/expensive tests are explicitly opt-in:
+# - QA memory scaling (requires env var + ignored flag)
+EMBEDDENATOR_RUN_QA_MEMORY=1 cargo test --features qa --test memory_scaled -- --ignored --nocapture
+# - Multi-GB soak test (requires env var + ignored flag)
+EMBEDDENATOR_RUN_SOAK=1 cargo test --release --features soak-memory --test soak_memory -- --ignored --nocapture
 
 # Integration tests via orchestrator
 python3 orchestrator.py --mode test --verbose
@@ -463,6 +523,13 @@ python3 orchestrator.py --mode test --verbose
 # Full test suite
 python3 orchestrator.py --mode full --verbose
 ```
+
+Notes:
+- Seeing many tests marked as "ignored" during `cargo bench` is expected: Cargo runs the unit test
+  harness in libtest's `--bench` mode, which skips normal `#[test]` functions (it prints `i` for each).
+  Use `cargo test` (commands above) to actually execute tests.
+- `cargo test --workspace --all-targets` will also compile/run Criterion benches in a fast "smoke" mode
+  (they print `Testing ... Success`). This is intended to catch broken benches early.
 
 ### CI/CD and Build Monitoring
 

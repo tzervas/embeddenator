@@ -6,12 +6,47 @@
 //! - Querying similarity
 //! - Mounting engrams as FUSE filesystems (requires `fuse` feature)
 
-use crate::embrfs::EmbrFS;
+use crate::embrfs::{
+    DirectorySubEngramStore, EmbrFS, HierarchicalQueryBounds, load_hierarchical_manifest,
+    query_hierarchical_codebook_with_store,
+    save_hierarchical_manifest, save_sub_engrams_dir,
+};
 use crate::vsa::{SparseVec, ReversibleVSAConfig};
 use clap::{Parser, Subcommand};
+use std::env;
 use std::fs::File;
 use std::io::{self, Read};
+use std::path::Path;
 use std::path::PathBuf;
+use std::collections::HashMap;
+
+fn path_to_forward_slash_string(path: &Path) -> String {
+    path.components()
+        .filter_map(|c| match c {
+            std::path::Component::Normal(s) => s.to_str().map(|v| v.to_string()),
+            _ => None,
+        })
+        .collect::<Vec<String>>()
+        .join("/")
+}
+
+fn logical_path_for_file_input(path: &Path, cwd: &Path) -> String {
+    if path.is_relative() {
+        return path_to_forward_slash_string(path);
+    }
+
+    if let Ok(rel) = path.strip_prefix(cwd) {
+        let s = path_to_forward_slash_string(rel);
+        if !s.is_empty() {
+            return s;
+        }
+    }
+
+    path.file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("input.bin")
+        .to_string()
+}
 
 #[derive(Parser)]
 #[command(name = "embeddenator")]
@@ -32,7 +67,7 @@ use std::path::PathBuf;
       embeddenator extract -e data.engram -m data.json -o ./restored -v\n\
       embeddenator query -e data.engram -q ./testfile.txt -v"
 )]
-#[command(author = "Embeddenator Contributors")]
+#[command(author = "Tyler Zervas <tz-dev@vectorweight.com>")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -55,9 +90,16 @@ pub enum Commands {
           embeddenator ingest --input ~/Documents --engram docs.engram --verbose"
     )]
     Ingest {
-        /// Input directory to ingest (will recursively process all files)
-        #[arg(short, long, value_name = "DIR", help_heading = "Required")]
-        input: PathBuf,
+        /// Input path(s) to ingest (directory or file). Can be provided multiple times.
+        #[arg(
+            short,
+            long,
+            value_name = "PATH",
+            help_heading = "Required",
+            num_args = 1..,
+            action = clap::ArgAction::Append
+        )]
+        input: Vec<PathBuf>,
 
         /// Output engram file containing holographic encoding
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
@@ -124,11 +166,95 @@ pub enum Commands {
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
         engram: PathBuf,
 
-        /// Query file or pattern to search for
+        /// Query file to search for
         #[arg(short, long, value_name = "FILE", help_heading = "Required")]
         query: PathBuf,
 
+        /// Optional hierarchical manifest (enables selective unfolding search)
+        #[arg(long, value_name = "FILE")]
+        hierarchical_manifest: Option<PathBuf>,
+
+        /// Directory containing bincode-serialized sub-engrams (used with --hierarchical-manifest)
+        #[arg(long, value_name = "DIR")]
+        sub_engrams_dir: Option<PathBuf>,
+
+        /// Top-k results to print for codebook/hierarchical search
+        #[arg(long, default_value_t = 10, value_name = "K")]
+        k: usize,
+
         /// Enable verbose output showing similarity scores and details
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Query similarity using a literal text string (basic inference-to-vector)
+    #[command(
+        long_about = "Query cosine similarity using a literal text string\n\n\
+        This is a convenience wrapper that encodes the provided text as bytes into a VSA query vector\n\
+        and runs the same retrieval path as `query`."
+    )]
+    QueryText {
+        /// Engram file to query
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Text to encode and search for
+        #[arg(long, value_name = "TEXT", help_heading = "Required")]
+        text: String,
+
+        /// Optional hierarchical manifest (enables selective unfolding search)
+        #[arg(long, value_name = "FILE")]
+        hierarchical_manifest: Option<PathBuf>,
+
+        /// Directory containing bincode-serialized sub-engrams (used with --hierarchical-manifest)
+        #[arg(long, value_name = "DIR")]
+        sub_engrams_dir: Option<PathBuf>,
+
+        /// Top-k results to print for codebook/hierarchical search
+        #[arg(long, default_value_t = 10, value_name = "K")]
+        k: usize,
+
+        /// Enable verbose output showing similarity scores and details
+        #[arg(short, long)]
+        verbose: bool,
+    },
+
+    /// Build hierarchical retrieval artifacts (manifest + sub-engrams store)
+    #[command(
+        long_about = "Build hierarchical retrieval artifacts from an existing engram+manifest\n\n\
+        This command produces a hierarchical manifest JSON and a directory of sub-engrams\n\
+        suitable for store-backed selective unfolding (DirectorySubEngramStore)."
+    )]
+    BundleHier {
+        /// Input engram file
+        #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
+        engram: PathBuf,
+
+        /// Input manifest file
+        #[arg(short, long, default_value = "manifest.json", value_name = "FILE")]
+        manifest: PathBuf,
+
+        /// Output hierarchical manifest JSON
+        #[arg(long, default_value = "hier.json", value_name = "FILE")]
+        out_hierarchical_manifest: PathBuf,
+
+        /// Output directory to write bincode sub-engrams
+        #[arg(long, default_value = "sub_engrams", value_name = "DIR")]
+        out_sub_engrams_dir: PathBuf,
+
+        /// Maximum sparsity per level bundle
+        #[arg(long, default_value_t = 500, value_name = "N")]
+        max_level_sparsity: usize,
+
+        /// Optional cap on chunk IDs per node (enables deterministic sharding when exceeded)
+        #[arg(long, value_name = "N")]
+        max_chunks_per_node: Option<usize>,
+
+        /// Embed sub-engrams in the manifest JSON (in addition to writing the directory)
+        #[arg(long, default_value_t = false)]
+        embed_sub_engrams: bool,
+
+        /// Enable verbose output
         #[arg(short, long)]
         verbose: bool,
     },
@@ -197,7 +323,47 @@ pub fn run() -> io::Result<()> {
 
             let mut fs = EmbrFS::new();
             let config = ReversibleVSAConfig::default();
-            fs.ingest_directory(&input, verbose, &config)?;
+
+            // Backward-compatible behavior: a single directory input ingests with paths
+            // relative to that directory (no namespacing).
+            if input.len() == 1 && input[0].is_dir() {
+                fs.ingest_directory(&input[0], verbose, &config)?;
+            } else {
+                let cwd = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+
+                // Ensure deterministic and collision-resistant namespacing for multiple directory roots.
+                let mut dir_prefix_counts: HashMap<String, usize> = HashMap::new();
+
+                for p in &input {
+                    if !p.exists() {
+                        return Err(io::Error::new(
+                            io::ErrorKind::NotFound,
+                            format!("Input path does not exist: {}", p.display()),
+                        ));
+                    }
+
+                    if p.is_dir() {
+                        let base = p
+                            .file_name()
+                            .and_then(|s| s.to_str())
+                            .filter(|s| !s.is_empty())
+                            .unwrap_or("input")
+                            .to_string();
+                        let count = dir_prefix_counts.entry(base.clone()).or_insert(0);
+                        *count += 1;
+                        let prefix = if *count == 1 {
+                            base
+                        } else {
+                            format!("{}_{}", base, count)
+                        };
+
+                        fs.ingest_directory_with_prefix(p, Some(&prefix), verbose, &config)?;
+                    } else {
+                        let logical = logical_path_for_file_input(p, &cwd);
+                        fs.ingest_file(p, logical, verbose, &config)?;
+                    }
+                }
+            }
 
             fs.save_engram(&engram)?;
             fs.save_manifest(&manifest)?;
@@ -244,6 +410,9 @@ pub fn run() -> io::Result<()> {
         Commands::Query {
             engram,
             query,
+            hierarchical_manifest,
+            sub_engrams_dir,
+            k,
             verbose,
         } => {
             if verbose {
@@ -260,31 +429,330 @@ pub fn run() -> io::Result<()> {
             let mut query_data = Vec::new();
             query_file.read_to_end(&mut query_data)?;
 
-            let query_vec = SparseVec::encode_data(&query_data, &ReversibleVSAConfig::default(), None);
-            let similarity = query_vec.cosine(&engram_data.root);
+            // Chunks are encoded with a path-hash bucket shift; when querying we don't know the
+            // original path, so sweep possible buckets (bounded by config.max_path_depth).
+            let config = ReversibleVSAConfig::default();
+            let base_query = SparseVec::encode_data(&query_data, &config, None);
+
+            // Build the codebook index once and reuse it across the sweep.
+            let codebook_index = engram_data.build_codebook_index();
+
+            let mut best_similarity = f64::MIN;
+            let mut best_shift = 0usize;
+            let mut best_top_cosine = f64::MIN;
+
+            // Merge matches across shifts; keep the best score per chunk.
+            let mut merged: HashMap<usize, (f64, i32)> = HashMap::new();
+
+            // Optionally merge hierarchical hits too.
+            let mut merged_hier: HashMap<(String, usize), (f64, i32)> = HashMap::new();
+
+            let hierarchical_loaded = if let (Some(hier_path), Some(_)) = (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref()) {
+                Some(load_hierarchical_manifest(hier_path)?)
+            } else {
+                None
+            };
+
+            // Increase per-bucket cutoff so global top-k merge is less likely to miss true winners.
+            let k_sweep = (k.saturating_mul(10)).max(100);
+            let candidate_k = (k_sweep.saturating_mul(10)).max(200);
+
+            for depth in 0..config.max_path_depth.max(1) {
+                let shift = depth * config.base_shift;
+                let query_vec = base_query.permute(shift);
+
+                let similarity = query_vec.cosine(&engram_data.root);
+                if similarity > best_similarity {
+                    best_similarity = similarity;
+                    best_shift = shift;
+                }
+
+                let matches = engram_data.query_codebook_with_index(
+                    &codebook_index,
+                    &query_vec,
+                    candidate_k,
+                    k_sweep,
+                );
+
+                if let Some(top) = matches.first() {
+                    if top.cosine > best_top_cosine {
+                        best_top_cosine = top.cosine;
+                        best_shift = shift;
+                        best_similarity = similarity;
+                    }
+                }
+
+                for m in matches {
+                    let entry = merged.entry(m.id).or_insert((m.cosine, m.approx_score));
+                    if m.cosine > entry.0 {
+                        *entry = (m.cosine, m.approx_score);
+                    }
+                }
+            }
+
+            // Hierarchical query can be expensive (sub-engram loads + per-node indexing).
+            // Run it once using the best shift from the sweep.
+            if let (Some(hierarchical), Some(sub_dir)) = (hierarchical_loaded.as_ref(), sub_engrams_dir.as_ref()) {
+                let store = DirectorySubEngramStore::new(sub_dir);
+                let bounds = HierarchicalQueryBounds {
+                    k,
+                    ..HierarchicalQueryBounds::default()
+                };
+                let query_vec = base_query.permute(best_shift);
+                let hier_hits = query_hierarchical_codebook_with_store(
+                    hierarchical,
+                    &store,
+                    &engram_data.codebook,
+                    &query_vec,
+                    &bounds,
+                );
+                for h in hier_hits {
+                    let key = (h.sub_engram_id, h.chunk_id);
+                    let entry = merged_hier.entry(key).or_insert((h.cosine, h.approx_score));
+                    if h.cosine > entry.0 {
+                        *entry = (h.cosine, h.approx_score);
+                    }
+                }
+            }
 
             println!("Query file: {}", query.display());
-            println!("Similarity to engram: {:.4}", similarity);
+            if verbose {
+                println!(
+                    "Best bucket-shift: {} (buckets 0..{})",
+                    best_shift,
+                    config.max_path_depth.saturating_sub(1)
+                );
+            }
+            println!("Similarity to engram: {:.4}", best_similarity);
 
-            let top_matches = engram_data.query_codebook(&query_vec, 10);
+            let mut top_matches: Vec<(usize, f64, i32)> = merged
+                .into_iter()
+                .map(|(id, (cosine, approx))| (id, cosine, approx))
+                .collect();
+            top_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            top_matches.truncate(k);
+
             if !top_matches.is_empty() {
                 println!("Top codebook matches:");
-                for m in top_matches {
-                    println!(
-                        "  chunk {}  cosine {:.4}  approx_dot {}",
-                        m.id, m.cosine, m.approx_score
-                    );
+                for (id, cosine, approx) in top_matches {
+                    println!("  chunk {}  cosine {:.4}  approx_dot {}", id, cosine, approx);
                 }
             } else if verbose {
                 println!("Top codebook matches: (none)");
             }
 
-            if similarity > 0.75 {
+            let mut top_hier: Vec<(String, usize, f64, i32)> = merged_hier
+                .into_iter()
+                .map(|((sub_id, chunk_id), (cosine, approx))| (sub_id, chunk_id, cosine, approx))
+                .collect();
+            top_hier.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+            top_hier.truncate(k);
+
+            if !top_hier.is_empty() {
+                println!("Top hierarchical matches:");
+                for (sub_id, chunk_id, cosine, approx) in top_hier {
+                    println!("  sub {}  chunk {}  cosine {:.4}  approx_dot {}", sub_id, chunk_id, cosine, approx);
+                }
+            } else if verbose && hierarchical_manifest.is_some() {
+                println!("Top hierarchical matches: (none)");
+            }
+
+            if best_similarity > 0.75 {
                 println!("Status: STRONG MATCH");
-            } else if similarity > 0.3 {
+            } else if best_similarity > 0.3 {
                 println!("Status: Partial match");
             } else {
                 println!("Status: No significant match");
+            }
+
+            Ok(())
+        }
+
+        Commands::QueryText {
+            engram,
+            text,
+            hierarchical_manifest,
+            sub_engrams_dir,
+            k,
+            verbose,
+        } => {
+            if verbose {
+                println!(
+                    "Embeddenator v{} - Holographic Query (Text)",
+                    env!("CARGO_PKG_VERSION")
+                );
+                println!("========================================");
+            }
+
+            let engram_data = EmbrFS::load_engram(&engram)?;
+
+            let config = ReversibleVSAConfig::default();
+            let base_query = SparseVec::encode_data(text.as_bytes(), &config, None);
+
+            let codebook_index = engram_data.build_codebook_index();
+
+            let mut best_similarity = f64::MIN;
+            let mut best_shift = 0usize;
+            let mut best_top_cosine = f64::MIN;
+
+            let mut merged: HashMap<usize, (f64, i32)> = HashMap::new();
+            let mut merged_hier: HashMap<(String, usize), (f64, i32)> = HashMap::new();
+
+            let hierarchical_loaded = if let (Some(hier_path), Some(_)) = (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref()) {
+                Some(load_hierarchical_manifest(hier_path)?)
+            } else {
+                None
+            };
+
+            let k_sweep = (k.saturating_mul(10)).max(100);
+            let candidate_k = (k_sweep.saturating_mul(10)).max(200);
+
+            for depth in 0..config.max_path_depth.max(1) {
+                let shift = depth * config.base_shift;
+                let query_vec = base_query.permute(shift);
+
+                let similarity = query_vec.cosine(&engram_data.root);
+                if similarity > best_similarity {
+                    best_similarity = similarity;
+                    best_shift = shift;
+                }
+
+                let matches = engram_data.query_codebook_with_index(
+                    &codebook_index,
+                    &query_vec,
+                    candidate_k,
+                    k_sweep,
+                );
+
+                if let Some(top) = matches.first() {
+                    if top.cosine > best_top_cosine {
+                        best_top_cosine = top.cosine;
+                        best_shift = shift;
+                        best_similarity = similarity;
+                    }
+                }
+
+                for m in matches {
+                    let entry = merged.entry(m.id).or_insert((m.cosine, m.approx_score));
+                    if m.cosine > entry.0 {
+                        *entry = (m.cosine, m.approx_score);
+                    }
+                }
+            }
+
+            if let (Some(hierarchical), Some(sub_dir)) = (hierarchical_loaded.as_ref(), sub_engrams_dir.as_ref()) {
+                let store = DirectorySubEngramStore::new(sub_dir);
+                let bounds = HierarchicalQueryBounds {
+                    k,
+                    ..HierarchicalQueryBounds::default()
+                };
+                let query_vec = base_query.permute(best_shift);
+                let hier_hits = query_hierarchical_codebook_with_store(
+                    hierarchical,
+                    &store,
+                    &engram_data.codebook,
+                    &query_vec,
+                    &bounds,
+                );
+                for h in hier_hits {
+                    let key = (h.sub_engram_id, h.chunk_id);
+                    let entry = merged_hier.entry(key).or_insert((h.cosine, h.approx_score));
+                    if h.cosine > entry.0 {
+                        *entry = (h.cosine, h.approx_score);
+                    }
+                }
+            }
+
+            println!("Query text: {}", text);
+            if verbose {
+                println!(
+                    "Best bucket-shift: {} (buckets 0..{})",
+                    best_shift,
+                    config.max_path_depth.saturating_sub(1)
+                );
+            }
+            println!("Similarity to engram: {:.4}", best_similarity);
+
+            let mut top_matches: Vec<(usize, f64, i32)> = merged
+                .into_iter()
+                .map(|(id, (cosine, approx))| (id, cosine, approx))
+                .collect();
+            top_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            top_matches.truncate(k);
+
+            if !top_matches.is_empty() {
+                println!("Top codebook matches:");
+                for (id, cosine, approx) in top_matches {
+                    println!("  chunk {}  cosine {:.4}  approx_dot {}", id, cosine, approx);
+                }
+            } else if verbose {
+                println!("Top codebook matches: (none)");
+            }
+
+            let mut top_hier: Vec<(String, usize, f64, i32)> = merged_hier
+                .into_iter()
+                .map(|((sub_id, chunk_id), (cosine, approx))| (sub_id, chunk_id, cosine, approx))
+                .collect();
+            top_hier.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+            top_hier.truncate(k);
+
+            if !top_hier.is_empty() {
+                println!("Top hierarchical matches:");
+                for (sub_id, chunk_id, cosine, approx) in top_hier {
+                    println!("  sub {}  chunk {}  cosine {:.4}  approx_dot {}", sub_id, chunk_id, cosine, approx);
+                }
+            } else if verbose && hierarchical_manifest.is_some() {
+                println!("Top hierarchical matches: (none)");
+            }
+
+            Ok(())
+        }
+
+        Commands::BundleHier {
+            engram,
+            manifest,
+            out_hierarchical_manifest,
+            out_sub_engrams_dir,
+            max_level_sparsity,
+            max_chunks_per_node,
+            embed_sub_engrams,
+            verbose,
+        } => {
+            if verbose {
+                println!(
+                    "Embeddenator v{} - Build Hierarchical Artifacts",
+                    env!("CARGO_PKG_VERSION")
+                );
+                println!("=============================================");
+            }
+
+            let engram_data = EmbrFS::load_engram(&engram)?;
+            let manifest_data = EmbrFS::load_manifest(&manifest)?;
+
+            let mut fs = EmbrFS::new();
+            fs.engram = engram_data;
+            fs.manifest = manifest_data;
+
+            let config = ReversibleVSAConfig::default();
+            let mut hierarchical = fs.bundle_hierarchically_with_options(
+                max_level_sparsity,
+                max_chunks_per_node,
+                verbose,
+                &config,
+            )?;
+
+            // Always write the sub-engrams directory for store-backed retrieval.
+            save_sub_engrams_dir(&hierarchical.sub_engrams, &out_sub_engrams_dir)?;
+
+            if !embed_sub_engrams {
+                hierarchical.sub_engrams.clear();
+            }
+
+            save_hierarchical_manifest(&hierarchical, &out_hierarchical_manifest)?;
+
+            if verbose {
+                println!("Wrote hierarchical manifest: {}", out_hierarchical_manifest.display());
+                println!("Wrote sub-engrams dir: {}", out_sub_engrams_dir.display());
             }
 
             Ok(())

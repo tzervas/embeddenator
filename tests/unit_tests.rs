@@ -37,7 +37,50 @@ fn test_sparse_vec_bind() {
     };
     let result = v1.bind(&v2);
 
-    assert!(result.pos.len() + result.neg.len() > 0);
+    // Only overlapping indices survive; signs multiply.
+    // Overlap at {2,3} is +*+ => +, and {5,6} is -* - => +.
+    assert_eq!(result.pos, vec![2, 3, 5, 6]);
+    assert!(result.neg.is_empty());
+
+    // Outputs are kept sorted.
+    assert!(result.pos.windows(2).all(|w| w[0] < w[1]));
+    assert!(result.neg.windows(2).all(|w| w[0] < w[1]));
+}
+
+#[test]
+fn test_sparse_vec_bind_disjoint_is_empty() {
+    let a = SparseVec {
+        pos: vec![1, 3, 5],
+        neg: vec![2, 4, 6],
+    };
+    let b = SparseVec {
+        pos: vec![10, 12],
+        neg: vec![11, 13],
+    };
+
+    let r = a.bind(&b);
+    assert!(r.pos.is_empty());
+    assert!(r.neg.is_empty());
+}
+
+#[test]
+fn test_sparse_vec_bind_sign_flip_paths() {
+    let a = SparseVec {
+        pos: vec![1, 10],
+        neg: vec![2, 11],
+    };
+    let b = SparseVec {
+        pos: vec![2, 10],
+        neg: vec![1, 11],
+    };
+
+    // Index 10: + * + => +
+    // Index 11: - * - => +
+    // Index 1:  + * - => -
+    // Index 2:  - * + => -
+    let r = a.bind(&b);
+    assert_eq!(r.pos, vec![10, 11]);
+    assert_eq!(r.neg, vec![1, 2]);
 }
 
 #[test]
@@ -76,6 +119,102 @@ fn test_bundle_associativity() {
         "Bundle associativity failed: similarity = {}",
         similarity
     );
+}
+
+#[test]
+fn test_bundle_conflict_cancel_non_associative_minimal() {
+    // Single-dimension counterexample: (+1) ⊕ (+1) ⊕ (-1)
+    let a = SparseVec {
+        pos: vec![0],
+        neg: Vec::new(),
+    };
+    let b = SparseVec {
+        pos: vec![0],
+        neg: Vec::new(),
+    };
+    let c = SparseVec {
+        pos: Vec::new(),
+        neg: vec![0],
+    };
+
+    let left = a.bundle(&b).bundle(&c); // ((+1)+(+1)) then +(-1) -> 0
+    let right = a.bundle(&b.bundle(&c)); // (+1)+(0) -> +1
+
+    assert_eq!(left.pos.len() + left.neg.len(), 0, "left should cancel to 0");
+    assert_eq!(right.pos, vec![0], "right should keep +1");
+}
+
+#[test]
+fn test_bundle_sum_many_is_associative_on_three_vectors() {
+    let a = SparseVec {
+        pos: vec![0],
+        neg: Vec::new(),
+    };
+    let b = SparseVec {
+        pos: vec![0],
+        neg: Vec::new(),
+    };
+    let c = SparseVec {
+        pos: Vec::new(),
+        neg: vec![0],
+    };
+
+    let via_two_groups = SparseVec::bundle_sum_many([&a, &b]).bundle(&c); // note: non-associative if using bundle
+    let all_at_once = SparseVec::bundle_sum_many([&a, &b, &c]);
+
+    // bundle_sum_many accumulates first, so it keeps +1 for index 0
+    assert_eq!(all_at_once.pos, vec![0]);
+
+    // For clarity, the old pairwise bundle path cancels in left grouping.
+    assert_eq!(via_two_groups.pos.len() + via_two_groups.neg.len(), 0);
+
+    // As a true associative baseline, compare two different groupings of bundle_sum_many inputs:
+    let grouping1 = SparseVec::bundle_sum_many([&a, &b, &c]);
+    let grouping2 = SparseVec::bundle_sum_many([&a, &SparseVec::bundle_sum_many([&b, &c])]);
+    assert_eq!(grouping1.pos, grouping2.pos);
+    assert_eq!(grouping1.neg, grouping2.neg);
+}
+
+#[test]
+fn test_bundle_hybrid_many_uses_pairwise_when_sparse() {
+    // Total nnz = 4 <= DIM/16 (DIM is 100_000), so hybrid should follow pairwise bundle path.
+    let a = SparseVec {
+        pos: vec![1],
+        neg: Vec::new(),
+    };
+    let b = SparseVec {
+        pos: Vec::new(),
+        neg: vec![2],
+    };
+    let c = SparseVec {
+        pos: vec![3],
+        neg: vec![4],
+    };
+
+    let pairwise = a.bundle(&b).bundle(&c);
+    let hybrid = SparseVec::bundle_hybrid_many([&a, &b, &c]);
+
+    assert_eq!(hybrid.pos, pairwise.pos);
+    assert_eq!(hybrid.neg, pairwise.neg);
+}
+
+#[test]
+fn test_bundle_hybrid_many_uses_sum_when_dense() {
+    // Build dense-ish vectors to trigger the associative branch.
+    let make_dense = |offset: usize| SparseVec {
+        pos: (offset..offset + 2000).step_by(2).collect(),
+        neg: (offset + 1..offset + 2000).step_by(2).collect(),
+    };
+
+    let a = make_dense(0);
+    let b = make_dense(500);
+    let c = make_dense(1000);
+
+    let sum_many = SparseVec::bundle_sum_many([&a, &b, &c]);
+    let hybrid = SparseVec::bundle_hybrid_many([&a, &b, &c]);
+
+    assert_eq!(hybrid.pos, sum_many.pos);
+    assert_eq!(hybrid.neg, sum_many.neg);
 }
 
 #[test]

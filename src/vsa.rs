@@ -10,8 +10,23 @@ use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+#[cfg(feature = "bt-phase-2")]
+use crate::ternary_vec::PackedTritVec;
+
+#[cfg(feature = "bt-phase-2")]
+use std::cell::RefCell;
+
 /// Dimension of VSA vectors
 pub const DIM: usize = 10000;
+
+#[cfg(feature = "bt-phase-2")]
+thread_local! {
+    // Reused packed buffers for hot paths. Using TLS keeps this allocation
+    // amortized while remaining safe in multi-threaded contexts.
+    static PACKED_SCRATCH_A: RefCell<PackedTritVec> = RefCell::new(PackedTritVec::new_zero(DIM));
+    static PACKED_SCRATCH_B: RefCell<PackedTritVec> = RefCell::new(PackedTritVec::new_zero(DIM));
+    static PACKED_SCRATCH_OUT: RefCell<PackedTritVec> = RefCell::new(PackedTritVec::new_zero(DIM));
+}
 
 /// Configuration for reversible VSA encoding/decoding operations
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -75,8 +90,9 @@ impl Default for SparseVec {
 }
 
 impl SparseVec {
-    fn contains_sorted(haystack: &[usize], needle: usize) -> bool {
-        haystack.binary_search(&needle).is_ok()
+    #[inline]
+    fn nnz(&self) -> usize {
+        self.pos.len() + self.neg.len()
     }
 
     fn intersection_count_sorted(a: &[usize], b: &[usize]) -> usize {
@@ -482,8 +498,16 @@ impl SparseVec {
         SparseVec { pos, neg }
     }
 
-    /// Bundle operation: associative superposition (A ⊕ B)
-    /// Combines two vectors by majority voting on each dimension
+    /// Bundle operation: pairwise conflict-cancel superposition (A ⊕ B)
+    ///
+    /// This is a fast, commutative merge for two vectors:
+    /// - same sign => keep
+    /// - opposite signs => cancel to 0
+    /// - sign vs 0 => keep sign
+    ///
+    /// Note: While this is well-defined for two vectors, repeated application across 3+
+    /// vectors is generally **not associative** because early cancellation/thresholding can
+    /// discard multiplicity information.
     ///
     /// # Arguments
     /// * `other` - The vector to bundle with self
@@ -520,8 +544,10 @@ impl SparseVec {
         result
     }
 
-    /// Bundle operation: associative superposition (A ⊕ B)
-    /// Combines two vectors by majority voting on each dimension
+    /// Bundle operation: pairwise conflict-cancel superposition (A ⊕ B)
+    ///
+    /// See `bundle()` for semantic details; this wrapper optionally applies thinning via
+    /// `ReversibleVSAConfig`.
     ///
     /// # Examples
     ///
@@ -540,6 +566,38 @@ impl SparseVec {
     /// assert!(sim2 > 0.3);
     /// ```
     pub fn bundle(&self, other: &SparseVec) -> SparseVec {
+        // Optional ternary-native fast path (migration gate).
+        // This is primarily intended for cases where vectors become dense enough
+        // that packed word-wise operations are competitive.
+        #[cfg(feature = "bt-phase-2")]
+        {
+            // Converting SparseVec -> PackedTritVec is O(DIM) for allocation/zeroing, plus O(nnz)
+            // for setting lanes. Only attempt the packed path when total density is high enough,
+            // and avoid converting an extremely sparse operand.
+            let a_nnz = self.nnz();
+            let b_nnz = other.nnz();
+            let total = a_nnz + b_nnz;
+            if total > DIM / 4 {
+                let min_nnz = a_nnz.min(b_nnz);
+                if min_nnz > DIM / 32 {
+                    return PACKED_SCRATCH_A.with(|a_cell| {
+                        PACKED_SCRATCH_B.with(|b_cell| {
+                            PACKED_SCRATCH_OUT.with(|out_cell| {
+                                let mut a = a_cell.borrow_mut();
+                                let mut b = b_cell.borrow_mut();
+                                let mut out = out_cell.borrow_mut();
+
+                                a.fill_from_sparsevec(self, DIM);
+                                b.fill_from_sparsevec(other, DIM);
+                                a.bundle_into(&b, &mut out);
+                                out.to_sparsevec()
+                            })
+                        })
+                    });
+                }
+            }
+        }
+
         // Majority voting for two sparse ternary vectors:
         // - Same sign => keep
         // - Opposite signs => cancel to 0
@@ -554,6 +612,122 @@ impl SparseVec {
         let neg = Self::union_sorted(&neg_a, &neg_b);
 
         SparseVec { pos, neg }
+    }
+
+    /// Associative bundle over many vectors: sums contributions per index, then thresholds to sign.
+    /// This is order-independent because all contributions are accumulated before applying sign.
+    /// Complexity: O(K log K) where K is total non-zero entries across inputs.
+    pub fn bundle_sum_many<'a, I>(vectors: I) -> SparseVec
+    where
+        I: IntoIterator<Item = &'a SparseVec>,
+    {
+        let mut contributions: Vec<(usize, i32)> = Vec::new();
+
+        for vec in vectors {
+            contributions.extend(vec.pos.iter().map(|&idx| (idx, 1i32)));
+            contributions.extend(vec.neg.iter().map(|&idx| (idx, -1i32)));
+        }
+
+        if contributions.is_empty() {
+            return SparseVec {
+                pos: Vec::new(),
+                neg: Vec::new(),
+            };
+        }
+
+        contributions.sort_unstable_by_key(|(idx, _)| *idx);
+
+        let mut pos = Vec::new();
+        let mut neg = Vec::new();
+
+        let mut iter = contributions.into_iter();
+        let (mut current_idx, mut acc) = iter.next().unwrap();
+
+        for (idx, value) in iter {
+            if idx == current_idx {
+                acc += value;
+            } else {
+                if acc > 0 {
+                    pos.push(current_idx);
+                } else if acc < 0 {
+                    neg.push(current_idx);
+                }
+                current_idx = idx;
+                acc = value;
+            }
+        }
+
+        if acc > 0 {
+            pos.push(current_idx);
+        } else if acc < 0 {
+            neg.push(current_idx);
+        }
+
+        SparseVec { pos, neg }
+    }
+
+    /// Hybrid bundle: choose a fast pairwise fold for very sparse regimes (to preserve sparsity),
+    /// otherwise use the associative sum-then-threshold path (order-independent, more faithful to majority).
+    ///
+    /// Heuristic: estimate expected overlap/collision count assuming uniform hashing into `DIM`.
+    /// If expected colliding dimensions is below a small budget, use pairwise `bundle`; else use
+    /// `bundle_sum_many`.
+    pub fn bundle_hybrid_many<'a, I>(vectors: I) -> SparseVec
+    where
+        I: IntoIterator<Item = &'a SparseVec>,
+    {
+        let collected: Vec<&'a SparseVec> = vectors.into_iter().collect();
+        if collected.is_empty() {
+            return SparseVec {
+                pos: Vec::new(),
+                neg: Vec::new(),
+            };
+        }
+
+        if collected.len() == 1 {
+            return collected[0].clone();
+        }
+
+        if collected.len() == 2 {
+            return collected[0].bundle(collected[1]);
+        }
+
+        let total_nnz: usize = collected
+            .iter()
+            .map(|v| v.pos.len() + v.neg.len())
+            .sum();
+
+        if total_nnz == 0 {
+            return SparseVec {
+                pos: Vec::new(),
+                neg: Vec::new(),
+            };
+        }
+
+        // Constant-time overlap/collision risk estimate.
+        // Model: each non-zero lands uniformly in DIM dimensions.
+        // Let λ = total_nnz / DIM be expected hits per dimension.
+        // Then P(K>=2) ≈ 1 - e^{-λ}(1+λ) for Poisson(λ).
+        // If expected number of colliding dimensions is tiny, pairwise fold is effectively safe
+        // (and faster). Otherwise, use associative accumulation to avoid order sensitivity.
+        let lambda = total_nnz as f64 / DIM as f64;
+        let p_ge_2 = 1.0 - (-lambda).exp() * (1.0 + lambda);
+        let expected_colliding_dims = p_ge_2 * DIM as f64;
+
+        // Budget: allow a small number of potentially order-sensitive dimensions.
+        // Tune via benchmarks; this is conservative for integrity.
+        let collision_budget_dims = 32.0;
+
+        if expected_colliding_dims <= collision_budget_dims {
+            let mut iter = collected.into_iter();
+            let mut acc = iter.next().unwrap().clone();
+            for v in iter {
+                acc = acc.bundle(v);
+            }
+            return acc;
+        }
+
+        SparseVec::bundle_sum_many(collected)
     }
 
     /// Bind operation: non-commutative composition (A ⊙ B)
@@ -574,27 +748,113 @@ impl SparseVec {
     /// assert!(sim >= -1.0 && sim <= 1.0);
     /// ```
     pub fn bind(&self, other: &SparseVec) -> SparseVec {
+        #[cfg(feature = "bt-phase-2")]
+        {
+            // Packed bind is only worthwhile when both operands are dense enough.
+            // Using a short-circuiting check avoids paying extra overhead for sparse workloads.
+            let a_nnz = self.nnz();
+            if a_nnz > DIM / 4 {
+                let b_nnz = other.nnz();
+                if b_nnz > DIM / 4 {
+                    return PACKED_SCRATCH_A.with(|a_cell| {
+                        PACKED_SCRATCH_B.with(|b_cell| {
+                            PACKED_SCRATCH_OUT.with(|out_cell| {
+                                let mut a = a_cell.borrow_mut();
+                                let mut b = b_cell.borrow_mut();
+                                let mut out = out_cell.borrow_mut();
+
+                                a.fill_from_sparsevec(self, DIM);
+                                b.fill_from_sparsevec(other, DIM);
+                                a.bind_into(&b, &mut out);
+                                out.to_sparsevec()
+                            })
+                        })
+                    });
+                }
+            }
+        }
+
+        // Sparse bind is element-wise multiplication restricted to non-zero support.
+        // We can compute this in a single merge-join over the signed supports, keeping
+        // outputs sorted without any post-sort.
         let mut result_pos = Vec::new();
         let mut result_neg = Vec::new();
 
-        for &idx in &other.pos {
-            if Self::contains_sorted(&self.pos, idx) {
-                result_pos.push(idx);
-            } else if Self::contains_sorted(&self.neg, idx) {
-                result_neg.push(idx);
+        let mut a_pos = 0usize;
+        let mut a_neg = 0usize;
+        let mut b_pos = 0usize;
+        let mut b_neg = 0usize;
+
+        loop {
+            let next_a = match (self.pos.get(a_pos), self.neg.get(a_neg)) {
+                (Some(&p), Some(&n)) => {
+                    if p < n {
+                        Some((p, 1i8, true))
+                    } else {
+                        Some((n, -1i8, false))
+                    }
+                }
+                (Some(&p), None) => Some((p, 1i8, true)),
+                (None, Some(&n)) => Some((n, -1i8, false)),
+                (None, None) => None,
+            };
+
+            let next_b = match (other.pos.get(b_pos), other.neg.get(b_neg)) {
+                (Some(&p), Some(&n)) => {
+                    if p < n {
+                        Some((p, 1i8, true))
+                    } else {
+                        Some((n, -1i8, false))
+                    }
+                }
+                (Some(&p), None) => Some((p, 1i8, true)),
+                (None, Some(&n)) => Some((n, -1i8, false)),
+                (None, None) => None,
+            };
+
+            let Some((idx_a, sign_a, a_is_pos)) = next_a else {
+                break;
+            };
+            let Some((idx_b, sign_b, b_is_pos)) = next_b else {
+                break;
+            };
+
+            match idx_a.cmp(&idx_b) {
+                std::cmp::Ordering::Less => {
+                    if a_is_pos {
+                        a_pos += 1;
+                    } else {
+                        a_neg += 1;
+                    }
+                }
+                std::cmp::Ordering::Greater => {
+                    if b_is_pos {
+                        b_pos += 1;
+                    } else {
+                        b_neg += 1;
+                    }
+                }
+                std::cmp::Ordering::Equal => {
+                    let prod = sign_a * sign_b;
+                    if prod == 1 {
+                        result_pos.push(idx_a);
+                    } else {
+                        result_neg.push(idx_a);
+                    }
+
+                    if a_is_pos {
+                        a_pos += 1;
+                    } else {
+                        a_neg += 1;
+                    }
+                    if b_is_pos {
+                        b_pos += 1;
+                    } else {
+                        b_neg += 1;
+                    }
+                }
             }
         }
-
-        for &idx in &other.neg {
-            if Self::contains_sorted(&self.pos, idx) {
-                result_neg.push(idx);
-            } else if Self::contains_sorted(&self.neg, idx) {
-                result_pos.push(idx);
-            }
-        }
-
-        result_pos.sort_unstable();
-        result_neg.sort_unstable();
 
         SparseVec {
             pos: result_pos,
@@ -622,6 +882,35 @@ impl SparseVec {
     /// assert!(sim < 0.3);
     /// ```
     pub fn cosine(&self, other: &SparseVec) -> f64 {
+        #[cfg(feature = "bt-phase-2")]
+        {
+            // Only use packed cosine when total density is high enough to amortize conversion,
+            // and avoid converting an extremely sparse operand.
+            let a_nnz = self.nnz();
+            let b_nnz = other.nnz();
+            let total = a_nnz + b_nnz;
+            if total > DIM / 4 {
+                let min_nnz = a_nnz.min(b_nnz);
+                if min_nnz > DIM / 32 {
+                    let dot = PACKED_SCRATCH_A.with(|a_cell| {
+                        PACKED_SCRATCH_B.with(|b_cell| {
+                            let mut a = a_cell.borrow_mut();
+                            let mut b = b_cell.borrow_mut();
+                            a.fill_from_sparsevec(self, DIM);
+                            b.fill_from_sparsevec(other, DIM);
+                            a.dot(&b)
+                        })
+                    }) as f64;
+                    let self_norm = a_nnz as f64;
+                    let other_norm = b_nnz as f64;
+                    if self_norm == 0.0 || other_norm == 0.0 {
+                        return 0.0;
+                    }
+                    return dot / (self_norm.sqrt() * other_norm.sqrt());
+                }
+            }
+        }
+
         // Sparse ternary dot product:
         // +1 when signs match, -1 when signs oppose.
         let pp = Self::intersection_count_sorted(&self.pos, &other.pos) as i32;
@@ -630,8 +919,8 @@ impl SparseVec {
         let np = Self::intersection_count_sorted(&self.neg, &other.pos) as i32;
         let dot = (pp + nn) - (pn + np);
 
-        let self_norm = (self.pos.len() + self.neg.len()) as f64;
-        let other_norm = (other.pos.len() + other.neg.len()) as f64;
+        let self_norm = self.nnz() as f64;
+        let other_norm = other.nnz() as f64;
 
         if self_norm == 0.0 || other_norm == 0.0 {
             return 0.0;
