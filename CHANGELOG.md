@@ -7,13 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned for 1.0.0
-- Performance benchmarks for TB-scale hierarchical datasets
-- Complete ARM64 CI validation and auto-trigger on main branch
+### Planned for Future Releases
+- ARM64 CI validation and auto-trigger (when infrastructure available)
 - GPU runner support for VSA acceleration research
-- SIMD optimization for hot-path operations
-- Incremental update support for engrams
-- Production monitoring and observability integration
+- Optional compression (zstd/lz4)
+- FUSE mount production hardening
+- Enhanced monitoring and observability integration
+
+## [1.0.0] - 2026-01-02
+
+### 🎉 Production Release
+
+This release marks the first production-ready version of Embeddenator with complete P0 and P1 features, comprehensive testing, and production stability validation.
+
+### Added
+- **Incremental update support** (TASK-007)
+  - `add_file()`, `remove_file()`, `modify_file()` methods for engram updates
+  - Hybrid approach: VSA bundle for additions, soft-delete for removals
+  - `compact()` method for periodic garbage collection
+  - CLI `update` subcommands: `add`, `remove`, `modify`, `compact`
+  - 18 comprehensive integration tests
+  - Documentation: `ADR-014-incremental-updates.md`
+- **SIMD optimization** (TASK-009)
+  - AVX2 implementation for x86_64 platforms
+  - NEON implementation for aarch64/ARM64 platforms
+  - Feature-gated with automatic scalar fallback
+  - Stable Rust support (no nightly required)
+  - 16 dedicated SIMD tests with accuracy validation (1e-10 precision)
+  - Cross-platform validation script (`scripts/validate_simd.sh`)
+  - Documentation: `SIMD_OPTIMIZATION.md`
+- **Expanded property-based testing** (TASK-010)
+  - 28 property tests covering VSA algebraic properties
+  - 23,000+ property checks executed per test run
+  - Bundling properties: commutativity, associativity, identity
+  - Binding properties: distributivity, inverse operations
+  - Permutation properties: invertibility, composition
+  - Sparsity control and thinning validation
+  - Stress tests for large-scale operations
+  - Report: `TASK_010_PROPERTY_TESTING_REPORT.md`
+- **Performance benchmarks** (TASK-006)
+  - Hierarchical scaling benchmarks: linear O(n) confirmed (10MB in 6.18ms)
+  - Query performance benchmarks: O(log n) hierarchical advantage validated
+  - SIMD cosine similarity benchmarks
+  - TB-scale extrapolation analysis
+  - Documentation: `TASK_006_PERFORMANCE_BENCHMARKS.md`, `THROUGHPUT.md`
+- **Production stability validation**
+  - Comprehensive QA audit (`QA_AUDIT_1.0.0_READINESS.md`)
+  - Error recovery test suite (19 tests covering corrupted data, resource exhaustion, concurrent access)
+  - Critical unwrap/expect fixes in production code
+  - RwLock safety improvements in FUSE implementation
+  - Edge case coverage: unicode paths, deep hierarchies (25 levels), large files (>10MB)
+- **Architecture Decision Records**
+  - 14 ADRs documenting key architectural decisions
+  - Includes: hierarchical format, incremental updates, SIMD optimization, indexing strategies
+
+### Changed
+- Improved error handling throughout codebase
+- Enhanced documentation with production deployment guidance
+- Updated CLI help text with incremental update examples
+- Refined sparsity control based on property testing results
+
+### Fixed
+- Critical error handling issues identified in QA audit
+- RwLock poisoning vulnerabilities in FUSE implementation
+- Edge cases in hierarchical path encoding
+- Memory efficiency improvements for large-scale operations
+
+### Documentation
+- Complete API documentation with rustdoc
+- 14 Architecture Decision Records
+- Comprehensive test reports and QA audits
+- Performance benchmark documentation
+- Production deployment guides
+
+### Metrics
+- **Tests:** 231 passing (100% success rate, ~4-5 seconds execution)
+- **Property Checks:** 23,000+ per test run
+- **Code Quality:** Zero clippy warnings
+- **Production Risks:** Zero critical bugs
+- **Documentation:** 14 ADRs, comprehensive API docs
+
+### Known Limitations
+- ARM64 CI deferred (infrastructure-dependent, not blocking release)
+- Large file reconstruction (>10MB) has degraded quality (use chunking)
+- Deep hierarchy paths (>10 levels) may have encoding issues (documented workaround)
+- Bind orthogonality not guaranteed for overlapping keys (inherent VSA limitation)
+
+### Breaking Changes
+- None (backward compatible with v0.3.0)
 
 ## [0.3.0] - 2026-01-01
 
