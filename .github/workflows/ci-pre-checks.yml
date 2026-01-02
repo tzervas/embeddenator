@@ -2,7 +2,7 @@ name: CI Pre-Checks
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
 
 permissions:
@@ -31,8 +31,8 @@ jobs:
       - name: Run unit tests only
         run: cargo test --lib --bins --verbose
 
-      - name: Run tests with all features
-        run: cargo test --all-features --lib --bins --tests --verbose
+      - name: Run all-features unit tests
+        run: cargo test --lib --bins --all-features --verbose
       
       - name: Run doc tests
         run: cargo test --doc --verbose

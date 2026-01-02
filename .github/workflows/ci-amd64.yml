@@ -58,6 +58,12 @@ jobs:
         run: |
           echo "🧪 Running full test suite on amd64"
           cargo test --verbose
+
+      - name: Run all-features test suite (amd64)
+        timeout-minutes: 15
+        run: |
+          echo "🧪 Running all-features test suite on amd64"
+          cargo test --all-features --verbose
       
       - name: Run integration tests via orchestrator (amd64)
         timeout-minutes: 10
