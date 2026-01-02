@@ -3,6 +3,7 @@
 //! Verifies that SIMD implementations produce identical results to scalar
 //! implementation and maintains all expected mathematical properties.
 
+use embeddenator::simd_cosine::{cosine_scalar, cosine_simd};
 use embeddenator::{ReversibleVSAConfig, SparseVec};
 
 #[cfg(feature = "simd")]
@@ -16,7 +17,7 @@ fn test_cosine_scalar_basic() {
     let c = SparseVec::encode_data(b"goodbye world", &cfg, None);
 
     // Identical vectors should have high similarity
-    let sim_same = a.cosine_scalar(&b);
+    let sim_same = cosine_scalar(&a, &b);
     assert!(
         sim_same > 0.9,
         "Expected high similarity for identical vectors, got {}",
@@ -24,7 +25,7 @@ fn test_cosine_scalar_basic() {
     );
 
     // Different vectors should have lower similarity
-    let sim_diff = a.cosine_scalar(&c);
+    let sim_diff = cosine_scalar(&a, &c);
     assert!(
         sim_diff < sim_same,
         "Different vectors should have lower similarity: {} vs {}",
@@ -81,9 +82,9 @@ fn test_empty_vectors() {
     let non_empty = SparseVec::encode_data(b"test", &cfg, None);
 
     // Empty vectors should have zero similarity with anything
-    assert_eq!(empty.cosine_scalar(&empty), 0.0);
-    assert_eq!(empty.cosine_scalar(&non_empty), 0.0);
-    assert_eq!(non_empty.cosine_scalar(&empty), 0.0);
+    assert_eq!(cosine_scalar(&empty, &empty), 0.0);
+    assert_eq!(cosine_scalar(&empty, &non_empty), 0.0);
+    assert_eq!(cosine_scalar(&non_empty, &empty), 0.0);
 }
 
 #[test]
@@ -343,7 +344,7 @@ fn test_cosine_with_feature_gate() {
     assert!(sim >= -1.0 && sim <= 1.0);
 
     // Should match scalar baseline
-    let sim_scalar = a.cosine_scalar(&b);
+    let sim_scalar = cosine_scalar(&a, &b);
     assert!((sim - sim_scalar).abs() < 1e-10);
 }
 

@@ -92,6 +92,7 @@ bt-migration = ["bt-phase-3"]
 # `unexpected cfg condition value` warnings when compiling tests.
 proptest = []
 afl = []
+simd = []
 
 # Reserved for a future on-disk deterministic baseline codebook loader/generator.
 baseline-codebook = []
