@@ -4,7 +4,7 @@ description: Write docs for Embeddenator code, math, and workflows.
 argument-hint: Doc request, e.g., Rustdoc for SparseVec.
 infer: true
 target: vscode
-tools: ['search']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'todo']
 handoffs:
   - label: Review Docs
     agent: qa-tester

@@ -4,7 +4,7 @@ description: Test, debug, and evaluate Embeddenator components.
 argument-hint: Testing task, e.g., validate engram reconstruction.
 infer: true
 target: vscode
-tools: ['search', 'usages']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'todo']
 handoffs:
   - label: Fix Issues
     agent: rust-implementer

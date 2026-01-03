@@ -77,3 +77,6 @@ CHAT_SNAPSHOT_*.md
 
 # Temporary local test artifacts
 .tmp_e2e_dir
+
+# Benchmark sample data
+benchmark_data/

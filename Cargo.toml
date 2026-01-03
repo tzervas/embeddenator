@@ -28,6 +28,10 @@ harness = false
 name = "retrieval"
 harness = false
 
+[[bench]]
+name = "real_world"
+harness = false
+
 [[bin]]
 name = "embeddenator"
 path = "src/main.rs"
@@ -49,6 +53,8 @@ lz4_flex = { version = "0.11", optional = true }
 # FUSE userspace filesystem (Linux/macOS only)
 fuser = { version = "0.16", optional = true }
 libc = "0.2"
+arc-swap = "1.8.0"
+rustc-hash = "2.1.1"
 
 [dev-dependencies]
 tempfile = "3.13"

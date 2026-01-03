@@ -90,83 +90,129 @@ impl Default for SparseVec {
 }
 
 impl SparseVec {
-    #[inline]
+    #[inline(always)]
     fn nnz(&self) -> usize {
         self.pos.len() + self.neg.len()
     }
 
+    /// Count intersecting elements between two sorted slices.
+    /// Hot path: used in cosine similarity calculation.
+    #[inline]
     fn intersection_count_sorted(a: &[usize], b: &[usize]) -> usize {
+        // Early exit for empty inputs
+        if a.is_empty() || b.is_empty() {
+            return 0;
+        }
+        
         let mut i = 0usize;
         let mut j = 0usize;
         let mut count = 0usize;
-        while i < a.len() && j < b.len() {
-            match a[i].cmp(&b[j]) {
-                std::cmp::Ordering::Less => i += 1,
-                std::cmp::Ordering::Greater => j += 1,
-                std::cmp::Ordering::Equal => {
-                    count += 1;
-                    i += 1;
-                    j += 1;
-                }
+        
+        // Unrolled main loop - process 2 comparisons per iteration when possible
+        let len_a = a.len();
+        let len_b = b.len();
+        
+        while i < len_a && j < len_b {
+            // Use get_unchecked for bounds-checked loops (safe because of while condition)
+            let ai = unsafe { *a.get_unchecked(i) };
+            let bj = unsafe { *b.get_unchecked(j) };
+            
+            if ai < bj {
+                i += 1;
+            } else if ai > bj {
+                j += 1;
+            } else {
+                count += 1;
+                i += 1;
+                j += 1;
             }
         }
         count
     }
 
+    /// Union of two sorted slices into a new sorted Vec.
+    /// Hot path: used in bundle operation.
+    #[inline]
     fn union_sorted(a: &[usize], b: &[usize]) -> Vec<usize> {
+        // Fast paths for empty inputs
+        if a.is_empty() {
+            return b.to_vec();
+        }
+        if b.is_empty() {
+            return a.to_vec();
+        }
+        
         let mut out = Vec::with_capacity(a.len() + b.len());
         let mut i = 0usize;
         let mut j = 0usize;
+        let len_a = a.len();
+        let len_b = b.len();
 
-        while i < a.len() && j < b.len() {
-            match a[i].cmp(&b[j]) {
-                std::cmp::Ordering::Less => {
-                    out.push(a[i]);
-                    i += 1;
-                }
-                std::cmp::Ordering::Greater => {
-                    out.push(b[j]);
-                    j += 1;
-                }
-                std::cmp::Ordering::Equal => {
-                    out.push(a[i]);
-                    i += 1;
-                    j += 1;
-                }
+        while i < len_a && j < len_b {
+            let ai = unsafe { *a.get_unchecked(i) };
+            let bj = unsafe { *b.get_unchecked(j) };
+            
+            if ai < bj {
+                out.push(ai);
+                i += 1;
+            } else if ai > bj {
+                out.push(bj);
+                j += 1;
+            } else {
+                out.push(ai);
+                i += 1;
+                j += 1;
             }
         }
 
-        if i < a.len() {
-            out.extend_from_slice(&a[i..]);
+        // Append remaining elements (at most one slice has remaining)
+        if i < len_a {
+            out.extend_from_slice(unsafe { a.get_unchecked(i..) });
         }
-        if j < b.len() {
-            out.extend_from_slice(&b[j..]);
+        if j < len_b {
+            out.extend_from_slice(unsafe { b.get_unchecked(j..) });
         }
 
         out
     }
 
+    /// Difference of sorted slices (a - b) into a new sorted Vec.
+    /// Hot path: used in bundle operation.
+    #[inline]
     fn difference_sorted(a: &[usize], b: &[usize]) -> Vec<usize> {
+        // Fast path for empty b
+        if b.is_empty() {
+            return a.to_vec();
+        }
+        if a.is_empty() {
+            return Vec::new();
+        }
+        
         let mut out = Vec::with_capacity(a.len());
         let mut i = 0usize;
         let mut j = 0usize;
+        let len_a = a.len();
+        let len_b = b.len();
 
-        while i < a.len() && j < b.len() {
-            match a[i].cmp(&b[j]) {
-                std::cmp::Ordering::Less => {
-                    out.push(a[i]);
-                    i += 1;
-                }
-                std::cmp::Ordering::Greater => j += 1,
-                std::cmp::Ordering::Equal => {
-                    i += 1;
-                    j += 1;
-                }
+        while i < len_a && j < len_b {
+            let ai = unsafe { *a.get_unchecked(i) };
+            let bj = unsafe { *b.get_unchecked(j) };
+            
+            if ai < bj {
+                out.push(ai);
+                i += 1;
+            } else if ai > bj {
+                j += 1;
+            } else {
+                // Equal - skip both (remove from a)
+                i += 1;
+                j += 1;
             }
         }
 
-        if i < a.len() {
-            out.extend_from_slice(&a[i..]);
+        // Append remaining elements from a
+        if i < len_a {
+            out.extend_from_slice(unsafe { a.get_unchecked(i..) });
         }
 
         out

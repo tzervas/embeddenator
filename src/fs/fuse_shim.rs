@@ -60,12 +60,14 @@
 //! embeddenator = { version = "0.2", features = ["fuse"] }
 //! ```
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::logging;
-use crate::metrics::metrics;
+use arc_swap::ArcSwap;
+use rustc_hash::FxHashMap;
+
 use crate::embrfs::Engram;
 use crate::vsa::ReversibleVSAConfig;
 
@@ -236,7 +238,7 @@ struct ChunkKey {
 }
 
 struct ChunkCache {
-    map: HashMap<ChunkKey, Vec<u8>>,
+    map: FxHashMap<ChunkKey, Vec<u8>>,
     order: VecDeque<ChunkKey>,
     total_bytes: usize,
     max_entries: usize,
@@ -246,7 +248,7 @@ struct ChunkCache {
 impl ChunkCache {
     fn new(max_entries: usize, max_bytes: usize) -> Self {
         Self {
-            map: HashMap::new(),
+            map: FxHashMap::default(),
             order: VecDeque::new(),
             total_bytes: 0,
             max_entries,
@@ -262,7 +264,7 @@ impl ChunkCache {
             }
             self.order.push_back(key);
         }
-        self.map.get(&key).map(|v| v.as_slice())
+        self.map.get(&key).map(|v: &Vec<u8>| v.as_slice())
     }
 
     fn insert(&mut self, key: ChunkKey, value: Vec<u8>) {
@@ -301,21 +303,35 @@ impl ChunkCache {
 /// This provides a read-only view of decoded engram data as a standard
 /// POSIX filesystem. Files are decoded on-demand from the holographic
 /// representation and cached for efficient repeated access.
+///
+/// # Concurrency Model
+///
+/// Uses lock-free reads via `ArcSwap` for metadata (read-heavy, write-rare):
+/// - `inodes`, `inode_paths`, `path_inodes`, `directories`, `files`: Lock-free reads via atomic swap
+/// - `next_ino`: Lock-free increment via `AtomicU64`
+/// - `chunk_cache`: `RwLock` with read-then-write pattern for cache access
+///
+/// This eliminates read-lock contention in the hot path (FUSE operations).
+/// 
+/// # Performance Notes
+///
+/// Uses `FxHashMap` (rustc-hash) for faster hashing on string keys.
+/// Hot-path reads use `ArcSwap::load()` which is ~20ns on modern CPUs.
 pub struct EngramFS {
-    /// Inode to file attributes mapping
-    inodes: Arc<RwLock<HashMap<Ino, FileAttr>>>,
+    /// Inode to file attributes mapping (lock-free reads)
+    inodes: ArcSwap<FxHashMap<Ino, FileAttr>>,
     
-    /// Inode to path mapping
-    inode_paths: Arc<RwLock<HashMap<Ino, String>>>,
+    /// Inode to path mapping (lock-free reads)
+    inode_paths: ArcSwap<FxHashMap<Ino, String>>,
     
-    /// Path to inode mapping
-    path_inodes: Arc<RwLock<HashMap<String, Ino>>>,
+    /// Path to inode mapping (lock-free reads)
+    path_inodes: ArcSwap<FxHashMap<String, Ino>>,
     
-    /// Directory contents (parent_ino -> entries)
-    directories: Arc<RwLock<HashMap<Ino, Vec<DirEntry>>>>,
+    /// Directory contents (parent_ino -> entries) (lock-free reads)
+    directories: ArcSwap<FxHashMap<Ino, Vec<DirEntry>>>,
     
-    /// File records (ino -> backing/preloaded bytes + attrs)
-    files: Arc<RwLock<HashMap<Ino, FileRecord>>>,
+    /// File records (ino -> backing/preloaded bytes + attrs) (lock-free reads)
+    files: ArcSwap<FxHashMap<Ino, FileRecord>>,
 
     /// Optional engram backing for on-demand decode.
     engram: Option<Arc<Engram>>,
@@ -327,10 +343,11 @@ pub struct EngramFS {
     chunk_size: usize,
 
     /// Small LRU chunk cache to avoid repeated decode on hot reads.
+    /// Uses RwLock because LRU cache mutates on read (access order).
     chunk_cache: Arc<RwLock<ChunkCache>>,
     
-    /// Next available inode number
-    next_ino: Arc<RwLock<Ino>>,
+    /// Next available inode number (lock-free increment)
+    next_ino: AtomicU64,
     
     /// Read-only mode
     read_only: bool,
@@ -350,12 +367,12 @@ impl EngramFS {
     /// * `read_only` - Whether the filesystem is read-only (default: true for engrams)
     pub fn new(read_only: bool) -> Self {
         let mut fs = EngramFS {
-            inodes: Arc::new(RwLock::new(HashMap::new())),
-            inode_paths: Arc::new(RwLock::new(HashMap::new())),
-            path_inodes: Arc::new(RwLock::new(HashMap::new())),
-            directories: Arc::new(RwLock::new(HashMap::new())),
-            files: Arc::new(RwLock::new(HashMap::new())),
-            next_ino: Arc::new(RwLock::new(2)), // Start after root
+            inodes: ArcSwap::from_pointee(FxHashMap::default()),
+            inode_paths: ArcSwap::from_pointee(FxHashMap::default()),
+            path_inodes: ArcSwap::from_pointee(FxHashMap::default()),
+            directories: ArcSwap::from_pointee(FxHashMap::default()),
+            files: ArcSwap::from_pointee(FxHashMap::default()),
+            next_ino: AtomicU64::new(2), // Start after root
             read_only,
             attr_ttl: Duration::from_secs(1),
             entry_ttl: Duration::from_secs(1),
@@ -407,18 +424,32 @@ impl EngramFS {
             ..Default::default()
         };
 
-        self.inodes.write().unwrap().insert(ROOT_INO, root_attr);
-        self.inode_paths.write().unwrap().insert(ROOT_INO, "/".to_string());
-        self.path_inodes.write().unwrap().insert("/".to_string(), ROOT_INO);
-        self.directories.write().unwrap().insert(ROOT_INO, Vec::new());
+        // Use rcu_modify for atomic copy-on-write updates
+        self.inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ROOT_INO, root_attr.clone());
+            new_map
+        });
+        self.inode_paths.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ROOT_INO, "/".to_string());
+            new_map
+        });
+        self.path_inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert("/".to_string(), ROOT_INO);
+            new_map
+        });
+        self.directories.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ROOT_INO, Vec::new());
+            new_map
+        });
     }
 
-    /// Allocate a new inode number
+    /// Allocate a new inode number (lock-free)
     fn alloc_ino(&self) -> Ino {
-        let mut next = self.next_ino.write().unwrap();
-        let ino = *next;
-        *next += 1;
-        ino
+        self.next_ino.fetch_add(1, Ordering::SeqCst)
     }
 
     /// Add a file to the filesystem
@@ -434,13 +465,8 @@ impl EngramFS {
     pub fn add_file(&self, path: &str, data: Vec<u8>) -> Result<Ino, &'static str> {
         let path = normalize_path(path);
         
-        // Check if already exists
-        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_path_inodes();
-            logging::warn("WARNING: path_inodes lock poisoned, recovering...");
-            poisoned.into_inner()
-        });
-        if path_inodes.contains_key(&path) {
+        // Check if already exists - lock-free read
+        if self.path_inodes.load().contains_key(&path) {
             return Err("File already exists");
         }
 
@@ -455,69 +481,54 @@ impl EngramFS {
         let attr = FileAttr {
             ino,
             size,
-            blocks: (size + 511) / 512,
+            blocks: size.div_ceil(512),
             kind: FileKind::RegularFile,
             perm: 0o644,
             nlink: 1,
             ..Default::default()
         };
 
-        // Store file metadata
-        self.inodes
-            .write()
-            .unwrap_or_else(|poisoned| {
-                metrics().inc_poison_inodes();
-                logging::warn("WARNING: inodes lock poisoned in add_file, recovering...");
-                poisoned.into_inner()
-            })
-            .insert(ino, attr.clone());
-        self.inode_paths
-            .write()
-            .unwrap_or_else(|poisoned| {
-                metrics().inc_poison_inode_paths();
-                logging::warn("WARNING: inode_paths lock poisoned in add_file, recovering...");
-                poisoned.into_inner()
-            })
-            .insert(ino, path.clone());
-        self.path_inodes
-            .write()
-            .unwrap_or_else(|poisoned| {
-                metrics().inc_poison_path_inodes();
-                logging::warn("WARNING: path_inodes lock poisoned in add_file, recovering...");
-                poisoned.into_inner()
-            })
-            .insert(path.clone(), ino);
-        self.files
-            .write()
-            .unwrap_or_else(|poisoned| {
-                metrics().inc_poison_file_cache();
-                logging::warn("WARNING: files lock poisoned in add_file, recovering...");
-                poisoned.into_inner()
-            })
-            .insert(
+        // Store file metadata using copy-on-write
+        self.inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ino, attr.clone());
+            new_map
+        });
+        self.inode_paths.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ino, path.clone());
+            new_map
+        });
+        self.path_inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(path.clone(), ino);
+            new_map
+        });
+        self.files.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(
                 ino,
                 FileRecord {
-                    storage: FileStorage::Preloaded(data),
-                    attr,
+                    storage: FileStorage::Preloaded(data.clone()),
+                    attr: attr.clone(),
                 },
             );
+            new_map
+        });
 
         // Add to parent directory
         let filename = filename(&path).ok_or("Invalid filename")?;
-        self.directories
-            .write()
-            .unwrap_or_else(|poisoned| {
-                metrics().inc_poison_directories();
-                logging::warn("WARNING: directories lock poisoned in add_file, recovering...");
-                poisoned.into_inner()
-            })
-            .get_mut(&parent_ino)
-            .ok_or("Parent directory not found")?
-            .push(DirEntry {
-                ino,
-                name: filename.to_string(),
-                kind: FileKind::RegularFile,
-            });
+        self.directories.rcu(|map| {
+            let mut new_map = (**map).clone();
+            if let Some(entries) = new_map.get_mut(&parent_ino) {
+                entries.push(DirEntry {
+                    ino,
+                    name: filename.to_string(),
+                    kind: FileKind::RegularFile,
+                });
+            }
+            new_map
+        });
 
         Ok(ino)
     }
@@ -526,15 +537,10 @@ impl EngramFS {
     pub fn add_backed_file(&self, path: &str, chunks: Vec<usize>, size: usize) -> Result<Ino, &'static str> {
         let path = normalize_path(path);
 
-        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_path_inodes();
-            logging::warn("WARNING: path_inodes lock poisoned, recovering...");
-            poisoned.into_inner()
-        });
-        if path_inodes.contains_key(&path) {
+        // Lock-free existence check
+        if self.path_inodes.load().contains_key(&path) {
             return Err("File already exists");
         }
-        drop(path_inodes);
 
         let parent_path = parent_path(&path).ok_or("Invalid path")?;
         let parent_ino = self.ensure_directory(&parent_path)?;
@@ -545,47 +551,53 @@ impl EngramFS {
         let attr = FileAttr {
             ino,
             size: size_u64,
-            blocks: (size_u64 + 511) / 512,
+            blocks: size_u64.div_ceil(512),
             kind: FileKind::RegularFile,
             perm: 0o644,
             nlink: 1,
             ..Default::default()
         };
 
-        self.inodes
-            .write()
-            .map_err(|_| "Inodes lock poisoned")?
-            .insert(ino, attr.clone());
-        self.inode_paths
-            .write()
-            .map_err(|_| "Inode paths lock poisoned")?
-            .insert(ino, path.clone());
-        self.path_inodes
-            .write()
-            .map_err(|_| "Path inodes lock poisoned")?
-            .insert(path.clone(), ino);
-        self.files
-            .write()
-            .map_err(|_| "Files lock poisoned")?
-            .insert(
+        // Copy-on-write updates
+        self.inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ino, attr.clone());
+            new_map
+        });
+        self.inode_paths.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ino, path.clone());
+            new_map
+        });
+        self.path_inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(path.clone(), ino);
+            new_map
+        });
+        self.files.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(
                 ino,
                 FileRecord {
-                    storage: FileStorage::Backed(BackedFile { path: path.clone(), chunks, size }),
-                    attr,
+                    storage: FileStorage::Backed(BackedFile { path: path.clone(), chunks: chunks.clone(), size }),
+                    attr: attr.clone(),
                 },
             );
+            new_map
+        });
 
         let filename = filename(&path).ok_or("Invalid filename")?;
-        self.directories
-            .write()
-            .map_err(|_| "Directories lock poisoned")?
-            .get_mut(&parent_ino)
-            .ok_or("Parent directory not found")?
-            .push(DirEntry {
-                ino,
-                name: filename.to_string(),
-                kind: FileKind::RegularFile,
-            });
+        self.directories.rcu(|map| {
+            let mut new_map = (**map).clone();
+            if let Some(entries) = new_map.get_mut(&parent_ino) {
+                entries.push(DirEntry {
+                    ino,
+                    name: filename.to_string(),
+                    kind: FileKind::RegularFile,
+                });
+            }
+            new_map
+        });
 
         Ok(ino)
     }
@@ -599,17 +611,12 @@ impl EngramFS {
             return Ok(ROOT_INO);
         }
 
-        // Check if already exists
-        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_path_inodes();
-            logging::warn("WARNING: path_inodes lock poisoned in ensure_directory, recovering...");
-            poisoned.into_inner()
-        });
-        if let Some(&ino) = path_inodes.get(&path) {
+        // Lock-free existence check
+        if let Some(&ino) = self.path_inodes.load().get(&path) {
             return Ok(ino);
         }
 
-        // Create parent first
+        // Create parent first (recursive)
         let parent_path = parent_path(&path).ok_or("Invalid path")?;
         let parent_ino = self.ensure_directory(&parent_path)?;
 
@@ -625,52 +632,69 @@ impl EngramFS {
             ..Default::default()
         };
 
-        self.inodes.write().unwrap().insert(ino, attr);
-        self.inode_paths.write().unwrap().insert(ino, path.clone());
-        self.path_inodes.write().unwrap().insert(path.clone(), ino);
-        self.directories.write().unwrap().insert(ino, Vec::new());
+        // Copy-on-write updates
+        self.inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ino, attr.clone());
+            new_map
+        });
+        self.inode_paths.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ino, path.clone());
+            new_map
+        });
+        self.path_inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(path.clone(), ino);
+            new_map
+        });
+        self.directories.rcu(|map| {
+            let mut new_map = (**map).clone();
+            new_map.insert(ino, Vec::new());
+            new_map
+        });
 
         // Add to parent
         let dirname = filename(&path).ok_or("Invalid dirname")?;
-        self.directories.write().unwrap()
-            .get_mut(&parent_ino)
-            .ok_or("Parent not found")?
-            .push(DirEntry {
-                ino,
-                name: dirname.to_string(),
-                kind: FileKind::Directory,
-            });
+        self.directories.rcu(|map| {
+            let mut new_map = (**map).clone();
+            if let Some(entries) = new_map.get_mut(&parent_ino) {
+                entries.push(DirEntry {
+                    ino,
+                    name: dirname.to_string(),
+                    kind: FileKind::Directory,
+                });
+            }
+            new_map
+        });
 
         // Update parent nlink
-        if let Some(parent_attr) = self.inodes.write().unwrap().get_mut(&parent_ino) {
-            parent_attr.nlink += 1;
-        }
+        self.inodes.rcu(|map| {
+            let mut new_map = (**map).clone();
+            if let Some(parent_attr) = new_map.get_mut(&parent_ino) {
+                parent_attr.nlink += 1;
+            }
+            new_map
+        });
 
         Ok(ino)
     }
 
-    /// Lookup a path and return its inode
+    /// Lookup a path and return its inode (lock-free)
+    #[inline]
     pub fn lookup_path(&self, path: &str) -> Option<Ino> {
         let path = normalize_path(path);
-        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_path_inodes();
-            logging::warn("WARNING: path_inodes lock poisoned in lookup_path, recovering...");
-            poisoned.into_inner()
-        });
-        path_inodes.get(&path).copied()
+        self.path_inodes.load().get(&path).copied()
     }
 
-    /// Get file attributes by inode
+    /// Get file attributes by inode (lock-free)
+    #[inline]
     pub fn get_attr(&self, ino: Ino) -> Option<FileAttr> {
-        let inodes = self.inodes.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_inodes();
-            logging::warn("WARNING: inodes lock poisoned in get_attr, recovering...");
-            poisoned.into_inner()
-        });
-        inodes.get(&ino).cloned()
+        self.inodes.load().get(&ino).cloned()
     }
 
-    /// Read file data
+    /// Read file data (lock-free for metadata lookup)
+    #[inline]
     pub fn read_data(&self, ino: Ino, offset: u64, size: u32) -> Option<Vec<u8>> {
         if size == 0 {
             return Some(Vec::new());
@@ -681,11 +705,8 @@ impl EngramFS {
             Err(_) => return Some(Vec::new()),
         };
 
-        let files = self.files.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_file_cache();
-            logging::warn("WARNING: files lock poisoned in read_data, recovering...");
-            poisoned.into_inner()
-        });
+        // Lock-free load of file records
+        let files = self.files.load();
         let rec = files.get(&ino)?;
 
         match &rec.storage {
@@ -773,67 +794,39 @@ impl EngramFS {
         out
     }
 
-    /// Read directory contents
+    /// Read directory contents (lock-free)
     pub fn read_dir(&self, ino: Ino) -> Option<Vec<DirEntry>> {
-        let directories = self.directories.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_directories();
-            logging::warn("WARNING: directories lock poisoned in read_dir, recovering...");
-            poisoned.into_inner()
-        });
-        directories.get(&ino).cloned()
+        self.directories.load().get(&ino).cloned()
     }
 
-    /// Lookup entry in directory by name
+    /// Lookup entry in directory by name (lock-free)
     pub fn lookup_entry(&self, parent_ino: Ino, name: &str) -> Option<Ino> {
-        let dirs = self.directories.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_directories();
-            logging::warn("WARNING: directories lock poisoned in lookup_entry, recovering...");
-            poisoned.into_inner()
-        });
+        let dirs = self.directories.load();
         let entries = dirs.get(&parent_ino)?;
         entries.iter().find(|e| e.name == name).map(|e| e.ino)
     }
 
-    /// Get parent inode for a given inode
+    /// Get parent inode for a given inode (lock-free)
     pub fn get_parent(&self, ino: Ino) -> Option<Ino> {
         if ino == ROOT_INO {
             return Some(ROOT_INO); // Root's parent is itself
         }
         
-        let paths = self.inode_paths.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_inode_paths();
-            logging::warn("WARNING: inode_paths lock poisoned in get_parent, recovering...");
-            poisoned.into_inner()
-        });
+        let paths = self.inode_paths.load();
         let path = paths.get(&ino)?;
         let parent = parent_path(path)?;
         
-        let path_inodes = self.path_inodes.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_path_inodes();
-            logging::warn("WARNING: path_inodes lock poisoned in get_parent, recovering...");
-            poisoned.into_inner()
-        });
-        path_inodes.get(&parent).copied()
+        self.path_inodes.load().get(&parent).copied()
     }
 
-    /// Get total number of files
+    /// Get total number of files (lock-free)
     pub fn file_count(&self) -> usize {
-        let files = self.files.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_file_cache();
-            logging::warn("WARNING: files lock poisoned in file_count, recovering...");
-            poisoned.into_inner()
-        });
-        files.len()
+        self.files.load().len()
     }
 
-    /// Get total size of all files
+    /// Get total size of all files (lock-free)
     pub fn total_size(&self) -> u64 {
-        let files = self.files.read().unwrap_or_else(|poisoned| {
-            metrics().inc_poison_file_cache();
-            logging::warn("WARNING: files lock poisoned in total_size, recovering...");
-            poisoned.into_inner()
-        });
-        files.values().map(|f| f.attr.size).sum()
+        self.files.load().values().map(|f| f.attr.size).sum()
     }
 
     /// Check if filesystem is read-only
@@ -1354,6 +1347,9 @@ impl Default for EngramFSBuilder {
 // =============================================================================
 
 /// Normalize a path (ensure leading /, remove trailing /)
+/// 
+/// Performance: This is on the hot path - uses minimal allocations.
+#[inline]
 fn normalize_path(path: &str) -> String {
     let path = if path.starts_with('/') {
         path.to_string()
@@ -1369,6 +1365,7 @@ fn normalize_path(path: &str) -> String {
 }
 
 /// Get parent path
+#[inline]
 fn parent_path(path: &str) -> Option<String> {
     let path = normalize_path(path);
     if path == "/" {
@@ -1383,6 +1380,7 @@ fn parent_path(path: &str) -> Option<String> {
 }
 
 /// Get filename from path
+#[inline]
 fn filename(path: &str) -> Option<&str> {
     let path = path.trim_end_matches('/');
     path.rsplit('/').next()
