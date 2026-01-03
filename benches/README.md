@@ -49,6 +49,38 @@ cargo bench --bench hierarchical_scale -- "10MB"
 cargo bench --bench hierarchical_scale -- --sample-size 10
 ```
 
+### real_world.rs
+Real-world data encoding and retrieval benchmarks.
+
+**Benchmarks:**
+- `image_encoding`: PNG/JPEG-like gradient and noise patterns at various resolutions
+- `video_frames`: Frame sequence encoding, similarity detection, temporal bundling
+- `audio_encoding`: Audio sample encoding, fingerprint comparison
+- `document_encoding`: Text document encoding, retrieval index performance
+- `binary_encoding`: Executable/archive blob encoding and roundtrip
+- `render_tasks`: Render output caching, tile similarity search
+- `mixed_workload`: Cross-type encoding, similarity, bundling
+- `streaming`: Chunked data processing, rolling window aggregation
+
+**Data Sources:**
+- Synthetic: Gradients, noise patterns, sine waves, lorem ipsum
+- Real (optional): Download via `./scripts/fetch_benchmark_data.sh`
+
+**Run:**
+```bash
+# Download sample data first (optional, improves realism)
+./scripts/fetch_benchmark_data.sh
+
+# Run all real-world benchmarks
+cargo bench --bench real_world
+
+# Run specific categories
+cargo bench --bench real_world -- "image"
+cargo bench --bench real_world -- "video"
+cargo bench --bench real_world -- "render"
+cargo bench --bench real_world -- "streaming"
+```
+
 ### query_hierarchical.rs
 Hierarchical query performance benchmarking.
 

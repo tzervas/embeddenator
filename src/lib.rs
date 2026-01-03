@@ -86,6 +86,9 @@ pub mod logging;
 #[path = "obs/metrics.rs"]
 pub mod metrics;
 
+#[path = "obs/hires_timing.rs"]
+pub mod hires_timing;
+
 #[path = "core/resonator.rs"]
 pub mod resonator;
 
@@ -107,11 +110,18 @@ pub mod ternary_vec;
 #[path = "vsa/bitsliced.rs"]
 pub mod bitsliced;
 
+#[path = "vsa/hybrid.rs"]
+pub mod hybrid;
+
 #[path = "vsa/soft_ternary.rs"]
 pub mod soft_ternary;
 
 #[path = "vsa/vsa.rs"]
 pub mod vsa;
+
+/// Testing utilities: metrics, integrity validation, chaos injection.
+#[cfg(test)]
+pub mod testing;
 
 // Re-export main types for convenience
 pub use codebook::{Codebook, BalancedTernaryWord, ProjectionResult, SemanticOutlier, WordMetadata};
@@ -137,6 +147,7 @@ pub use resonator::Resonator;
 pub use retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
 pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
 pub use ternary_vec::PackedTritVec;
-pub use bitsliced::{BitslicedTritVec, CarrySaveBundle};
+pub use bitsliced::{BitslicedTritVec, CarrySaveBundle, has_avx512, has_avx2, simd_features_string};
+pub use hybrid::{HybridTritVec, DENSITY_THRESHOLD, MIN_BITSLICED_DIM};
 pub use soft_ternary::SoftTernaryVec;
 pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};

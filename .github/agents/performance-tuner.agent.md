@@ -4,7 +4,7 @@ description: Optimize Embeddenator for speed, sparsity, and petabyte scale.
 argument-hint: Optimization query, e.g., adaptive sparsity for deep hierarchies.
 infer: true
 target: vscode
-tools: ['usages']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'agent', 'todo']
 handoffs:
   - label: Benchmark QA
     agent: qa-tester

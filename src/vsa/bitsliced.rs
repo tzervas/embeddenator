@@ -42,12 +42,90 @@
 
 use crate::ternary::Trit;
 use crate::vsa::SparseVec;
+use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU8, Ordering};
+
+// ============================================================================
+// CPU FEATURE DETECTION (Runtime)
+// ============================================================================
+
+/// Cached AVX-512 detection result.
+/// 0 = not checked, 1 = not available, 2 = available
+static AVX512_AVAILABLE: AtomicU8 = AtomicU8::new(0);
+
+/// Cached AVX2 detection result.
+static AVX2_AVAILABLE: AtomicU8 = AtomicU8::new(0);
+
+/// Check if AVX-512F is available at runtime (cached after first call).
+///
+/// This enables automatic dispatch to SIMD-optimized code paths without
+/// requiring compile-time feature flags.
+#[inline]
+pub fn has_avx512() -> bool {
+    #[cfg(target_arch = "x86_64")]
+    {
+        match AVX512_AVAILABLE.load(Ordering::Relaxed) {
+            0 => {
+                let available = std::arch::is_x86_feature_detected!("avx512f");
+                AVX512_AVAILABLE.store(if available { 2 } else { 1 }, Ordering::Relaxed);
+                available
+            }
+            2 => true,
+            _ => false,
+        }
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        false
+    }
+}
+
+/// Check if AVX2 is available at runtime (cached after first call).
+#[inline]
+pub fn has_avx2() -> bool {
+    #[cfg(target_arch = "x86_64")]
+    {
+        match AVX2_AVAILABLE.load(Ordering::Relaxed) {
+            0 => {
+                let available = std::arch::is_x86_feature_detected!("avx2");
+                AVX2_AVAILABLE.store(if available { 2 } else { 1 }, Ordering::Relaxed);
+                available
+            }
+            2 => true,
+            _ => false,
+        }
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        false
+    }
+}
+
+/// Get a human-readable string describing available SIMD features.
+pub fn simd_features_string() -> String {
+    let mut features = Vec::new();
+    if has_avx512() {
+        features.push("AVX-512");
+    }
+    if has_avx2() {
+        features.push("AVX2");
+    }
+    if features.is_empty() {
+        "scalar only".to_string()
+    } else {
+        features.join(", ")
+    }
+}
+
+// ============================================================================
+// BITSLICED TERNARY VECTOR
+// ============================================================================
 
 /// Bitsliced ternary vector for maximum throughput VSA operations.
 ///
 /// Uses separate bit-planes for positive and negative components,
 /// enabling efficient SIMD parallelization of all VSA primitives.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BitslicedTritVec {
     /// Number of logical trits
     len: usize,
@@ -242,22 +320,33 @@ impl BitslicedTritVec {
         let n = self.len.min(other.len);
         let words = Self::word_count(n).min(self.pos.len()).min(other.pos.len());
 
-        let mut out = Self::new_zero(n);
-
-        for w in 0..words {
-            let (ap, an) = (self.pos[w], self.neg[w]);
-            let (bp, bn) = (other.pos[w], other.neg[w]);
-
-            out.pos[w] = (ap & bp) | (an & bn);
-            out.neg[w] = (ap & bn) | (an & bp);
+        if words == 0 {
+            return Self::new_zero(n);
         }
 
-        // Mask trailing bits
-        if !out.pos.is_empty() {
-            let last = out.pos.len() - 1;
-            let mask = Self::last_word_mask(n);
-            out.pos[last] &= mask;
-            out.neg[last] &= mask;
+        let mut out = Self::new_zero(n);
+        let last = words - 1;
+
+        // Process all but last word without masking
+        for w in 0..last {
+            // Safety: w < last < words
+            let (ap, an) = unsafe { (*self.pos.get_unchecked(w), *self.neg.get_unchecked(w)) };
+            let (bp, bn) = unsafe { (*other.pos.get_unchecked(w), *other.neg.get_unchecked(w)) };
+
+            unsafe {
+                *out.pos.get_unchecked_mut(w) = (ap & bp) | (an & bn);
+                *out.neg.get_unchecked_mut(w) = (ap & bn) | (an & bp);
+            }
+        }
+
+        // Last word with masking
+        let mask = Self::last_word_mask(n);
+        let (ap, an) = unsafe { (*self.pos.get_unchecked(last), *self.neg.get_unchecked(last)) };
+        let (bp, bn) = unsafe { (*other.pos.get_unchecked(last), *other.neg.get_unchecked(last)) };
+
+        unsafe {
+            *out.pos.get_unchecked_mut(last) = ((ap & bp) | (an & bn)) & mask;
+            *out.neg.get_unchecked_mut(last) = ((ap & bn) | (an & bp)) & mask;
         }
 
         out
@@ -308,21 +397,33 @@ impl BitslicedTritVec {
         let n = self.len.min(other.len);
         let words = Self::word_count(n).min(self.pos.len()).min(other.pos.len());
 
-        let mut out = Self::new_zero(n);
-
-        for w in 0..words {
-            let (ap, an) = (self.pos[w], self.neg[w]);
-            let (bp, bn) = (other.pos[w], other.neg[w]);
-
-            out.pos[w] = (ap & !bn) | (bp & !an);
-            out.neg[w] = (an & !bp) | (bn & !ap);
+        if words == 0 {
+            return Self::new_zero(n);
         }
 
-        if !out.pos.is_empty() {
-            let last = out.pos.len() - 1;
-            let mask = Self::last_word_mask(n);
-            out.pos[last] &= mask;
-            out.neg[last] &= mask;
+        let mut out = Self::new_zero(n);
+        let last = words - 1;
+
+        // Process all but last word without masking
+        for w in 0..last {
+            // Safety: w < last < words
+            let (ap, an) = unsafe { (*self.pos.get_unchecked(w), *self.neg.get_unchecked(w)) };
+            let (bp, bn) = unsafe { (*other.pos.get_unchecked(w), *other.neg.get_unchecked(w)) };
+
+            unsafe {
+                *out.pos.get_unchecked_mut(w) = (ap & !bn) | (bp & !an);
+                *out.neg.get_unchecked_mut(w) = (an & !bp) | (bn & !ap);
+            }
+        }
+
+        // Last word with masking
+        let mask = Self::last_word_mask(n);
+        let (ap, an) = unsafe { (*self.pos.get_unchecked(last), *self.neg.get_unchecked(last)) };
+        let (bp, bn) = unsafe { (*other.pos.get_unchecked(last), *other.neg.get_unchecked(last)) };
+
+        unsafe {
+            *out.pos.get_unchecked_mut(last) = ((ap & !bn) | (bp & !an)) & mask;
+            *out.neg.get_unchecked_mut(last) = ((an & !bp) | (bn & !ap)) & mask;
         }
 
         out
@@ -354,38 +455,115 @@ impl BitslicedTritVec {
         }
     }
 
+    // ========================================================================
+    // SIMD-DISPATCHING OPERATIONS
+    // ========================================================================
+
+    /// Bind with automatic SIMD dispatch.
+    ///
+    /// Automatically selects AVX-512 path when:
+    /// 1. Running on x86_64 with AVX-512F support
+    /// 2. Vector length >= 512 trits (worthwhile for SIMD overhead)
+    ///
+    /// Falls back to scalar implementation otherwise.
+    #[inline]
+    pub fn bind_dispatch(&self, other: &Self) -> Self {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+        {
+            if has_avx512() && self.len >= 512 {
+                let mut out = Self::new_zero(self.len.min(other.len));
+                // Safety: We verified AVX-512F support via runtime detection
+                unsafe { avx512::bind_avx512(self, other, &mut out) };
+                return out;
+            }
+        }
+        // Scalar fallback
+        self.bind(other)
+    }
+
+    /// Bundle with automatic SIMD dispatch.
+    ///
+    /// Automatically selects AVX-512 path when available and beneficial.
+    #[inline]
+    pub fn bundle_dispatch(&self, other: &Self) -> Self {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+        {
+            if has_avx512() && self.len >= 512 {
+                let mut out = Self::new_zero(self.len.min(other.len));
+                // Safety: We verified AVX-512F support via runtime detection
+                unsafe { avx512::bundle_avx512(self, other, &mut out) };
+                return out;
+            }
+        }
+        // Scalar fallback
+        self.bundle(other)
+    }
+
+    /// Dot product with automatic SIMD dispatch.
+    #[inline]
+    pub fn dot_dispatch(&self, other: &Self) -> i32 {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+        {
+            if has_avx512() && self.len >= 512 {
+                // Safety: We verified AVX-512F support via runtime detection
+                return unsafe { avx512::dot_avx512(self, other) };
+            }
+        }
+        // Scalar fallback
+        self.dot(other)
+    }
+
+    // ========================================================================
+    // DOT PRODUCT AND SIMILARITY
+    // ========================================================================
+
     /// Dot product: count matching signs minus opposing signs.
     ///
     /// `dot(a, b) = Σᵢ aᵢ × bᵢ`
+    ///
+    /// Optimized: avoids branch per word for mask, uses unsafe slice access
+    /// for bounds-checked loop elimination.
     #[inline]
     pub fn dot(&self, other: &Self) -> i32 {
         let n = self.len.min(other.len);
         let words = Self::word_count(n).min(self.pos.len()).min(other.pos.len());
 
-        let mut acc: i32 = 0;
-
-        for w in 0..words {
-            let (mut ap, mut an) = (self.pos[w], self.neg[w]);
-            let (mut bp, mut bn) = (other.pos[w], other.neg[w]);
-
-            // Mask last word
-            if w + 1 == words {
-                let mask = Self::last_word_mask(n);
-                ap &= mask;
-                an &= mask;
-                bp &= mask;
-                bn &= mask;
-            }
-
-            let pp = (ap & bp).count_ones() as i32; // +1 × +1 = +1
-            let nn = (an & bn).count_ones() as i32; // -1 × -1 = +1
-            let pn = (ap & bn).count_ones() as i32; // +1 × -1 = -1
-            let np = (an & bp).count_ones() as i32; // -1 × +1 = -1
-
-            acc += (pp + nn) - (pn + np);
+        if words == 0 {
+            return 0;
         }
 
-        acc
+        let mut acc: i32 = 0;
+        let last = words - 1;
+        let mask = Self::last_word_mask(n);
+
+        // Process all but last word without masking
+        for w in 0..last {
+            // Safety: w < last < words <= self.pos.len() (and same for other)
+            let (ap, an) = unsafe { (*self.pos.get_unchecked(w), *self.neg.get_unchecked(w)) };
+            let (bp, bn) = unsafe { (*other.pos.get_unchecked(w), *other.neg.get_unchecked(w)) };
+
+            let pp = (ap & bp).count_ones();
+            let nn = (an & bn).count_ones();
+            let pn = (ap & bn).count_ones();
+            let np = (an & bp).count_ones();
+
+            acc += (pp + nn) as i32 - (pn + np) as i32;
+        }
+
+        // Last word with masking
+        let (ap, an) = unsafe { 
+            (*self.pos.get_unchecked(last) & mask, *self.neg.get_unchecked(last) & mask) 
+        };
+        let (bp, bn) = unsafe { 
+            (*other.pos.get_unchecked(last) & mask, *other.neg.get_unchecked(last) & mask) 
+        };
+
+        let pp = (ap & bp).count_ones();
+        let nn = (an & bn).count_ones();
+        let pn = (ap & bn).count_ones();
+        let np = (an & bp).count_ones();
+
+        acc + (pp + nn) as i32 - (pn + np) as i32
     }
 
     /// Cosine similarity: normalized dot product.
@@ -407,6 +585,9 @@ impl BitslicedTritVec {
     /// Permute (cyclic shift) for sequence encoding.
     ///
     /// `permute(v, k)[i] = v[(i - k) mod len]`
+    ///
+    /// Note: This is the naive O(D) implementation. For large vectors,
+    /// use `permute_optimized` which achieves O(D/64) via word rotation.
     pub fn permute(&self, shift: usize) -> Self {
         if self.len == 0 || shift == 0 {
             return self.clone();
@@ -415,10 +596,101 @@ impl BitslicedTritVec {
         let shift = shift % self.len;
         let mut out = Self::new_zero(self.len);
 
-        // TODO: Optimize with word-level rotation for large shifts
         for i in 0..self.len {
             let src_idx = (i + self.len - shift) % self.len;
             out.set(i, self.get(src_idx));
+        }
+
+        out
+    }
+
+    /// Optimized permute using word-level bit rotation.
+    ///
+    /// # Mathematical Basis
+    ///
+    /// The naive permute does: `out[i] = src[(i + len - shift) % len]`
+    /// This is a RIGHT rotation: elements shift to higher indices.
+    ///
+    /// Example with shift=1, len=1024:
+    /// - out[0] = src[1023]  (last element wraps to first)
+    /// - out[1] = src[0]
+    /// - out[2] = src[1]
+    /// ...
+    ///
+    /// For bitsliced, we decompose shift k = 64q + r where:
+    /// - q = k / 64 (word-level rotation)
+    /// - r = k % 64 (intra-word bit shift)
+    ///
+    /// # Performance
+    ///
+    /// - Naive permute: O(D) with D get/set operations
+    /// - Optimized permute: O(D/64) with 2 ops per word
+    /// - Speedup: ~32-64× for large D
+    pub fn permute_optimized(&self, shift: usize) -> Self {
+        if self.len == 0 || shift == 0 {
+            return self.clone();
+        }
+
+        let shift = shift % self.len;
+        if shift == 0 {
+            return self.clone();
+        }
+
+        // For non-64-aligned dimensions, fall back to naive to ensure correctness
+        // at boundaries. The optimization is still valuable for the common case.
+        if self.len % 64 != 0 {
+            return self.permute(shift);
+        }
+
+        let words = Self::word_count(self.len);
+
+        // Decompose: shift = word_shift * 64 + bit_shift
+        let word_shift = shift / 64;
+        let bit_shift = shift % 64;
+
+        let mut out = Self::new_zero(self.len);
+
+        if bit_shift == 0 {
+            // Case 1: Aligned shift - pure word rotation (fastest path)
+            // out[i] = src[(i - shift + len) % len]
+            // For words: out_word[w] = src_word[(w - word_shift + words) % words]
+            for w in 0..words {
+                let src_w = (w + words - word_shift) % words;
+                out.pos[w] = self.pos[src_w];
+                out.neg[w] = self.neg[src_w];
+            }
+        } else {
+            // Case 2: Unaligned shift - combine bits from adjacent words
+            //
+            // For shift=1, words=16, len=1024:
+            //   out bit 0 = src bit 1023 = src[15] bit 63
+            //   out bit 1 = src bit 0 = src[0] bit 0
+            //   ...
+            //   out bit 63 = src bit 62 = src[0] bit 62
+            //
+            // For out word 0:
+            //   bit 0 comes from src[15] bit 63 (the wrap-around bit)
+            //   bits 1-63 come from src[0] bits 0-62
+            //
+            // In general for out word w:
+            //   - Low bits [0..bit_shift) come from src[(w - word_shift - 1 + words) % words]
+            //     specifically the HIGH bits [64-bit_shift..64) of that word
+            //   - High bits [bit_shift..64) come from src[(w - word_shift + words) % words]  
+            //     specifically the LOW bits [0..64-bit_shift) of that word
+            //
+            // Bitwise:
+            //   out[w] = (src_prev >> (64 - bit_shift)) | (src_curr << bit_shift)
+            let complement = 64 - bit_shift;
+
+            for w in 0..words {
+                let src_curr = (w + words - word_shift) % words;
+                let src_prev = (w + words - word_shift - 1) % words;
+
+                // src_prev's high bits become out's low bits
+                // src_curr's low bits become out's high bits
+                out.pos[w] = (self.pos[src_prev] >> complement) | (self.pos[src_curr] << bit_shift);
+                out.neg[w] = (self.neg[src_prev] >> complement) | (self.neg[src_curr] << bit_shift);
+            }
         }
 
         out
@@ -860,6 +1132,129 @@ pub mod avx512 {
         }
     }
 
+    /// AVX-512 bundle: processes 512 trits per iteration.
+    ///
+    /// # Mathematical Basis
+    /// out_pos = (a_pos & !b_neg) | (b_pos & !a_neg)
+    /// out_neg = (a_neg & !b_pos) | (b_neg & !a_pos)
+    ///
+    /// # Safety
+    /// Requires AVX-512F support. Check with `is_x86_feature_detected!("avx512f")`.
+    #[target_feature(enable = "avx512f")]
+    pub unsafe fn bundle_avx512(
+        a: &BitslicedTritVec,
+        b: &BitslicedTritVec,
+        out: &mut BitslicedTritVec,
+    ) {
+        let n = a.len.min(b.len);
+        let words = BitslicedTritVec::word_count(n);
+
+        out.len = n;
+        out.pos.resize(words, 0);
+        out.neg.resize(words, 0);
+
+        let chunks = words / 8;
+
+        for chunk in 0..chunks {
+            let offset = chunk * 8;
+
+            let ap = _mm512_loadu_si512(a.pos.as_ptr().add(offset) as *const __m512i);
+            let an = _mm512_loadu_si512(a.neg.as_ptr().add(offset) as *const __m512i);
+            let bp = _mm512_loadu_si512(b.pos.as_ptr().add(offset) as *const __m512i);
+            let bn = _mm512_loadu_si512(b.neg.as_ptr().add(offset) as *const __m512i);
+
+            // out_pos = (ap & !bn) | (bp & !an)
+            let not_bn = _mm512_xor_si512(bn, _mm512_set1_epi64(-1));
+            let not_an = _mm512_xor_si512(an, _mm512_set1_epi64(-1));
+            let out_pos = _mm512_or_si512(
+                _mm512_and_si512(ap, not_bn),
+                _mm512_and_si512(bp, not_an),
+            );
+
+            // out_neg = (an & !bp) | (bn & !ap)
+            let not_bp = _mm512_xor_si512(bp, _mm512_set1_epi64(-1));
+            let not_ap = _mm512_xor_si512(ap, _mm512_set1_epi64(-1));
+            let out_neg = _mm512_or_si512(
+                _mm512_and_si512(an, not_bp),
+                _mm512_and_si512(bn, not_ap),
+            );
+
+            _mm512_storeu_si512(out.pos.as_mut_ptr().add(offset) as *mut __m512i, out_pos);
+            _mm512_storeu_si512(out.neg.as_mut_ptr().add(offset) as *mut __m512i, out_neg);
+        }
+
+        // Scalar remainder
+        for w in (chunks * 8)..words {
+            let (ap, an) = (a.pos[w], a.neg[w]);
+            let (bp, bn) = (b.pos[w], b.neg[w]);
+            out.pos[w] = (ap & !bn) | (bp & !an);
+            out.neg[w] = (an & !bp) | (bn & !ap);
+        }
+    }
+
+    /// AVX-512 dot product: processes 512 trits per iteration.
+    ///
+    /// # Mathematical Basis
+    /// dot = popcount(ap & bp) + popcount(an & bn) - popcount(ap & bn) - popcount(an & bp)
+    ///
+    /// # Safety
+    /// Requires AVX-512F + AVX-512-VPOPCNTDQ support ideally.
+    #[target_feature(enable = "avx512f")]
+    pub unsafe fn dot_avx512(a: &BitslicedTritVec, b: &BitslicedTritVec) -> i32 {
+        let n = a.len.min(b.len);
+        let words = BitslicedTritVec::word_count(n);
+
+        let chunks = words / 8;
+        let mut acc: i32 = 0;
+
+        // Process 8 words at a time (512 trits)
+        for chunk in 0..chunks {
+            let offset = chunk * 8;
+
+            let ap = _mm512_loadu_si512(a.pos.as_ptr().add(offset) as *const __m512i);
+            let an = _mm512_loadu_si512(a.neg.as_ptr().add(offset) as *const __m512i);
+            let bp = _mm512_loadu_si512(b.pos.as_ptr().add(offset) as *const __m512i);
+            let bn = _mm512_loadu_si512(b.neg.as_ptr().add(offset) as *const __m512i);
+
+            // Compute AND masks
+            let pp = _mm512_and_si512(ap, bp);
+            let nn = _mm512_and_si512(an, bn);
+            let pn = _mm512_and_si512(ap, bn);
+            let np = _mm512_and_si512(an, bp);
+
+            // Extract and popcount each word (no AVX-512 POPCNT, use scalar)
+            let pp_arr: [u64; 8] = std::mem::transmute(pp);
+            let nn_arr: [u64; 8] = std::mem::transmute(nn);
+            let pn_arr: [u64; 8] = std::mem::transmute(pn);
+            let np_arr: [u64; 8] = std::mem::transmute(np);
+
+            for i in 0..8 {
+                acc += (pp_arr[i].count_ones() + nn_arr[i].count_ones()) as i32;
+                acc -= (pn_arr[i].count_ones() + np_arr[i].count_ones()) as i32;
+            }
+        }
+
+        // Scalar remainder
+        for w in (chunks * 8)..words {
+            let (mut ap, mut an) = (a.pos[w], a.neg[w]);
+            let (mut bp, mut bn) = (b.pos[w], b.neg[w]);
+
+            // Mask last word
+            if w + 1 == words {
+                let mask = BitslicedTritVec::last_word_mask(n);
+                ap &= mask;
+                an &= mask;
+                bp &= mask;
+                bn &= mask;
+            }
+
+            acc += ((ap & bp).count_ones() + (an & bn).count_ones()) as i32;
+            acc -= ((ap & bn).count_ones() + (an & bp).count_ones()) as i32;
+        }
+
+        acc
+    }
+
     /// Check if AVX-512 is available at runtime.
     pub fn is_available() -> bool {
         is_x86_feature_detected!("avx512f")
@@ -997,5 +1392,113 @@ mod tests {
 
         let result = acc.finalize();
         assert_eq!(result.get(0), Trit::P);
+    }
+
+    #[test]
+    fn test_permute_optimized_equivalence() {
+        // Test that permute_optimized produces same results as naive permute
+        // Use 64-aligned dimension so optimized path is actually exercised
+        let dim = 1024; // 16 words, aligned
+        let sparse = SparseVec {
+            pos: vec![0, 63, 64, 127, 128, 500, 1023],
+            neg: vec![1, 62, 65, 126, 129, 501],
+        };
+        let v = BitslicedTritVec::from_sparse(&sparse, dim);
+
+        // Test key shift amounts: 0, bit-only, word-aligned, mixed, wrap-around
+        for shift in [0, 1, 63, 64, 65, 128, 512, 1024] {
+            let naive = v.permute(shift);
+            let optimized = v.permute_optimized(shift);
+
+            // Spot-check specific positions rather than all D for speed
+            let check_positions = [0, 1, 62, 63, 64, 65, 126, 127, 128, 500, 501, 1022, 1023];
+            for &i in &check_positions {
+                assert_eq!(
+                    naive.get(i),
+                    optimized.get(i),
+                    "Mismatch at i={} for shift={}",
+                    i,
+                    shift
+                );
+            }
+
+            // Also verify nnz is preserved
+            assert_eq!(naive.nnz(), optimized.nnz(), "nnz mismatch for shift={}", shift);
+        }
+    }
+
+    #[test]
+    fn test_permute_optimized_unaligned_fallback() {
+        // Test that unaligned dimensions correctly fall back to naive
+        let dim = 1000; // Not 64-aligned
+        let sparse = SparseVec {
+            pos: vec![0, 500, 999],
+            neg: vec![1, 501],
+        };
+        let v = BitslicedTritVec::from_sparse(&sparse, dim);
+
+        // Should fall back to naive permute - just verify it doesn't crash
+        // and preserves nnz
+        let result = v.permute_optimized(123);
+        assert_eq!(result.nnz(), v.nnz());
+        assert_eq!(result.len(), dim);
+    }
+
+    #[test]
+    fn test_permute_optimized_word_boundary() {
+        // Test permutation at exact word boundaries (64-aligned dim)
+        let dim = 256; // 4 words exactly
+        let mut v = BitslicedTritVec::new_zero(dim);
+
+        // Set trits at word boundaries
+        v.set(0, Trit::P);
+        v.set(63, Trit::N);
+        v.set(64, Trit::P);
+        v.set(127, Trit::N);
+        v.set(128, Trit::P);
+        v.set(191, Trit::N);
+        v.set(192, Trit::P);
+        v.set(255, Trit::N);
+
+        // Shift by exactly 64 (one word) - RIGHT rotation
+        // out[i] = src[(i - 64 + 256) % 256] = src[(i + 192) % 256]
+        let shifted = v.permute_optimized(64);
+
+        // Position 0 should now have what was at position (0 - 64 + 256) % 256 = 192
+        assert_eq!(shifted.get(0), Trit::P, "pos 0 should have src[192]=P");
+        // Position 64 should now have what was at position (64 - 64 + 256) % 256 = 0
+        assert_eq!(shifted.get(64), Trit::P, "pos 64 should have src[0]=P");
+        // Position 128 should have what was at position (128 - 64 + 256) % 256 = 64
+        assert_eq!(shifted.get(128), Trit::P, "pos 128 should have src[64]=P");
+    }
+
+    #[test]
+    fn test_permute_optimized_bit_shift() {
+        // Test non-word-aligned shifts (bit rotation within words)
+        let dim = 128; // 2 words
+        let mut v = BitslicedTritVec::new_zero(dim);
+
+        // Set specific bits to track rotation
+        v.set(0, Trit::P);   // Word 0, bit 0
+        v.set(32, Trit::N);  // Word 0, bit 32
+        v.set(64, Trit::P);  // Word 1, bit 0
+        v.set(96, Trit::N);  // Word 1, bit 32
+
+        // Shift by 32 bits (half a word)
+        let shifted = v.permute_optimized(32);
+
+        // Position 0 should have src[(0 - 32 + 128) % 128] = src[96]
+        assert_eq!(shifted.get(0), Trit::N, "pos 0 should have src[96]=N");
+        // Position 32 should have src[(32 - 32 + 128) % 128] = src[0]
+        assert_eq!(shifted.get(32), Trit::P, "pos 32 should have src[0]=P");
+    }
+
+    #[test]
+    fn test_simd_feature_detection() {
+        // Just verify the detection doesn't panic
+        let _ = super::has_avx512();
+        let _ = super::has_avx2();
+        let features = super::simd_features_string();
+        assert!(!features.is_empty());
     }
 }
