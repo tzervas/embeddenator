@@ -24,5 +24,8 @@ This folder contains project documentation organized by topic.
 ## Testing
 - [Testing and validation docs](testing/)
 
+## Benchmarks
+- [Benchmark harness index](benchmarks/INDEX.md)
+
 ## ADRs
 - [Architecture Decision Records](adr/)

@@ -80,3 +80,6 @@ CHAT_SNAPSHOT_*.md
 
 # Benchmark sample data
 benchmark_data/
+
+# Benchmark reports / artifacts
+reports/
