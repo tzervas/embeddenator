@@ -129,6 +129,34 @@ impl BitslicedTritVec {
         &self.neg
     }
 
+    /// Get a single word from positive plane (for soft ternary operations).
+    #[inline]
+    pub fn pos_word(&self, word_idx: usize) -> u64 {
+        self.pos.get(word_idx).copied().unwrap_or(0)
+    }
+
+    /// Get a single word from negative plane (for soft ternary operations).
+    #[inline]
+    pub fn neg_word(&self, word_idx: usize) -> u64 {
+        self.neg.get(word_idx).copied().unwrap_or(0)
+    }
+
+    /// Set a word in positive plane (advanced use).
+    #[inline]
+    pub fn set_pos_word(&mut self, word_idx: usize, value: u64) {
+        if word_idx < self.pos.len() {
+            self.pos[word_idx] = value;
+        }
+    }
+
+    /// Set a word in negative plane (advanced use).
+    #[inline]
+    pub fn set_neg_word(&mut self, word_idx: usize, value: u64) {
+        if word_idx < self.neg.len() {
+            self.neg[word_idx] = value;
+        }
+    }
+
     /// Get single trit by index (bounds-checked).
     #[inline]
     pub fn get(&self, i: usize) -> Trit {

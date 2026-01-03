@@ -107,6 +107,9 @@ pub mod ternary_vec;
 #[path = "vsa/bitsliced.rs"]
 pub mod bitsliced;
 
+#[path = "vsa/soft_ternary.rs"]
+pub mod soft_ternary;
+
 #[path = "vsa/vsa.rs"]
 pub mod vsa;
 
@@ -135,4 +138,5 @@ pub use retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
 pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
 pub use ternary_vec::PackedTritVec;
 pub use bitsliced::{BitslicedTritVec, CarrySaveBundle};
+pub use soft_ternary::SoftTernaryVec;
 pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};
