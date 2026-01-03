@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use embeddenator::{ReversibleVSAConfig, SparseVec, DIM};
+use embeddenator::{BitslicedTritVec, CarrySaveBundle, PackedTritVec, ReversibleVSAConfig, SparseVec, DIM};
 
 fn bench_sparsevec_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("sparsevec_ops");
@@ -252,11 +252,149 @@ fn bench_packed_path(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_bitsliced_vs_packed(c: &mut Criterion) {
+    // Compare bitsliced vs packed operations across different dimensions
+    let dimensions = [1000, 10_000, 100_000];
+
+    for dim in dimensions {
+        let mut group = c.benchmark_group(format!("bitsliced_vs_packed_dim_{}", dim));
+
+        // Create test vectors with ~2% sparsity
+        let nnz = (dim as f64 * 0.02) as usize;
+        let make_sparse = |offset: usize| {
+            let mut pos = Vec::new();
+            let mut neg = Vec::new();
+            for i in 0..nnz {
+                if i % 2 == 0 {
+                    pos.push((offset + i * (dim / nnz)) % dim);
+                } else {
+                    neg.push((offset + i * (dim / nnz)) % dim);
+                }
+            }
+            pos.sort_unstable();
+            neg.sort_unstable();
+            SparseVec { pos, neg }
+        };
+
+        let sparse_a = make_sparse(0);
+        let sparse_b = make_sparse(dim / 3);
+
+        // Convert to both formats
+        let packed_a = PackedTritVec::from_sparsevec(&sparse_a, dim);
+        let packed_b = PackedTritVec::from_sparsevec(&sparse_b, dim);
+        let bitsliced_a = BitslicedTritVec::from_sparse(&sparse_a, dim);
+        let bitsliced_b = BitslicedTritVec::from_sparse(&sparse_b, dim);
+
+        // Bind benchmarks
+        group.bench_function("packed_bind", |bencher| {
+            bencher.iter(|| {
+                let result = black_box(&packed_a).bind(black_box(&packed_b));
+                black_box(result)
+            })
+        });
+
+        group.bench_function("bitsliced_bind", |bencher| {
+            bencher.iter(|| {
+                let result = black_box(&bitsliced_a).bind(black_box(&bitsliced_b));
+                black_box(result)
+            })
+        });
+
+        // Bundle benchmarks
+        group.bench_function("packed_bundle", |bencher| {
+            bencher.iter(|| {
+                let result = black_box(&packed_a).bundle(black_box(&packed_b));
+                black_box(result)
+            })
+        });
+
+        group.bench_function("bitsliced_bundle", |bencher| {
+            bencher.iter(|| {
+                let result = black_box(&bitsliced_a).bundle(black_box(&bitsliced_b));
+                black_box(result)
+            })
+        });
+
+        // Dot benchmarks
+        group.bench_function("packed_dot", |bencher| {
+            bencher.iter(|| {
+                let result = black_box(&packed_a).dot(black_box(&packed_b));
+                black_box(result)
+            })
+        });
+
+        group.bench_function("bitsliced_dot", |bencher| {
+            bencher.iter(|| {
+                let result = black_box(&bitsliced_a).dot(black_box(&bitsliced_b));
+                black_box(result)
+            })
+        });
+
+        // Cosine benchmarks (only for bitsliced, packed doesn't have cosine)
+        group.bench_function("bitsliced_cosine", |bencher| {
+            bencher.iter(|| {
+                let result = black_box(&bitsliced_a).cosine(black_box(&bitsliced_b));
+                black_box(result)
+            })
+        });
+
+        group.finish();
+    }
+}
+
+fn bench_carry_save_bundle(c: &mut Criterion) {
+    let dim = 10_000;
+    let n_vectors = [3, 7, 15, 31];
+
+    for n in n_vectors {
+        let mut group = c.benchmark_group(format!("carry_save_vs_sequential_{}_vecs", n));
+
+        // Create vectors
+        let vectors: Vec<_> = (0..n)
+            .map(|i| {
+                let nnz = 200;
+                let sparse = SparseVec {
+                    pos: (i..i + nnz).map(|x| (x * 47) % dim).collect(),
+                    neg: (i + nnz..i + nnz * 2).map(|x| (x * 53) % dim).collect(),
+                };
+                BitslicedTritVec::from_sparse(&sparse, dim)
+            })
+            .collect();
+
+        // Sequential bundling
+        group.bench_function("sequential", |bencher| {
+            bencher.iter(|| {
+                let mut result = black_box(&vectors[0]).clone();
+                for v in black_box(&vectors[1..]) {
+                    result = result.bundle(v);
+                }
+                black_box(result)
+            })
+        });
+
+        // Carry-save bundling
+        group.bench_function("carry_save", |bencher| {
+            bencher.iter(|| {
+                let mut acc = CarrySaveBundle::new(dim);
+                for v in black_box(&vectors) {
+                    acc.accumulate(v);
+                }
+                let result = acc.finalize();
+                black_box(result)
+            })
+        });
+
+        group.finish();
+    }
+}
+
 criterion_group!(
     benches,
     bench_sparsevec_ops,
     bench_bundle_modes,
     bench_reversible_encode_decode,
-    bench_packed_path
+    bench_packed_path,
+    bench_bitsliced_vs_packed,
+    bench_carry_save_bundle
 );
 criterion_main!(benches);
