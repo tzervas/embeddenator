@@ -70,6 +70,18 @@ impl PackedTritVec {
         self.len == 0
     }
 
+    /// Read-only access to underlying packed data.
+    #[inline]
+    pub fn data(&self) -> &[u64] {
+        &self.data
+    }
+
+    /// Mutable access to underlying packed data.
+    #[inline]
+    pub fn data_mut(&mut self) -> &mut [u64] {
+        &mut self.data
+    }
+
     #[inline]
     fn word_bit_index(i: usize) -> (usize, usize) {
         let bit = i * 2;
