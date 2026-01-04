@@ -72,6 +72,8 @@ pub use embeddenator_fs::fuse_shim;
 pub use embeddenator_fs::correction;
 // Re-export embeddenator-interop types
 pub use embeddenator_interop as interop;
+// Re-export embeddenator-io types
+pub use embeddenator_io as io;
 // VSA types from embeddenator-vsa component
 pub use embeddenator_vsa::{
     BalancedTernaryWord, Codebook, CorrectionEntry, DifferentialEncoder, DifferentialEncoding,
@@ -96,4 +98,8 @@ pub use embeddenator_fs::{
 pub use embeddenator_interop::{
     CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
     rerank_top_k_by_cosine,
+};
+// I/O types from embeddenator-io component
+pub use embeddenator_io::{
+    BinaryWriteOptions, CompressionCodec, PayloadKind, unwrap_auto, wrap_or_legacy,
 };
