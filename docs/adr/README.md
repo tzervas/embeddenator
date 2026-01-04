@@ -37,6 +37,8 @@ Each ADR follows this structure:
 | [ADR-011](ADR-011-multi-input-namespace-management.md) | Multi-Input Ingest and Namespace Management | Accepted | 2026-01-01 |
 | [ADR-012](ADR-012-reusable-codebook-index.md) | Reusable Codebook Index for Query Performance | Accepted | 2026-01-01 |
 | [ADR-013](ADR-013-hierarchical-manifest-format.md) | Hierarchical Manifest Format and Versioning | Accepted | 2026-01-01 |
+| [ADR-014](ADR-014-incremental-updates.md) | Incremental Updates | Accepted | 2026-01-01 |
+| [ADR-017](ADR-017-phase2a-component-extraction.md) | Phase 2A Component Extraction Strategy | Accepted | 2026-01-04 |
 
 ## Creating a New ADR
 
