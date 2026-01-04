@@ -74,6 +74,8 @@ pub use embeddenator_fs::correction;
 pub use embeddenator_interop as interop;
 // Re-export embeddenator-io types
 pub use embeddenator_io as io;
+// Re-export embeddenator-obs types
+pub use embeddenator_obs as obs;
 // VSA types from embeddenator-vsa component
 pub use embeddenator_vsa::{
     BalancedTernaryWord, Codebook, CorrectionEntry, DifferentialEncoder, DifferentialEncoding,
