@@ -70,3 +70,20 @@ os_config.yaml
 agentic-dev/
 runner_automation/
 .context/
+
+# Chat context snapshots (machine-friendly)
+CHAT_SNAPSHOT_*.json
+CHAT_SNAPSHOT_*.md
+
+# Temporary local test artifacts
+.tmp_e2e_dir
+
+# Benchmark sample data
+benchmark_data/
+
+# Benchmark reports / artifacts
+reports/
+
+# Benchmark data
+bench_results/
+*.embr

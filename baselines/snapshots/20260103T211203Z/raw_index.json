@@ -1,0 +1,68 @@
+{
+  "cache_root": "/home/kang/.cache/embeddenator/baselines",
+  "generated_at_utc": "20260103T211203Z",
+  "schema_version": 1,
+  "snapshot_id": "20260103T211203Z",
+  "sources": [
+    {
+      "artifact_path": "/home/kang/.cache/embeddenator/baselines/sources/qdrant_vector_db_benchmarks_2024_06_15/20260103T211205Z_7cc1443ee3aa.json",
+      "artifact_sha256": "7cc1443ee3aa0e1d7c7fff38e5b3c2555502dac159412b37b048c27164f09c0e",
+      "content_type": "application/json",
+      "http": {
+        "etag": "\"32232b619607d048bf18674ec55281df-ssl\"",
+        "last_modified": null,
+        "status": 200
+      },
+      "id": "qdrant_vector_db_benchmarks_2024_06_15",
+      "url": "https://qdrant.tech/benchmarks/results-1-100-thread-2024-06-15.json"
+    },
+    {
+      "artifact_path": "/home/kang/.cache/embeddenator/baselines/sources/qdrant_filter_benchmark_2023_02_03/20260103T211205Z_eee611cbb5bf.json",
+      "artifact_sha256": "eee611cbb5bf2229e31c3eaf74df6231f516929397bc97ca4a1562066678031c",
+      "content_type": "application/json",
+      "http": {
+        "etag": "\"bdb45e6ac825e121507e584eff91fd42-ssl\"",
+        "last_modified": null,
+        "status": 200
+      },
+      "id": "qdrant_filter_benchmark_2023_02_03",
+      "url": "https://qdrant.tech/benchmarks/filter-result-2023-02-03.json"
+    },
+    {
+      "artifact_path": "/home/kang/.cache/embeddenator/baselines/sources/clickbench_clickhouse_c6a_4xlarge/20260103T211205Z_5b2df9b21c9e.bin",
+      "artifact_sha256": "5b2df9b21c9efb585159c2899e8513b87bbda17577cec30d996e197f71f1d172",
+      "content_type": "text/plain; charset=utf-8",
+      "http": {
+        "etag": "\"9cfb16847226634d355fea413cf5f259fed2c76966502b4c4fd624cfe381140e\"",
+        "last_modified": null,
+        "status": 200
+      },
+      "id": "clickbench_clickhouse_c6a_4xlarge",
+      "url": "https://raw.githubusercontent.com/ClickHouse/ClickBench/main/clickhouse/results/c6a.4xlarge.json"
+    },
+    {
+      "artifact_path": "/home/kang/.cache/embeddenator/baselines/sources/clickbench_duckdb_c6a_4xlarge/20260103T211205Z_cb61c6706d4b.bin",
+      "artifact_sha256": "cb61c6706d4b9913eb119a781ed268a89a21cc416e4e4a8f876c63cee865b55c",
+      "content_type": "text/plain; charset=utf-8",
+      "http": {
+        "etag": "\"5bc4e8dff4f84509a30096e5d87a4ec8466bb4750c82745c87f5d3d24b605084\"",
+        "last_modified": null,
+        "status": 200
+      },
+      "id": "clickbench_duckdb_c6a_4xlarge",
+      "url": "https://raw.githubusercontent.com/ClickHouse/ClickBench/main/duckdb/results/c6a.4xlarge.json"
+    },
+    {
+      "artifact_path": "/home/kang/.cache/embeddenator/baselines/sources/clickbench_postgresql_c6a_4xlarge/20260103T211205Z_0c6601df6852.bin",
+      "artifact_sha256": "0c6601df6852eff1bb49f8cce164bc7932561f69df7aa7ce8a5ae6e4a7d6c7a8",
+      "content_type": "text/plain; charset=utf-8",
+      "http": {
+        "etag": "\"81261bbb2f9c229f7f99d3f09eb239fbf97b6c1f5b6f435089e07abb5cf619d2\"",
+        "last_modified": null,
+        "status": 200
+      },
+      "id": "clickbench_postgresql_c6a_4xlarge",
+      "url": "https://raw.githubusercontent.com/ClickHouse/ClickBench/main/postgresql/results/c6a.4xlarge.json"
+    }
+  ]
+}

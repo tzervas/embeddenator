@@ -1,0 +1,102 @@
+# Embeddenator CI Container
+# Multi-stage build for minimal runtime image with all tools
+# Base: rust:1.84-alpine for smallest footprint
+
+# ============================================================================
+# Stage 1: Dependencies
+# ============================================================================
+FROM rust:1.84-alpine AS deps
+
+RUN apk add --no-cache \
+    musl-dev \
+    openssl-dev \
+    pkgconfig \
+    git
+
+# Create app directory
+WORKDIR /workspace
+
+# Copy manifests
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
+
+# Build dependencies only (cached layer)
+RUN cargo build --release --locked && \
+    rm -rf target/release/.fingerprint/embeddenator* && \
+    rm -rf target/release/deps/embeddenator* && \
+    rm -rf target/release/embeddenator*
+
+# ============================================================================
+# Stage 2: Builder
+# ============================================================================
+FROM rust:1.84-alpine AS builder
+
+RUN apk add --no-cache \
+    musl-dev \
+    openssl-dev \
+    pkgconfig \
+    git \
+    fuse3-dev
+
+WORKDIR /workspace
+
+# Copy dependencies from deps stage
+COPY --from=deps /usr/local/cargo /usr/local/cargo
+COPY --from=deps /workspace/target /workspace/target
+
+# Copy source
+COPY . .
+
+# Build application
+RUN cargo build --release --locked --bin embeddenator
+
+# Strip binary
+RUN strip target/release/embeddenator
+
+# ============================================================================
+# Stage 3: Runtime
+# ============================================================================
+FROM alpine:3.19 AS runtime
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    libgcc \
+    openssl \
+    ca-certificates \
+    fuse3
+
+# Create non-root user
+RUN addgroup -g 1000 embr && \
+    adduser -D -u 1000 -G embr embr
+
+# Copy binary
+COPY --from=builder /workspace/target/release/embeddenator /usr/local/bin/embeddenator
+
+# Set ownership
+RUN chown embr:embr /usr/local/bin/embeddenator
+
+# Switch to non-root user
+USER embr
+
+# Set working directory
+WORKDIR /data
+
+# Expose default port (if needed)
+# EXPOSE 8080
+
+# Health check (optional)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD embeddenator --version || exit 1
+
+# Default command
+ENTRYPOINT ["embeddenator"]
+CMD ["--help"]
+
+# ============================================================================
+# Metadata
+# ============================================================================
+LABEL org.opencontainers.image.title="Embeddenator" \
+      org.opencontainers.image.description="Sparse ternary VSA engine with holographic engrams" \
+      org.opencontainers.image.authors="Theodoros Zervas <https://github.com/tzervas>" \
+      org.opencontainers.image.source="https://github.com/tzervas/embeddenator" \
+      org.opencontainers.image.licenses="MIT"

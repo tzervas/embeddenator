@@ -11,7 +11,7 @@ use crate::embrfs::{
     query_hierarchical_codebook_with_store,
     save_hierarchical_manifest, save_sub_engrams_dir,
 };
-use crate::vsa::{SparseVec, ReversibleVSAConfig};
+use embeddenator_vsa::{SparseVec, ReversibleVSAConfig};
 use clap::{Parser, Subcommand};
 use std::env;
 use std::fs::File;
