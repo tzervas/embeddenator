@@ -1,12 +1,27 @@
 # Embeddenator — Holographic Computing Substrate
 
-**Version 0.3.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+**Version 0.20.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
 
 **Author:** Tyler Zervas <tz-dev@vectorweight.com>  
 **License:** MIT  
 
 [![CI](https://github.com/tzervas/embeddenator/workflows/CI/badge.svg)](https://github.com/tzervas/embeddenator/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+## Component Architecture
+
+Embeddenator has been refactored into a **modular component architecture** with 6 independent library crates:
+
+- **[embeddenator-vsa](https://github.com/tzervas/embeddenator-vsa)** - Sparse ternary VSA primitives
+- **[embeddenator-io](https://github.com/tzervas/embeddenator-io)** - Codebook, manifest, engram I/O
+- **[embeddenator-retrieval](https://github.com/tzervas/embeddenator-retrieval)** - Query engine with shift-sweep search
+- **[embeddenator-fs](https://github.com/tzervas/embeddenator-fs)** - FUSE filesystem integration
+- **[embeddenator-interop](https://github.com/tzervas/embeddenator-interop)** - Python/FFI bindings
+- **[embeddenator-obs](https://github.com/tzervas/embeddenator-obs)** - Observability and metrics
+
+**📚 Documentation:** [Component Architecture](docs/COMPONENT_ARCHITECTURE.md) | [Local Development](docs/LOCAL_DEVELOPMENT.md) | [Versioning](docs/VERSIONING.md)
+
+**🐳 Docker:** Multi-arch images available at `ghcr.io/tzervas/embeddenator` ([amd64](https://github.com/tzervas/embeddenator/pkgs/container/embeddenator) + arm64)
 
 ## Features
 
