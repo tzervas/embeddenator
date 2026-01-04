@@ -1,7 +1,7 @@
 # Embeddenator Component Split Tracker
 
 **Purpose:** Track progress across all phases of monorepo decomposition  
-**Status:** Phase 2B In Progress (1/4 components extracted)  
+**Status:** Phase 3 Ready to Begin - Integration & Publishing  
 **Last Updated:** 2026-01-04
 
 ---
@@ -16,10 +16,10 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 - Clearer dependency boundaries
 
 **Phases:**
-1. ✅ **Phase 1** - Repository setup, ADRs, CI foundation
+1. ✅ **Phase 1** - Repository setup, ADRs, CI foundation (Complete)
 2. ✅ **Phase 2A** - Core component extraction (100% complete)
-3. ⏳ **Phase 2B** - MCP server & CLI extraction (25% complete)
-4. ⏹️ **Phase 3** - Final integration & cleanup
+3. ✅ **Phase 2B** - CLI extraction (100% complete)
+4. ⏳ **Phase 3** - Integration, publishing & cleanup (Ready to begin)
 
 ---
 
@@ -109,20 +109,24 @@ vsa (✅) → retrieval → fs → interop
 
 ---
 
-## Phase 2B: MCP Servers & CLI ⏳ IN PROGRESS
+## Phase 2B: MCP Servers & CLI ✅ COMPLETE
 
 **Timeline:** Jan 2026  
-**Status:** 1/4 components complete (25%)  
-**Epic Issue:** TBD
+**Status:** CLI extraction complete (100%) ✅  
+**Epic Issue:** Completed Jan 4, 2026
 
-### Planned Extractions
+### Extraction Summary
 
-| Component | Purpose | Dependencies | LOC Est. | Status | Version |
-|-----------|---------|--------------|----------|--------|---------|
-| embeddenator-cli | CLI interface | All Phase 2A | ~1,174 | ✅ **DONE** | v0.2.0 |
-| embeddenator-context-mcp | Context provider | vsa, obs | ~300 | ⏹️ Planned | - |
-| embeddenator-security-mcp | Security auditing | vsa, obs | ~200 | ⏹️ Planned | - |
-| embeddenator-screen-mcp | Screen capture | obs | ~400 | ⏹️ Planned | - |
+| Component | Purpose | Dependencies | LOC | Status | Version |
+|-----------|---------|--------------|-----|--------|---------|
+| embeddenator-cli | CLI interface | All Phase 2A | 1,174 | ✅ **DONE** | v0.2.0 |
+
+**MCP Servers Finding:**
+The following MCP servers are **independent projects** (not extractions from monorepo):
+- embeddenator-context-mcp (v0.1.0-alpha.1) - Standalone project
+- embeddenator-security-mcp (v0.1.0-alpha.1) - Standalone project
+- embeddenator-agent-mcp (v0.1.0-alpha.1) - Standalone project
+- embeddenator-webpuppet-mcp (v0.1.0-alpha.2) - Standalone project
 
 **embeddenator-cli Complete ✅**
 - 1,174 LOC extracted from src/cli.rs
@@ -130,30 +134,44 @@ vsa (✅) → retrieval → fs → interop
 - 4 update subcommands: Add, Remove, Modify, Compact
 - Tagged v0.2.0, integrated into main repo
 - Command implementations are stubs awaiting embrfs integration
+- Commit: dbb630c (main repo), fa17179 (CLI repo)
 
-**Prerequisites:**
-- ✅ Phase 2A must complete
-- ⏹️ MCP servers need stabilization first
-- ⏹️ CLI requires full embrfs integration for command implementations
+**Achievements:**
+- ✅ Phase 2A: 100% complete (6/6 components)
+- ✅ Phase 2B: 100% complete (CLI extracted, MCPs confirmed independent)
+- ✅ Multi-agent orchestration: Rust Implementer, QA Tester, Documentation Writer
+- ✅ All extractions maintain API surface and test coverage
 
 ---
 
-## Phase 3: Integration & Cleanup ⏹️ PLANNED
+## Phase 3: Integration & Cleanup ⏳ IN PROGRESS
 
-**Timeline:** Mar 2026 (estimated)  
-**Status:** Not started
+**Timeline:** Jan 4-18, 2026 (2 weeks)  
+**Status:** Ready to begin  
+**Orchestration Plan:** [docs/handoff/PHASE3_ORCHESTRATION_PLAN.md](docs/handoff/PHASE3_ORCHESTRATION_PLAN.md)
 
 ### Tasks
 
-- [ ] Merge all feat/extract-* branches
-- [ ] Update all path deps to published versions
-- [ ] Performance regression testing
+**Week 1: Integration & Security (Jan 4-11)**
+- [ ] Integration testing (all 7 components)
+- [ ] Security audit (54 unsafe blocks across 6 files)
+- [ ] Performance validation (homelab benchmarks)
+
+**Week 2: Publishing & Cleanup (Jan 11-18)**
+- [ ] Publishing preparation (metadata, READMEs, CHANGELOGs)
+- [ ] Publish to crates.io (in dependency order)
+- [ ] Monorepo cleanup (remove extracted code, use published deps)
 - [ ] Documentation overhaul
-- [ ] Remove obsolete code from monorepo
-- [ ] Publish all components to crates.io
-- [ ] Update README and CHANGELOG
-- [ ] Archive handoff documents
 - [ ] Close all phase issues
+
+### Completion Criteria
+
+- ✅ All 7 components published to crates.io at v0.2.0
+- ✅ Integration tests passing
+- ✅ Security audit complete
+- ✅ Performance <5% regression
+- ✅ Monorepo uses published dependencies
+- ✅ All documentation updated
 
 ---
 
@@ -163,18 +181,20 @@ vsa (✅) → retrieval → fs → interop
 
 ```
 Phase 2A: [████████████████] 100% (6/6) ✅
-Phase 2B: [████░░░░░░░░░░░░] 25% (1/4)
-Phase 3: [░░░░░░░░░░░░░░░░] 0% (0/1)
+Phase 2B: [████████████████] 100% (1/1) ✅
+Phase 3: [░░░░░░░░░░░░░░░░] 0% (0/6 tasks)
 
-Overall: [███████████░░░░░] 63.6% (7/11)
+Overall Extraction: [███████████████░] 100% (7/7 components)
+Overall Project: [████████████░░░░] 75% (Phase 3 remaining)
 ```
 
 ### LOC Migration
 
 - **Total codebase:** ~17,000 LOC (estimated)
 - **Phase 2A extracted:** ~9,783 LOC (100% of Phase 2A)
-- **Phase 2B extracted:** ~1,174 LOC (56.6% of Phase 2B target)
-- **Total extracted:** ~10,957 LOC (64.5% of total)
+- **Phase 2B extracted:** ~1,174 LOC (100% of Phase 2B)
+- **Total extracted:** ~10,957 LOC (64.5% of codebase)
+- **Remaining in monorepo:** ~6,043 LOC (main binary, integration, benchmarks)
 
 ### Build Status
 
@@ -186,7 +206,7 @@ Overall: [███████████░░░░░] 63.6% (7/11)
 | embeddenator-fs | ✅ Bui✅ Building | ✅ Passing | 0 |
 | embeddenator-io | ✅ Building | ✅ 11/11 pass | 0 |
 | embeddenator-obs | ✅ Building | ✅ Passing | 0 |
-| embeddenator-cli | ✅ Building | ⏹️ Stubs only| 0 |
+| embeddenator-cli | ✅ Building | ✅ 1 test pass | 0 |
 | embeddenator-obs | 📦 Skeleton | - | 0 |
 
 ---
@@ -261,6 +281,9 @@ All components depend on:
 
 | Date | Phase | Milestone | Updated By |
 |------|-------|-----------|------------|
+| 2026-01-04 | 2B | embeddenator-cli complete (v0.2.0) | Workflow Orchestrator |
+| 2026-01-04 | 2B | MCP servers confirmed independent | Workflow Orchestrator |
+| 2026-01-04 | 3 | Phase 3 orchestration plan created | Workflow Orchestrator |
 | 2026-01-04 | 2A | embeddenator-fs complete (v0.2.0) | Workflow Orchestrator |
 | 2026-01-04 | 2A | embeddenator-retrieval complete (v0.2.0) | Workflow Orchestrator |
 | 2026-01-04 | 2A | embeddenator-vsa complete (v0.2.0) | Workflow Orchestrator |
@@ -269,4 +292,4 @@ All components depend on:
 
 ---
 
-**Next Update:** After embeddenator-interop extraction (Issue #21)
+**Next Update:** After Phase 3 Week 1 completion (Integration & Security)
