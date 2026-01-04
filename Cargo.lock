@@ -318,6 +318,7 @@ dependencies = [
  "bincode",
  "clap",
  "criterion",
+ "embeddenator-retrieval",
  "embeddenator-vsa",
  "fuser",
  "libc",
@@ -328,6 +329,16 @@ dependencies = [
  "sha2",
  "tempfile",
  "walkdir",
+]
+
+[[package]]
+name = "embeddenator-retrieval"
+version = "0.2.0"
+dependencies = [
+ "bincode",
+ "embeddenator-vsa",
+ "serde",
+ "sha2",
 ]
 
 [[package]]
