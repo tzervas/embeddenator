@@ -57,7 +57,6 @@
 //! - [`cli`]: Command-line interface
 
 pub mod cli;
-pub mod kernel_interop;
 
 // Re-export embeddenator-vsa as a public module for backward compatibility
 pub use embeddenator_vsa as vsa;
@@ -71,6 +70,8 @@ pub use embeddenator_fs as fs;
 pub use embeddenator_fs::embrfs;
 pub use embeddenator_fs::fuse_shim;
 pub use embeddenator_fs::correction;
+// Re-export embeddenator-interop types
+pub use embeddenator_interop as interop;
 // VSA types from embeddenator-vsa component
 pub use embeddenator_vsa::{
     BalancedTernaryWord, Codebook, CorrectionEntry, DifferentialEncoder, DifferentialEncoding,
@@ -91,11 +92,8 @@ pub use embeddenator_fs::{
     save_sub_engrams_dir,
     EngramFS, EngramFSBuilder, FileAttr, FileKind,
 };
-pub use kernel_interop::{
+// Interop types from embeddenator-interop component
+pub use embeddenator_interop::{
     CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
     rerank_top_k_by_cosine,
 };
-// Re-exported from embeddenator-vsa component
-// pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
-// pub use ternary_vec::PackedTritVec;
-// pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};
