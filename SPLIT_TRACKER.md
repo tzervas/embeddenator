@@ -1,7 +1,7 @@
 # Embeddenator Component Split Tracker
 
 **Purpose:** Track progress across all phases of monorepo decomposition  
-**Status:** Phase 2A In Progress (1/6 components extracted)  
+**Status:** Phase 2A In Progress (4/6 components extracted)  
 **Last Updated:** 2026-01-04
 
 ---
@@ -47,7 +47,7 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 ## Phase 2A: Core Component Extraction ⏳ IN PROGRESS
 
 **Timeline:** Jan 1-28, 2026 (4 weeks)  
-**Status:** 3/6 components complete (50.0%)  
+**Status:** 4/6 components complete (66.7%)  
 **Epic Issue:** [#24](https://github.com/tzervas/embeddenator/issues/24)
 
 ### Progress Table
@@ -57,12 +57,12 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 | 1 | embeddenator-vsa | [#18](https://github.com/tzervas/embeddenator/issues/18) | - | ~4,252 | ✅ **DONE** | v0.2.0 | Security audit complete, all tests pass |
 | 2 | embeddenator-retrieval | [#19](https://github.com/tzervas/embeddenator/issues/19) | vsa | ~578 | ✅ **DONE** | v0.2.0 | No unsafe code, signature.rs deferred |
 | 3 | embeddenator-fs | [#20](https://github.com/tzervas/embeddenator/issues/20) | vsa, retrieval | ~3,675 | ✅ **DONE** | v0.2.0 | 2 safe unsafe blocks (POSIX) |
-| 4 | embeddenator-interop | [#21](https://github.com/tzervas/embeddenator/issues/21) | vsa, fs | ~400 | ⏳ **NEXT** | - | Ready to start |
-| 5 | embeddenator-io | [#22](https://github.com/tzervas/embeddenator/issues/22) | - | ~600 | ⏹️ READY | - | Independent, can start anytime |
+| 4 | embeddenator-interop | [#21](https://github.com/tzervas/embeddenator/issues/21) | vsa, fs | ~159 | ✅ **DONE** | v0.2.0 | No unsafe code, trait-based abstractions |
+| 5 | embeddenator-io | [#22](https://github.com/tzervas/embeddenator/issues/22) | - | ~600 | ⏳ **NEXT** | - | Independent, can start anytime |
 | 6 | embeddenator-obs | [#23](https://github.com/tzervas/embeddenator/issues/23) | - | ~300 | ⏹️ READY | - | Independent, can start anytime |
 
-**Total LOC to extract:** ~7,552  
-**Extracted:** ~8,505 (112.6% of code, 50.0% of components)
+**Total LOC to extract:** ~9,564  
+**Extracted:** ~8,664 (90.6% of code, 66.7% of components)
 
 ### Weekly Schedule
 
@@ -77,7 +77,10 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 **Week 2 (Jan 7-14):**
 - ✅ Extract embeddenator-fs
 - ✅ Tag v0.2.0, close #20
-- → Extract embeddenator-interop
+- ✅ Extract embeddenator-interop
+- ✅ Tag v0.2.0, close #21
+- → Extract embeddenator-io
+- → Extract embeddenator-obs
 
 **Week 3 (Jan 14-21):**
 - → Extract embeddenator-interop
