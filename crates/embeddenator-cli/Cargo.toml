@@ -1,0 +1,42 @@
+[package]
+name = "embeddenator-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
+description = "CLI interface for Embeddenator holographic computing substrate"
+license = "MIT"
+repository = "https://github.com/tzervas/embeddenator"
+homepage = "https://github.com/tzervas/embeddenator"
+keywords = ["vsa", "holographic", "cli", "engram", "vector-symbolic"]
+categories = ["command-line-utilities"]
+
+[lib]
+name = "embeddenator_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "embeddenator-cli"
+path = "src/main.rs"
+
+[dependencies]
+# Component libraries (Phase 2A decomposition)
+embeddenator-vsa = { git = "https://github.com/tzervas/embeddenator-vsa", tag = "v0.1.0" }
+embeddenator-retrieval = { git = "https://github.com/tzervas/embeddenator-retrieval", tag = "v0.1.3" }
+embeddenator-fs = { git = "https://github.com/tzervas/embeddenator-fs", tag = "v0.1.2" }
+embeddenator-io = { git = "https://github.com/tzervas/embeddenator-io", tag = "v0.1.1" }
+
+# CLI and error handling
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# Utilities
+walkdir = "2.5"
+
+[features]
+default = []
+fuse = ["embeddenator-fs/default"]  # FUSE support from fs component
