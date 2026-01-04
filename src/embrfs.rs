@@ -20,7 +20,7 @@
 //! If encoding was perfect, correction is empty. If not, correction exactly
 //! compensates. Either way, reconstruction is guaranteed bit-perfect.
 
-use crate::vsa::{SparseVec, ReversibleVSAConfig, DIM};
+use embeddenator_vsa::{SparseVec, ReversibleVSAConfig, DIM};
 use crate::resonator::Resonator;
 use crate::correction::{CorrectionStore, CorrectionStats};
 use crate::retrieval::{RerankedResult, TernaryInvertedIndex};
