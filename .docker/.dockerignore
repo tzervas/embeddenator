@@ -1,0 +1,128 @@
+# .dockerignore for Embeddenator CI builds
+# Excludes secrets, PII, and unnecessary files from Docker context
+
+# ============================================================================
+# Git and Version Control
+# ============================================================================
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ============================================================================
+# Build Artifacts and Caches
+# ============================================================================
+target/
+**/target/
+*.embr
+*.embr.tmp
+bench_results/
+benchmark_data/
+reports/
+
+# ============================================================================
+# Sensitive Data and Secrets
+# ============================================================================
+**/.env
+**/.env.*
+**/secrets/
+**/secret/
+**/*secret*
+**/*password*
+**/*token*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/.aws/
+**/.ssh/
+
+# Specific embeddenator sensitive patterns
+**/codebook_*.json
+**/private_*.json
+**/*_credentials.json
+
+# ============================================================================
+# Development and Testing
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Test data with potential PII
+**/test_data/private/
+**/fixtures/private/
+**/samples/private/
+
+# ============================================================================
+# Documentation and CI (not needed in container)
+# ============================================================================
+docs/
+*.md
+!README.md
+*.txt
+!Cargo.txt
+LICENSE
+CHANGELOG.md
+
+# CI specific
+.github/
+.circleci/
+.travis.yml
+azure-pipelines.yml
+
+# Scripts not needed at runtime
+scripts/
+runner_automation/
+*.sh
+!.docker/*.sh
+
+# ============================================================================
+# Datasets and Large Files
+# ============================================================================
+datasets/
+baselines/
+benchmark_data/
+*.tar.gz
+*.zip
+*.bz2
+*.xz
+
+# ============================================================================
+# Python (for scripts)
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# ============================================================================
+# Rust Specific
+# ============================================================================
+**/*.rs.bk
+Cargo.lock.bak
+
+# ============================================================================
+# Temporary and Log Files
+# ============================================================================
+*.log
+*.tmp
+tmp/
+temp/
+/scratch/
+
+# ============================================================================
+# Docker
+# ============================================================================
+Dockerfile*
+!.docker/Dockerfile.embr-ci
+docker-compose*.yml
+.dockerignore
