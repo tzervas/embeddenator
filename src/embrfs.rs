@@ -21,9 +21,9 @@
 //! compensates. Either way, reconstruction is guaranteed bit-perfect.
 
 use embeddenator_vsa::{SparseVec, ReversibleVSAConfig, DIM};
-use crate::resonator::Resonator;
+use embeddenator_retrieval::resonator::Resonator;
 use crate::correction::{CorrectionStore, CorrectionStats};
-use crate::retrieval::{RerankedResult, TernaryInvertedIndex};
+use embeddenator_retrieval::{RerankedResult, TernaryInvertedIndex};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::collections::{HashMap, HashSet};

@@ -61,10 +61,14 @@ pub mod correction;
 pub mod embrfs;
 pub mod fuse_shim;
 pub mod kernel_interop;
-pub mod resonator;
-pub mod retrieval;
 
-// Re-export main types for convenience
+// Re-export embeddenator-vsa as a public module for backward compatibility
+pub use embeddenator_vsa as vsa;
+pub use embeddenator_vsa::ternary;
+pub use embeddenator_vsa::ternary_vec;
+// Re-export embeddenator-retrieval types  
+pub use embeddenator_retrieval as retrieval;
+pub use embeddenator_retrieval::core::resonator;
 // VSA types from embeddenator-vsa component
 pub use embeddenator_vsa::{
     BalancedTernaryWord, Codebook, CorrectionEntry, DifferentialEncoder, DifferentialEncoding,
@@ -72,6 +76,9 @@ pub use embeddenator_vsa::{
     SemanticOutlier, SparseVec, Trit, TritDepthConfig, Tryte, Tryte3, Word6, WordMetadata, DIM,
     Trit as DimTrit,
 };
+// Retrieval types from embeddenator-retrieval component
+pub use embeddenator_retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
+pub use embeddenator_retrieval::resonator::Resonator;
 pub use correction::{CorrectionStore, CorrectionStats, ChunkCorrection, CorrectionType, ReconstructionVerifier};
 pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
 pub use embrfs::{
@@ -85,8 +92,6 @@ pub use kernel_interop::{
     CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
     rerank_top_k_by_cosine,
 };
-pub use resonator::Resonator;
-pub use retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
 // Re-exported from embeddenator-vsa component
 // pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
 // pub use ternary_vec::PackedTritVec;
