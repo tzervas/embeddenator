@@ -57,9 +57,6 @@
 //! - [`cli`]: Command-line interface
 
 pub mod cli;
-pub mod correction;
-pub mod embrfs;
-pub mod fuse_shim;
 pub mod kernel_interop;
 
 // Re-export embeddenator-vsa as a public module for backward compatibility
@@ -69,6 +66,11 @@ pub use embeddenator_vsa::ternary_vec;
 // Re-export embeddenator-retrieval types  
 pub use embeddenator_retrieval as retrieval;
 pub use embeddenator_retrieval::core::resonator;
+// Re-export embeddenator-fs types
+pub use embeddenator_fs as fs;
+pub use embeddenator_fs::embrfs;
+pub use embeddenator_fs::fuse_shim;
+pub use embeddenator_fs::correction;
 // VSA types from embeddenator-vsa component
 pub use embeddenator_vsa::{
     BalancedTernaryWord, Codebook, CorrectionEntry, DifferentialEncoder, DifferentialEncoding,
@@ -79,15 +81,16 @@ pub use embeddenator_vsa::{
 // Retrieval types from embeddenator-retrieval component
 pub use embeddenator_retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
 pub use embeddenator_retrieval::resonator::Resonator;
-pub use correction::{CorrectionStore, CorrectionStats, ChunkCorrection, CorrectionType, ReconstructionVerifier};
-pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
-pub use embrfs::{
+// Filesystem types from embeddenator-fs component
+pub use embeddenator_fs::{
+    ChunkCorrection, CorrectionStore, CorrectionStats, CorrectionType, ReconstructionVerifier,
+    EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE,
     DirectorySubEngramStore, HierarchicalChunkHit, HierarchicalManifest, HierarchicalQueryBounds,
     SubEngram, SubEngramStore, UnifiedManifest, load_hierarchical_manifest,
     query_hierarchical_codebook, query_hierarchical_codebook_with_store, save_hierarchical_manifest,
     save_sub_engrams_dir,
+    EngramFS, EngramFSBuilder, FileAttr, FileKind,
 };
-pub use fuse_shim::{EngramFS, EngramFSBuilder, FileAttr, FileKind};
 pub use kernel_interop::{
     CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
     rerank_top_k_by_cosine,
