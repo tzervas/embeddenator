@@ -57,40 +57,51 @@
 //! - [`cli`]: Command-line interface
 
 pub mod cli;
-pub mod codebook;
-pub mod correction;
-pub mod dimensional;
-pub mod embrfs;
-pub mod fuse_shim;
-pub mod kernel_interop;
-pub mod resonator;
-pub mod retrieval;
-pub mod simd_cosine;
-pub mod ternary;
-pub mod ternary_vec;
-pub mod vsa;
 
-// Re-export main types for convenience
-pub use codebook::{Codebook, BalancedTernaryWord, ProjectionResult, SemanticOutlier, WordMetadata};
-pub use correction::{CorrectionStore, CorrectionStats, ChunkCorrection, CorrectionType, ReconstructionVerifier};
-pub use dimensional::{
-    Trit as DimTrit, Tryte, DimensionalConfig, TritDepthConfig,
-    HyperVec, DifferentialEncoder, DifferentialEncoding,
+// Re-export embeddenator-vsa as a public module for backward compatibility
+pub use embeddenator_vsa as vsa;
+pub use embeddenator_vsa::ternary;
+pub use embeddenator_vsa::ternary_vec;
+// Re-export embeddenator-retrieval types  
+pub use embeddenator_retrieval as retrieval;
+pub use embeddenator_retrieval::core::resonator;
+// Re-export embeddenator-fs types
+pub use embeddenator_fs as fs;
+pub use embeddenator_fs::embrfs;
+pub use embeddenator_fs::fuse_shim;
+pub use embeddenator_fs::correction;
+// Re-export embeddenator-interop types
+pub use embeddenator_interop as interop;
+// Re-export embeddenator-io types
+pub use embeddenator_io as io;
+// Re-export embeddenator-obs types
+pub use embeddenator_obs as obs;
+// VSA types from embeddenator-vsa component
+pub use embeddenator_vsa::{
+    BalancedTernaryWord, Codebook, CorrectionEntry, DifferentialEncoder, DifferentialEncoding,
+    DimensionalConfig, HyperVec, PackedTritVec, ParityTrit, ProjectionResult, ReversibleVSAConfig,
+    SemanticOutlier, SparseVec, Trit, TritDepthConfig, Tryte, Tryte3, Word6, WordMetadata, DIM,
+    Trit as DimTrit,
 };
-pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
-pub use embrfs::{
+// Retrieval types from embeddenator-retrieval component
+pub use embeddenator_retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
+pub use embeddenator_retrieval::resonator::Resonator;
+// Filesystem types from embeddenator-fs component
+pub use embeddenator_fs::{
+    ChunkCorrection, CorrectionStore, CorrectionStats, CorrectionType, ReconstructionVerifier,
+    EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE,
     DirectorySubEngramStore, HierarchicalChunkHit, HierarchicalManifest, HierarchicalQueryBounds,
     SubEngram, SubEngramStore, UnifiedManifest, load_hierarchical_manifest,
     query_hierarchical_codebook, query_hierarchical_codebook_with_store, save_hierarchical_manifest,
     save_sub_engrams_dir,
+    EngramFS, EngramFSBuilder, FileAttr, FileKind,
 };
-pub use fuse_shim::{EngramFS, EngramFSBuilder, FileAttr, FileKind};
-pub use kernel_interop::{
+// Interop types from embeddenator-interop component
+pub use embeddenator_interop::{
     CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
     rerank_top_k_by_cosine,
 };
-pub use resonator::Resonator;
-pub use retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
-pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
-pub use ternary_vec::PackedTritVec;
-pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};
+// I/O types from embeddenator-io component
+pub use embeddenator_io::{
+    BinaryWriteOptions, CompressionCodec, PayloadKind, unwrap_auto, wrap_or_legacy,
+};
