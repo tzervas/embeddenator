@@ -47,7 +47,7 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 ## Phase 2A: Core Component Extraction ⏳ IN PROGRESS
 
 **Timeline:** Jan 1-28, 2026 (4 weeks)  
-**Status:** 1/6 components complete (16.7%)  
+**Status:** 2/6 components complete (33.3%)  
 **Epic Issue:** [#24](https://github.com/tzervas/embeddenator/issues/24)
 
 ### Progress Table
@@ -55,14 +55,14 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 | # | Component | Issue | Depends On | LOC | Status | Release | Notes |
 |---|-----------|-------|------------|-----|--------|---------|-------|
 | 1 | embeddenator-vsa | [#18](https://github.com/tzervas/embeddenator/issues/18) | - | ~4,252 | ✅ **DONE** | v0.2.0 | Security audit complete, all tests pass |
-| 2 | embeddenator-retrieval | [#19](https://github.com/tzervas/embeddenator/issues/19) | vsa | ~800 | ⏳ **NEXT** | - | Ready to start Week 1 |
-| 3 | embeddenator-fs | [#20](https://github.com/tzervas/embeddenator/issues/20) | vsa, retrieval | ~1,200 | ⏹️ BLOCKED | - | Waiting on retrieval |
+| 2 | embeddenator-retrieval | [#19](https://github.com/tzervas/embeddenator/issues/19) | vsa | ~578 | ✅ **DONE** | v0.2.0 | No unsafe code, signature.rs deferred |
+| 3 | embeddenator-fs | [#20](https://github.com/tzervas/embeddenator/issues/20) | vsa, retrieval | ~1,200 | ⏳ **NEXT** | - | Ready to start |
 | 4 | embeddenator-interop | [#21](https://github.com/tzervas/embeddenator/issues/21) | vsa, fs | ~400 | ⏹️ BLOCKED | - | Waiting on fs |
 | 5 | embeddenator-io | [#22](https://github.com/tzervas/embeddenator/issues/22) | - | ~600 | ⏹️ READY | - | Independent, can start anytime |
 | 6 | embeddenator-obs | [#23](https://github.com/tzervas/embeddenator/issues/23) | - | ~300 | ⏹️ READY | - | Independent, can start anytime |
 
 **Total LOC to extract:** ~7,552  
-**Extracted:** ~4,252 (56.3% of code, 16.7% of components)
+**Extracted:** ~4,830 (64.0% of code, 33.3% of components)
 
 ### Weekly Schedule
 
@@ -70,11 +70,13 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 - ✅ Security audit (SIMD cosine)
 - ✅ Extract embeddenator-vsa
 - ✅ Tag v0.2.0, close #18
-- → **Start:** embeddenator-retrieval
+- ✅ Security audit (retrieval)
+- ✅ Extract embeddenator-retrieval
+- ✅ Tag v0.2.0, close #19
 
 **Week 2 (Jan 7-14):**
-- → Extract embeddenator-retrieval
 - → Extract embeddenator-fs
+- → Extract embeddenator-interop (if fs completes)
 
 **Week 3 (Jan 14-21):**
 - → Extract embeddenator-interop
@@ -148,18 +150,18 @@ vsa (✅) → retrieval → fs → interop
 ### Component Extraction Progress
 
 ```
-Phase 2A: [█████░░░░░░░░░░░] 16.7% (1/6)
+Phase 2A: [█████████░░░░░░░] 33.3% (2/6)
 Phase 2B: [░░░░░░░░░░░░░░░░] 0% (0/4)
 Phase 3: [░░░░░░░░░░░░░░░░] 0% (0/1)
 
-Overall: [███░░░░░░░░░░░░░] 9.1% (1/11)
+Overall: [█████░░░░░░░░░░░] 18.2% (2/11)
 ```
 
 ### LOC Migration
 
 - **Total codebase:** ~15,000 LOC (estimated)
 - **Phase 2A target:** ~7,552 LOC
-- **Extracted:** ~4,252 LOC (28.3% of total)
+- **Extracted:** ~4,830 LOC (32.2% of total, 64.0% of Phase 2A)
 
 ### Build Status
 
@@ -167,7 +169,7 @@ Overall: [███░░░░░░░░░░░░░] 9.1% (1/11)
 |------------|--------|-------|--------|
 | embeddenator (monorepo) | ✅ Building | ✅ 19/19 pass | 0 |
 | embeddenator-vsa | ✅ Building | ✅ Passing | 0 |
-| embeddenator-retrieval | 📦 Skeleton | - | 0 |
+| embeddenator-retrieval | ✅ Building | ✅ 18/18 pass | 0 |
 | embeddenator-fs | 📦 Skeleton | - | 0 |
 | embeddenator-interop | 📦 Skeleton | - | 0 |
 | embeddenator-io | 📦 Skeleton | - | 0 |
@@ -184,7 +186,7 @@ Level 0 (foundation):
   └─ vsa ✅
 
 Level 1 (depends on vsa):
-  └─ retrieval
+  └─ retrieval ✅
 
 Level 2 (depends on retrieval):
   └─ fs
@@ -245,10 +247,11 @@ All components depend on:
 
 | Date | Phase | Milestone | Updated By |
 |------|-------|-----------|------------|
+| 2026-01-04 | 2A | embeddenator-retrieval complete (v0.2.0) | Workflow Orchestrator |
 | 2026-01-04 | 2A | embeddenator-vsa complete (v0.2.0) | Workflow Orchestrator |
 | 2026-01-03 | 2A | Security audit, ADR-017 created | Workflow Orchestrator |
 | 2025-12-31 | 1 | Sister projects stabilized | System |
 
 ---
 
-**Next Update:** After embeddenator-retrieval extraction (Issue #19)
+**Next Update:** After embeddenator-fs extraction (Issue #20)
