@@ -50,6 +50,7 @@ embeddenator-vsa = { path = "../../embeddenator/embeddenator-vsa" }
 embeddenator-retrieval = { path = "../../embeddenator/embeddenator-retrieval" }
 embeddenator-fs = { path = "../../embeddenator/embeddenator-fs" }
 embeddenator-interop = { path = "../../embeddenator/embeddenator-interop" }
+embeddenator-io = { path = "../../embeddenator/embeddenator-io", features = ["full-compression"] }
 
 # External dependencies
 clap = { version = "4.5", features = ["derive"] }
