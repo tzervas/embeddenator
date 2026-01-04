@@ -1,0 +1,112 @@
+[package]
+name = "embeddenator"
+version = "0.20.0"
+edition = "2021"
+authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
+description = "Sparse ternary VSA holographic computing substrate"
+license = "MIT"
+repository = "https://github.com/tzervas/embeddenator"
+homepage = "https://github.com/tzervas/embeddenator"
+keywords = ["vsa", "holographic", "filesystem", "engram", "vector-symbolic"]
+categories = ["filesystem", "compression", "science"]
+documentation = "https://docs.rs/embeddenator"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+name = "embeddenator"
+path = "src/lib.rs"
+doctest = true
+
+[[bench]]
+name = "vsa_ops"
+harness = false
+
+[[bench]]
+name = "retrieval"
+harness = false
+
+[[bench]]
+name = "real_world"
+harness = false
+
+[[bin]]
+name = "embeddenator"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Component libraries (Phase 2A decomposition)
+embeddenator-vsa = { git = "https://github.com/tzervas/embeddenator-vsa", tag = "v0.1.0" }
+embeddenator-retrieval = { git = "https://github.com/tzervas/embeddenator-retrieval", tag = "v0.1.3" }
+embeddenator-fs = { git = "https://github.com/tzervas/embeddenator-fs", tag = "v0.1.2" }
+embeddenator-interop = { git = "https://github.com/tzervas/embeddenator-interop", tag = "v0.1.1" }
+embeddenator-io = { git = "https://github.com/tzervas/embeddenator-io", tag = "v0.1.1" }
+embeddenator-obs = { git = "https://github.com/tzervas/embeddenator-obs", tag = "v0.1.1" }
+
+# Retained for core/codebook.rs
+bincode = "1.3"
+sha2 = "0.10"
+rand = "0.8"
+walkdir = "2.5"
+tempfile = "3.13"
+
+# Optional structured logging
+tracing = { version = "0.1", optional = true }
+tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter", "fmt"] }
+# Optional compression
+zstd = { version = "0.13", optional = true }
+lz4_flex = { version = "0.11", optional = true }
+# Dependencies moved to embeddenator-fs component
+# fuser, libc, arc-swap, rustc-hash now imported via embeddenator-fs
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.4"
+
+[features]
+default = []
+fuse = ["embeddenator-fs/default"]  # FUSE now in fs component
+qa = []
+soak-memory = []
+
+# Observability
+logging = ["dep:tracing", "dep:tracing-subscriber"]
+metrics = []
+observability = ["logging", "metrics"]
+
+# Optional compression codecs for engram/sub-engram artifacts.
+compression-zstd = ["dep:zstd"]
+compression-lz4 = ["dep:lz4_flex"]
+
+# Convenience: enable all compression codecs.
+compression = ["compression-zstd", "compression-lz4"]
+
+# Heavy invariant tests / aggressive randomized checks for ternary refactors.
+ternary-refactor = []
+
+# Balanced-ternary migration phases (testing gates)
+#
+# Enable these progressively as the ternary-native substrate replaces SparseVec
+# internals. Each phase implies the previous phase and enables the heavy
+# refactor invariant suite.
+bt-phase-1 = ["ternary-refactor"]
+bt-phase-2 = ["bt-phase-1"]
+bt-phase-3 = ["bt-phase-2"]
+
+# Convenience for CI/local: run everything currently implemented.
+bt-migration = ["bt-phase-3"]
+
+# These are referenced by cfg-gated test stubs; define them to avoid
+# `unexpected cfg condition value` warnings when compiling tests.
+proptest = []
+afl = []
+simd = []
+
+# Reserved for a future on-disk deterministic baseline codebook loader/generator.
+baseline-codebook = []
