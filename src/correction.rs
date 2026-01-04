@@ -39,7 +39,7 @@
 //!
 //! Either way: D is perfectly recoverable.
 
-use crate::ternary::Trit;
+use embeddenator_vsa::Trit;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use sha2::{Sha256, Digest};

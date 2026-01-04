@@ -6,7 +6,7 @@
 //! 2) Query to generate candidates with approximate dot scores.
 //! 3) Optionally rerank candidates using exact cosine similarity.
 
-use crate::vsa::{SparseVec, DIM};
+use embeddenator_vsa::{SparseVec, DIM};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

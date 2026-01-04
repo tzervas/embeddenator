@@ -7,7 +7,7 @@
 //! - algebraic VSA ops (bundle, bind, similarity)
 //! - a retrieval seam (candidate generation + optional rerank)
 
-use crate::vsa::{ReversibleVSAConfig, SparseVec};
+use embeddenator_vsa::{ReversibleVSAConfig, SparseVec};
 use std::collections::HashMap;
 use std::fmt;
 

@@ -5,7 +5,7 @@
 //! - Factorization of compound representations
 //! - Noise reduction through codebook projection
 
-use crate::vsa::{SparseVec, ReversibleVSAConfig};
+use embeddenator_vsa::{SparseVec, ReversibleVSAConfig};
 use serde::{Deserialize, Serialize};
 
 /// Result of resonator factorization
