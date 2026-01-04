@@ -48,6 +48,7 @@ path = "src/main.rs"
 # Embeddenator component libraries
 embeddenator-vsa = { path = "../../embeddenator/embeddenator-vsa" }
 embeddenator-retrieval = { path = "../../embeddenator/embeddenator-retrieval" }
+embeddenator-fs = { path = "../../embeddenator/embeddenator-fs" }
 
 # External dependencies
 clap = { version = "4.5", features = ["derive"] }

@@ -68,6 +68,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "arc-swap"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51d03449bb8ca2cc2ef70869af31463d1ae5ccc8fa3e334b307203fbf815207e"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -318,6 +327,7 @@ dependencies = [
  "bincode",
  "clap",
  "criterion",
+ "embeddenator-fs",
  "embeddenator-retrieval",
  "embeddenator-vsa",
  "fuser",
@@ -328,6 +338,22 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempfile",
+ "walkdir",
+]
+
+[[package]]
+name = "embeddenator-fs"
+version = "0.2.0"
+dependencies = [
+ "arc-swap",
+ "bincode",
+ "embeddenator-retrieval",
+ "embeddenator-vsa",
+ "libc",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "sha2",
  "walkdir",
 ]
 
