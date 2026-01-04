@@ -59,10 +59,10 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 | 3 | embeddenator-fs | [#20](https://github.com/tzervas/embeddenator/issues/20) | vsa, retrieval | ~3,675 | ✅ **DONE** | v0.2.0 | 2 safe unsafe blocks (POSIX) |
 | 4 | embeddenator-interop | [#21](https://github.com/tzervas/embeddenator/issues/21) | vsa, fs | ~159 | ✅ **DONE** | v0.2.0 | No unsafe code, trait-based abstractions |
 | 5 | embeddenator-io | [#22](https://github.com/tzervas/embeddenator/issues/22) | - | ~166 | ✅ **DONE** | v0.2.0 | No unsafe code, 11 tests, compression codecs |
-| 6 | embeddenator-obs | [#23](https://github.com/tzervas/embeddenator/issues/23) | - | ~300 | ⏳ **NEXT** | - | Independent, can start anytime |
+| 6 | embeddenator-obs | [#23](https://github.com/tzervas/embeddenator/issues/23) | - | ~953 | ✅ **DONE** | v0.2.0 | 2 safe unsafe blocks (TSC), metrics/logging/timing |
 
-**Total LOC to extract:** ~9,564  
-**Extracted:** ~8,830 (92.3% of code, 83.3% of components)
+**Total LOC to extract:** ~9,783  
+**Extracted:** ~9,783 (100% - Phase 2A Complete!)
 
 ### Weekly Schedule
 
