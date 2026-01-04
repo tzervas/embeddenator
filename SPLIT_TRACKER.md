@@ -1,7 +1,7 @@
 # Embeddenator Component Split Tracker
 
 **Purpose:** Track progress across all phases of monorepo decomposition  
-**Status:** Phase 2A In Progress (4/6 components extracted)  
+**Status:** Phase 2B In Progress (1/4 components extracted)  
 **Last Updated:** 2026-01-04
 
 ---
@@ -17,8 +17,8 @@ The Embeddenator project is undergoing systematic decomposition from a monolithi
 
 **Phases:**
 1. ✅ **Phase 1** - Repository setup, ADRs, CI foundation
-2. ⏳ **Phase 2A** - Core component extraction (16.7% complete)
-3. ⏹️ **Phase 2B** - MCP server & CLI extraction
+2. ✅ **Phase 2A** - Core component extraction (100% complete)
+3. ⏳ **Phase 2B** - MCP server & CLI extraction (25% complete)
 4. ⏹️ **Phase 3** - Final integration & cleanup
 
 ---
@@ -109,25 +109,32 @@ vsa (✅) → retrieval → fs → interop
 
 ---
 
-## Phase 2B: MCP Servers & CLI ⏹️ PLANNED
+## Phase 2B: MCP Servers & CLI ⏳ IN PROGRESS
 
-**Timeline:** Feb 2026 (estimated)  
-**Status:** Not started  
+**Timeline:** Jan 2026  
+**Status:** 1/4 components complete (25%)  
 **Epic Issue:** TBD
 
 ### Planned Extractions
 
-| Component | Purpose | Dependencies | LOC Est. | Priority |
-|-----------|---------|--------------|----------|----------|
-| embeddenator-cli | CLI interface | All Phase 2A | ~500 | High |
-| embeddenator-context-mcp | Context provider | vsa, obs | ~300 | Medium |
-| embeddenator-security-mcp | Security auditing | vsa, obs | ~200 | Medium |
-| embeddenator-screen-mcp | Screen capture | obs | ~400 | Low |
+| Component | Purpose | Dependencies | LOC Est. | Status | Version |
+|-----------|---------|--------------|----------|--------|---------|
+| embeddenator-cli | CLI interface | All Phase 2A | ~1,174 | ✅ **DONE** | v0.2.0 |
+| embeddenator-context-mcp | Context provider | vsa, obs | ~300 | ⏹️ Planned | - |
+| embeddenator-security-mcp | Security auditing | vsa, obs | ~200 | ⏹️ Planned | - |
+| embeddenator-screen-mcp | Screen capture | obs | ~400 | ⏹️ Planned | - |
+
+**embeddenator-cli Complete ✅**
+- 1,174 LOC extracted from src/cli.rs
+- 7 main commands: Ingest, Extract, Query, QueryText, BundleHier, Mount, Update
+- 4 update subcommands: Add, Remove, Modify, Compact
+- Tagged v0.2.0, integrated into main repo
+- Command implementations are stubs awaiting embrfs integration
 
 **Prerequisites:**
-- Phase 2A must complete
-- MCP servers need stabilization first
-- CLI requires all core components
+- ✅ Phase 2A must complete
+- ⏹️ MCP servers need stabilization first
+- ⏹️ CLI requires full embrfs integration for command implementations
 
 ---
 
@@ -155,18 +162,19 @@ vsa (✅) → retrieval → fs → interop
 ### Component Extraction Progress
 
 ```
-Phase 2A: [████████████░░░░] 50.0% (3/6)
-Phase 2B: [░░░░░░░░░░░░░░░░] 0% (0/4)
+Phase 2A: [████████████████] 100% (6/6) ✅
+Phase 2B: [████░░░░░░░░░░░░] 25% (1/4)
 Phase 3: [░░░░░░░░░░░░░░░░] 0% (0/1)
 
-Overall: [███████░░░░░░░░░] 27.3% (3/11)
+Overall: [███████████░░░░░] 63.6% (7/11)
 ```
 
 ### LOC Migration
 
-- **Total codebase:** ~15,000 LOC (estimated)
-- **Phase 2A target:** ~7,552 LOC
-- **Extracted:** ~8,505 LOC (56.7% of total, 112.6% of Phase 2A target)
+- **Total codebase:** ~17,000 LOC (estimated)
+- **Phase 2A extracted:** ~9,783 LOC (100% of Phase 2A)
+- **Phase 2B extracted:** ~1,174 LOC (56.6% of Phase 2B target)
+- **Total extracted:** ~10,957 LOC (64.5% of total)
 
 ### Build Status
 
@@ -175,9 +183,10 @@ Overall: [███████░░░░░░░░░] 27.3% (3/11)
 | embeddenator (monorepo) | ✅ Building | ✅ 19/19 pass | 0 |
 | embeddenator-vsa | ✅ Building | ✅ Passing | 0 |
 | embeddenator-retrieval | ✅ Building | ✅ 18/18 pass | 0 |
-| embeddenator-fs | ✅ Building | ✅ 20/20 pass | 0 |
-| embeddenator-interop | 📦 Skeleton | - | 0 |
-| embeddenator-io | 📦 Skeleton | - | 0 |
+| embeddenator-fs | ✅ Bui✅ Building | ✅ Passing | 0 |
+| embeddenator-io | ✅ Building | ✅ 11/11 pass | 0 |
+| embeddenator-obs | ✅ Building | ✅ Passing | 0 |
+| embeddenator-cli | ✅ Building | ⏹️ Stubs only| 0 |
 | embeddenator-obs | 📦 Skeleton | - | 0 |
 
 ---
