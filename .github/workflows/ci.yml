@@ -1,0 +1,66 @@
+# Manual-only CI workflow for Embeddenator subcrates
+# This workflow ONLY runs on manual dispatch to conserve CI resources
+# during the repo breakout phase.
+#
+# Future enhancements (post-stabilization):
+# - Add push triggers for main branch
+# - Add PR triggers
+# - Add scheduled nightly builds for testing/sid targets
+# - Add container-based tests (qcow2 for kernel, Docker/Podman for userspace)
+
+name: CI (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run tests'
+        required: false
+        default: true
+        type: boolean
+      run_clippy:
+        description: 'Run clippy lints'
+        required: false
+        default: true
+        type: boolean
+      run_fmt_check:
+        description: 'Check formatting'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+        
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Check formatting
+        if: ${{ inputs.run_fmt_check }}
+        run: cargo fmt --all -- --check
+        
+      - name: Clippy
+        if: ${{ inputs.run_clippy }}
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        
+      - name: Build
+        run: cargo build --all-features --verbose
+        
+      - name: Run tests
+        if: ${{ inputs.run_tests }}
+        run: cargo test --all-features --verbose
