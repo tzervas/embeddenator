@@ -50,8 +50,8 @@ embeddenator-vsa = "0.20.0-alpha.1"
 embeddenator-retrieval = "0.20.0-alpha.1"
 embeddenator-fs = "0.20.0-alpha.1"
 embeddenator-interop = "0.20.0-alpha.1"
-embeddenator-io = { version = "0.20.0-alpha.1", features = ["full-compression"] }
-embeddenator-obs = { version = "0.20.0-alpha.1", features = ["full-observability"] }
+embeddenator-io = "0.20.0-alpha.1"
+embeddenator-obs = "0.20.0-alpha.1"
 embeddenator-cli = "0.20.0-alpha.1"
 
 # External dependencies
