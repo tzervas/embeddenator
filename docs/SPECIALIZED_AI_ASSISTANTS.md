@@ -44,40 +44,40 @@ This document outlines the architecture and implementation strategy for deployin
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    Orchestration & Task Management Layer                │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │
-│  │ Task Router  │  │ Load Balancer│  │ Result Merger│                 │
-│  └──────────────┘  └──────────────┘  └──────────────┘                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                   │
+│  │ Task Router  │  │ Load Balancer│  │ Result Merger│                   │
+│  └──────────────┘  └──────────────┘  └──────────────┘                   │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    Multi-Model Execution Layer                          │
-│  ┌──────────────────────────┐  ┌──────────────────────────┐            │
-│  │  Coding Assistant Pool   │  │ Research Assistant Pool  │            │
-│  │  ┌────────┐  ┌────────┐  │  │  ┌────────┐  ┌────────┐ │            │
-│  │  │Model 1 │  │Model 2 │  │  │  │Model 1 │  │Model 2 │ │            │
-│  │  └────────┘  └────────┘  │  │  └────────┘  └────────┘ │            │
-│  └──────────────────────────┘  └──────────────────────────┘            │
+│  ┌──────────────────────────┐  ┌──────────────────────────┐             │
+│  │  Coding Assistant Pool   │  │ Research Assistant Pool  │             │
+│  │  ┌────────┐  ┌────────┐  │  │  ┌────────┐  ┌────────┐  │             │
+│  │  │Model 1 │  │Model 2 │  │  │  │Model 1 │  │Model 2 │  │             │
+│  │  └────────┘  └────────┘  │  │  └────────┘  └────────┘  │             │
+│  └──────────────────────────┘  └──────────────────────────┘             │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │               Embeddenator Knowledge Management Layer                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                    │
-│  │  Document   │  │ Specification│  │   Code      │                    │
-│  │  Engrams    │  │   Engrams    │  │  Engrams    │                    │
-│  └─────────────┘  └─────────────┘  └─────────────┘                    │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────┐              │
-│  │     VSA-Based Semantic Search & Retrieval            │              │
-│  │  (Holographic Similarity, Context Enrichment)        │              │
-│  └──────────────────────────────────────────────────────┘              │
+│  ┌─────────────┐  ┌──────────────┐  ┌─────────────┐                     │
+│  │  Document   │  │ Specification│  │   Code      │                     │
+│  │  Engrams    │  │   Engrams    │  │  Engrams    │                     │
+│  └─────────────┘  └──────────────┘  └─────────────┘                     │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────┐               │
+│  │     VSA-Based Semantic Search & Retrieval            │               │
+│  │  (Holographic Similarity, Context Enrichment)        │               │
+│  └──────────────────────────────────────────────────────┘               │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                  Hardware Abstraction Layer                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │
-│  │  CPU Backend │  │  GPU Backend │  │  NPU Backend │                 │
-│  │  (Primary)   │  │  (Optional)  │  │  (Future)    │                 │
-│  └──────────────┘  └──────────────┘  └──────────────┘                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                   │
+│  │  CPU Backend │  │  GPU Backend │  │  NPU Backend │                   │
+│  │  (Primary)   │  │  (Optional)  │  │  (Future)    │                   │
+│  └──────────────┘  └──────────────┘  └──────────────┘                   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -817,10 +817,10 @@ class SelectiveExtraction:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase 1: Requirements & Specifications                      │
-│                                                              │
-│  User Input → Research Assistant → Spec Document → Engram  │
-│    │                     │                                   │
-│    │                     ↓                                   │
+│                                                             │
+│  User Input → Research Assistant → Spec Document → Engram   │
+│    │                     │                                  │
+│    │                     ↓                                  │
 │    │              Analyze existing docs & research          │
 │    │              Generate comprehensive spec               │
 │    └──────→ Review & Refine ←──────────────────┘            │
@@ -828,56 +828,56 @@ class SelectiveExtraction:
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase 2: Design & Architecture                              │
-│                                                              │
-│  Spec Engram → Research Assistant → Design Doc → Engram    │
-│                         │                                    │
-│                         ↓                                    │
+│                                                             │
+│  Spec Engram → Research Assistant → Design Doc → Engram     │
+│                         │                                   │
+│                         ↓                                   │
 │                  Query similar architectures                │
 │                  Propose design alternatives                │
 │                  Generate architecture docs                 │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Phase 3: Implementation                                      │
-│                                                              │
-│  Design Engram → Coding Assistant → Code → Code Engram     │
-│                         │                                    │
-│                         ↓                                    │
-│                  Retrieve code patterns                      │
-│                  Generate implementation                     │
-│                  Apply coding standards                      │
+│ Phase 3: Implementation                                     │
+│                                                             │
+│  Design Engram → Coding Assistant → Code → Code Engram      │
+│                         │                                   │
+│                         ↓                                   │
+│                  Retrieve code patterns                     │
+│                  Generate implementation                    │
+│                  Apply coding standards                     │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase 4: Testing & Validation                               │
-│                                                              │
-│  Code Engram → Coding Assistant → Tests → Updated Engram   │
-│                         │                                    │
-│                         ↓                                    │
-│                  Generate test cases                         │
-│                  Execute tests                               │
+│                                                             │
+│  Code Engram → Coding Assistant → Tests → Updated Engram    │
+│                         │                                   │
+│                         ↓                                   │
+│                  Generate test cases                        │
+│                  Execute tests                              │
 │                  Update code based on results               │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Phase 5: Documentation                                       │
-│                                                              │
-│  Code Engram → Coding + Research → Docs → Docs Engram     │
-│                         │                                    │
-│                         ↓                                    │
-│                  Analyze code structure                      │
-│                  Generate documentation                      │
-│                  Create user guides                          │
+│ Phase 5: Documentation                                      │
+│                                                             │
+│  Code Engram → Coding + Research → Docs → Docs Engram       │
+│                         │                                   │
+│                         ↓                                   │
+│                  Analyze code structure                     │
+│                  Generate documentation                     │
+│                  Create user guides                         │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase 6: Continuous Iteration                               │
-│                                                              │
-│  All Engrams → Feedback Loop → Updated Engrams             │
-│                         │                                    │
-│                         ↓                                    │
-│                  Monitor changes                             │
-│                  Incremental updates                         │
+│                                                             │
+│  All Engrams → Feedback Loop → Updated Engrams              │
+│                         │                                   │
+│                         ↓                                   │
+│                  Monitor changes                            │
+│                  Incremental updates                        │
 │                  Version control integration                │
 └─────────────────────────────────────────────────────────────┘
 ```
