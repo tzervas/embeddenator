@@ -1,6 +1,22 @@
 # Embeddenator Version Roadmap
 
-## Current State: v1.0.0 (2026-01-02)
+## Version Context
+
+**Internal Development Version:** v1.0.0 (achieved January 2, 2026)
+**First Public Release (crates.io):** v0.20.0-alpha.1 (January 9, 2026)
+
+### Why 0.20.0-alpha.1 instead of 1.0.0?
+
+This is the **first publication to crates.io**. Per Rust ecosystem conventions:
+- Internal v1.0.0 = internal milestone achievement (full feature set, production-ready)
+- Public v0.20.0-alpha.1 = first alpha release to gather community feedback
+- crates.io versions follow independent numbering from internal milestones
+- Alpha designation allows API refinement based on real-world usage
+- Path to public v1.0.0 will incorporate community feedback and battle-testing
+
+This approach follows the pattern of many major Rust projects that use conservative public versioning while maintaining internal milestones.
+
+## Current State: v1.0.0 Internal / v0.20.0-alpha.1 Public (2026-01-02)
 
 ### Completed Features
 - ✅ Core VSA implementation with sparse ternary vectors
