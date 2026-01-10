@@ -1,6 +1,6 @@
 [package]
 name = "embeddenator"
-version = "1.0.0"
+version = "0.20.0-alpha.1"
 edition = "2021"
 authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
 description = "Sparse ternary VSA holographic computing substrate"
@@ -46,13 +46,13 @@ path = "src/main.rs"
 
 [dependencies]
 # Embeddenator component libraries
-embeddenator-vsa = { path = "../../embeddenator/embeddenator-vsa" }
-embeddenator-retrieval = { path = "../../embeddenator/embeddenator-retrieval" }
-embeddenator-fs = { path = "../../embeddenator/embeddenator-fs" }
-embeddenator-interop = { path = "../../embeddenator/embeddenator-interop" }
-embeddenator-io = { path = "../../embeddenator/embeddenator-io", features = ["full-compression"] }
-embeddenator-obs = { path = "../../embeddenator/embeddenator-obs", features = ["full-observability"] }
-embeddenator-cli = { path = "../../embeddenator/embeddenator-cli" }
+embeddenator-vsa = "0.20.0-alpha.1"
+embeddenator-retrieval = "0.20.0-alpha.1"
+embeddenator-fs = "0.20.0-alpha.1"
+embeddenator-interop = "0.20.0-alpha.1"
+embeddenator-io = "0.20.0-alpha.1"
+embeddenator-obs = { version = "0.20.0-alpha.1", features = ["tracing"] }
+embeddenator-cli = "0.20.0-alpha.1"
 
 # External dependencies
 clap = { version = "4.5", features = ["derive"] }
