@@ -1,24 +1,27 @@
 //! Codebook - Differential Encoding Base Model
 //!
-//! The codebook serves as a learned/constructed basis set for differential encoding.
-//! Data is projected onto this basis, and only the residuals (what can't be expressed
-//! by the codebook) plus semantic markers are stored in the engram.
+//! The codebook serves as a basis set for differential encoding of data chunks.
+//! Data is projected onto this basis, and the coefficients plus any residuals
+//! are stored for reconstruction.
 //!
 //! # Architecture
 //!
 //! ```text
-//! Codebook = { basis_vectors: [B₀, B₁, ..., Bₙ], semantic_markers: [...] }
+//! Codebook = { basis_vectors: [B₀, B₁, ..., Bₙ], metadata: [...] }
 //!
-//! Encoding:  data → coefficients × basis + residual + semantic_outliers
-//! Decoding:  coefficients × basis + residual + semantic_outliers → data
+//! Encoding:  data → coefficients × basis + residual
+//! Decoding:  coefficients × basis + residual → data
 //! ```
 //!
-//! # Security Model
+//! # Data Encoding
 //!
-//! The codebook acts as a private key:
-//! - Without the codebook, reconstruction is mathematically impossible
-//! - The engram alone is information-theoretically secure
-//! - Different codebooks = different "encryption keys"
+//! The codebook uses vector symbolic architecture (VSA) to encode data:
+//! - Each data chunk is represented as a sparse ternary vector
+//! - The codebook stores basis vectors for reconstruction
+//! - Decoding requires the codebook (acts as a key)
+//!
+//! **⚠️ Security Note:** The cryptographic properties of this encoding are
+//! under research. Do not use for security-critical applications.
 
 use crate::vsa::vsa::{SparseVec, DIM};
 use serde::{Deserialize, Serialize};
@@ -611,58 +614,4 @@ impl Codebook {
 }
 
 // TECH-DEBT: SparseVec::from_seed() and from_bytes() moved to embeddenator-vsa
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_balanced_ternary_roundtrip() {
-        let test_values = [0i64, 1, -1, 100, -100, 12345, -12345, 
-                          BalancedTernaryWord::MAX_VALUE / 2,
-                          BalancedTernaryWord::MIN_VALUE / 2];
-        
-        for &value in &test_values {
-            let word = BalancedTernaryWord::new(value, WordMetadata::Data).unwrap();
-            let decoded = word.decode();
-            assert_eq!(value, decoded, "Failed roundtrip for {}", value);
-        }
-    }
-
-    #[test]
-    fn test_balanced_ternary_metadata() {
-        let word = BalancedTernaryWord::new(42, WordMetadata::SemanticOutlier).unwrap();
-        assert_eq!(word.metadata(), WordMetadata::SemanticOutlier);
-        assert_eq!(word.decode(), 42);
-    }
-
-    #[test]
-    fn test_balanced_ternary_range() {
-        // Should succeed at boundaries
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MAX_VALUE, WordMetadata::Data).is_some());
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MIN_VALUE, WordMetadata::Data).is_some());
-        
-        // Should fail outside boundaries
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MAX_VALUE + 1, WordMetadata::Data).is_none());
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MIN_VALUE - 1, WordMetadata::Data).is_none());
-    }
-
-    #[test]
-    fn test_codebook_projection() {
-        let mut codebook = Codebook::new(10000);
-        codebook.initialize_standard_basis();
-        
-        let data = b"the quick brown fox jumps over the lazy dog";
-        let projection = codebook.project(data);
-        
-        assert!(projection.quality_score > 0.0);
-        assert!(!projection.coefficients.is_empty() || !projection.residual.is_empty());
-    }
-
-    #[test]
-    fn test_parity_computation() {
-        let word = BalancedTernaryWord::new(12345, WordMetadata::Data).unwrap();
-        let parity = word.compute_parity();
-        assert!(parity >= -1 && parity <= 1);
-    }
-}
+// Tests moved to tests/codebook/ module for better organization

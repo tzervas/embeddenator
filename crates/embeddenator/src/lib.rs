@@ -1,29 +1,39 @@
 //! Embeddenator - Holographic Computing Substrate
 //!
-//! Copyright (c) 2025 Embeddenator Contributors
-//! Licensed under MIT License
+//! Copyright (c) 2025-2026 Tyler Zervas and Contributors
+//! Licensed under MIT License (see LICENSE file in repository root)
 //!
-//! Pre-1.0 Rust implementation of sparse ternary VSA (Vector Symbolic
-//! Architecture) holographic filesystem and computing substrate.
+//! **⚠️ EARLY DEVELOPMENT:** This is an experimental implementation (v0.20.0-alpha).
+//! APIs are unstable and subject to change. Not recommended for production use.
 //!
 //! # Overview
 //!
-//! Embeddenator encodes entire filesystems into holographic "engrams" using
-//! sparse ternary vectors, enabling:
-//! - 100% bit-perfect reconstruction of all files
-//! - Holographic superposition of multiple data sources
-//! - Algebraic operations (bundle, bind) on encoded data
-//! - Hierarchical chunked encoding for TB-scale datasets
+//! Embeddenator is an experimental implementation of Vector Symbolic Architecture (VSA)
+//! using sparse ternary vectors for holographic data encoding. Current capabilities include:
+//!
+//! - Encoding filesystems into holographic "engrams"
+//! - Bit-perfect reconstruction of encoded files (verified in tests)
+//! - Algebraic operations (bundle, bind) on sparse ternary vectors
+//! - Hierarchical chunking for handling larger datasets
+//! - Basic similarity search and retrieval
+//!
+//! # ⚠️ Limitations and Disclaimers
+//!
+//! - **Early Development**: Many features are experimental or incomplete
+//! - **Security**: Cryptographic properties are under research; do not use for security-critical applications
+//! - **Scalability**: Large-scale (TB) testing is ongoing
+//! - **Performance**: Optimization work is in progress
+//! - **API Stability**: Breaking changes may occur in future versions
 //!
 //! # Architecture (v0.20.0+)
 //!
 //! As of v0.20.0, Embeddenator has been decomposed into component libraries:
 //! - **embeddenator-vsa**: Core VSA operations, sparse ternary vectors
 //! - **embeddenator-retrieval**: Signature-based search, resonator, correction
-//! - **embeddenator-fs**: EmbrFS FUSE filesystem
+//! - **embeddenator-fs**: EmbrFS FUSE filesystem (partial implementation)
 //! - **embeddenator-interop**: Kernel interop, system integration
 //! - **embeddenator-io**: Envelope format, serialization
-//! - **embeddenator-obs**: Metrics, logging, tracing
+//! - **embeddenator-obs**: Observability, logging, tracing
 //!
 //! This crate serves as an orchestrator, re-exporting component functionality.
 //!
@@ -51,22 +61,22 @@
 //!
 //! The foundation of Embeddenator is VSA with three key operations:
 //!
-//! - **Bundle (⊕)**: Associative superposition - combine multiple vectors
-//! - **Bind (⊙)**: Non-commutative composition - encode associations
-//! - **Cosine Similarity**: Retrieve similar patterns (>0.75 strong match)
+//! - **Bundle (⊕)**: Superposition operation for combining vectors
+//! - **Bind (⊙)**: Compositional operation with approximate self-inverse property
+//! - **Cosine Similarity**: Measure similarity between vectors for retrieval
 //!
 //! ## Engrams
 //!
 //! An engram is a holographic encoding containing:
 //! - Root vector: superposition of all data chunks
-//! - Codebook: mapping of chunk IDs to original data
+//! - Codebook: mapping of chunk IDs to encoded vector representations
 //! - Manifest: file structure and metadata
 //!
 //! # Modules
 //!
 //! - Component libraries (see dependencies in Cargo.toml)
 //! - [`cli`]: Command-line interface
-//! - [`codebook`]: Local codebook implementation
+//! - [`codebook`]: Codebook implementation for differential encoding
 
 // Import component libraries
 pub use embeddenator_vsa as vsa;
@@ -85,7 +95,8 @@ pub mod codebook;
 
 
 /// Testing utilities: metrics, integrity validation, chaos injection.
-#[cfg(test)]
+/// Available during test and dev builds for use in integration tests.
+#[cfg(any(test, debug_assertions))]
 pub mod testing;
 
 // Re-export main types for convenience from component libraries

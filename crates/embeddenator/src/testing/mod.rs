@@ -22,6 +22,9 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+// Import types from re-exports
+use crate::{BitslicedTritVec, Trit};
+
 // ============================================================================
 // PERFORMANCE METRICS
 // ============================================================================
@@ -326,11 +329,11 @@ impl IntegrityValidator {
     /// - No position has both pos and neg bits set
     /// - Length matches word count
     /// - Trailing bits are zero
-    pub fn validate_bitsliced(&self, v: &crate::bitsliced::BitslicedTritVec) -> IntegrityReport {
+    pub fn validate_bitsliced(&self, v: &BitslicedTritVec) -> IntegrityReport {
         let mut report = IntegrityReport::default();
 
         // Check no overlapping pos/neg bits
-        let words = crate::bitsliced::BitslicedTritVec::word_count(v.len());
+        let words = BitslicedTritVec::word_count(v.len());
         for w in 0..words {
             let overlap = v.pos_word(w) & v.neg_word(w);
             if overlap != 0 {
@@ -373,8 +376,8 @@ impl IntegrityValidator {
     /// - Commutativity: A ⊙ B = B ⊙ A
     pub fn validate_bind_invariants(
         &self,
-        a: &crate::bitsliced::BitslicedTritVec,
-        b: &crate::bitsliced::BitslicedTritVec,
+        a: &BitslicedTritVec,
+        b: &BitslicedTritVec,
     ) -> IntegrityReport {
         let mut report = IntegrityReport::default();
 
@@ -416,8 +419,8 @@ impl IntegrityValidator {
     /// Validate bundle operation properties.
     pub fn validate_bundle_invariants(
         &self,
-        a: &crate::bitsliced::BitslicedTritVec,
-        b: &crate::bitsliced::BitslicedTritVec,
+        a: &BitslicedTritVec,
+        b: &BitslicedTritVec,
     ) -> IntegrityReport {
         let mut report = IntegrityReport::default();
 
@@ -441,7 +444,7 @@ impl IntegrityValidator {
         
         for &pos in &conflict_pos {
             let result_trit = ab.get(pos);
-            if result_trit != crate::ternary::Trit::Z {
+            if result_trit != Trit::Z {
                 report.fail(format!(
                     "Conflict cancel violation at {}: P+N={:?} (expected Z)",
                     pos, result_trit
@@ -457,8 +460,8 @@ impl IntegrityValidator {
     /// Detect potential bitflips by comparing two vectors.
     pub fn detect_bitflips(
         &self,
-        expected: &crate::bitsliced::BitslicedTritVec,
-        actual: &crate::bitsliced::BitslicedTritVec,
+        expected: &BitslicedTritVec,
+        actual: &BitslicedTritVec,
     ) -> IntegrityReport {
         let mut report = IntegrityReport::default();
 
@@ -470,7 +473,7 @@ impl IntegrityValidator {
             return report;
         }
 
-        let words = crate::bitsliced::BitslicedTritVec::word_count(expected.len());
+        let words = BitslicedTritVec::word_count(expected.len());
         let mut total_flips = 0u64;
 
         for w in 0..words {
@@ -559,8 +562,8 @@ impl StorageFootprint {
     }
 
     /// Calculate from a bitsliced vector.
-    pub fn from_bitsliced(bs: &crate::bitsliced::BitslicedTritVec) -> Self {
-        let words = crate::bitsliced::BitslicedTritVec::word_count(bs.len());
+    pub fn from_bitsliced(bs: &BitslicedTritVec) -> Self {
+        let words = BitslicedTritVec::word_count(bs.len());
         // Bitsliced: 2 planes of u64 words
         let bitsliced_bytes = (words * 2 * std::mem::size_of::<u64>()) as u64;
         
@@ -674,7 +677,7 @@ impl ChaosInjector {
     /// Inject random bitflips into a bitsliced vector.
     pub fn inject_bitflips(
         &self,
-        v: &mut crate::bitsliced::BitslicedTritVec,
+        v: &mut BitslicedTritVec,
         count: usize,
     ) -> Vec<usize> {
         use std::collections::HashSet;
@@ -691,13 +694,13 @@ impl ChaosInjector {
             if seen.insert(pos) {
                 let current = v.get(pos);
                 let new_trit = match current {
-                    crate::ternary::Trit::P => crate::ternary::Trit::N,
-                    crate::ternary::Trit::N => crate::ternary::Trit::P,
-                    crate::ternary::Trit::Z => {
+                    Trit::P => Trit::N,
+                    Trit::N => Trit::P,
+                    Trit::Z => {
                         if state % 2 == 0 {
-                            crate::ternary::Trit::P
+                            Trit::P
                         } else {
-                            crate::ternary::Trit::N
+                            Trit::N
                         }
                     }
                 };
@@ -712,7 +715,7 @@ impl ChaosInjector {
     /// Inject noise by randomly setting trits to zero.
     pub fn inject_erasures(
         &self,
-        v: &mut crate::bitsliced::BitslicedTritVec,
+        v: &mut BitslicedTritVec,
         count: usize,
     ) -> Vec<usize> {
         let mut erased = Vec::new();
@@ -722,8 +725,8 @@ impl ChaosInjector {
             state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
             let pos = (state as usize) % v.len();
 
-            if v.get(pos) != crate::ternary::Trit::Z {
-                v.set(pos, crate::ternary::Trit::Z);
+            if v.get(pos) != Trit::Z {
+                v.set(pos, Trit::Z);
                 erased.push(pos);
             }
         }
@@ -734,9 +737,9 @@ impl ChaosInjector {
     /// Create corrupted copy with specified error rate.
     pub fn corrupt_copy(
         &self,
-        v: &crate::bitsliced::BitslicedTritVec,
+        v: &BitslicedTritVec,
         error_rate: f64,
-    ) -> crate::bitsliced::BitslicedTritVec {
+    ) -> BitslicedTritVec {
         let mut corrupted = v.clone();
         let errors = ((v.len() as f64) * error_rate) as usize;
         self.inject_bitflips(&mut corrupted, errors);
@@ -811,73 +814,4 @@ macro_rules! assert_nnz_preserved {
 // ============================================================================
 // TESTS FOR THE TESTING MODULE ITSELF
 // ============================================================================
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_metrics_timing() {
-        let mut metrics = TestMetrics::new("test_op");
-        
-        for _ in 0..10 {
-            metrics.time_operation(|| {
-                std::thread::sleep(std::time::Duration::from_micros(100));
-            });
-        }
-
-        let stats = metrics.timing_stats();
-        assert_eq!(stats.count, 10);
-        assert!(stats.mean_ns > 50_000.0); // At least 50µs
-    }
-
-    #[test]
-    fn test_integrity_report() {
-        let mut report = IntegrityReport::default();
-        
-        report.pass();
-        report.pass();
-        report.fail("test failure");
-        
-        assert_eq!(report.checks_total, 3);
-        assert_eq!(report.checks_passed, 2);
-        assert!(!report.is_ok());
-        assert!((report.pass_rate() - 66.67).abs() < 1.0);
-    }
-
-    #[test]
-    fn test_storage_footprint() {
-        let footprint = StorageFootprint {
-            raw_bytes: 10000,
-            bitsliced_bytes: 4000,
-            codebook_bytes: 500,
-            metadata_bytes: 100,
-            dimension: 10000,
-            nnz: 200,
-            ..Default::default()
-        };
-
-        assert!((footprint.density() - 0.02).abs() < 0.001);
-        assert!(footprint.compression_ratio() > 2.0);
-    }
-
-    #[test]
-    fn test_chaos_injector() {
-        use crate::bitsliced::BitslicedTritVec;
-        use crate::vsa::SparseVec;
-
-        let sparse = SparseVec {
-            pos: vec![0, 100, 500],
-            neg: vec![50, 200],
-        };
-        let mut v = BitslicedTritVec::from_sparse(&sparse, 1000);
-        let original_nnz = v.nnz();
-
-        let injector = ChaosInjector::new(42);
-        let flipped = injector.inject_bitflips(&mut v, 5);
-
-        assert_eq!(flipped.len(), 5);
-        // NNZ might change due to flips
-        assert!(v.nnz() != original_nnz || flipped.iter().any(|&p| sparse.pos.contains(&p) || sparse.neg.contains(&p)));
-    }
-}
+// Tests moved to tests/testing_infrastructure.rs for better organization

@@ -1,5 +1,5 @@
 use clap::Parser;
-use embeddenator::embrfs::EmbrFS;
+use embeddenator::EmbrFS;
 use embeddenator::retrieval::RerankedResult;
 use embeddenator::vsa::ReversibleVSAConfig;
 use serde::Serialize;
