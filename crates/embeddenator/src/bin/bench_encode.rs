@@ -1,5 +1,5 @@
-use embeddenator::embrfs::EmbrFS;
-use embeddenator::envelope::{BinaryWriteOptions, CompressionCodec, PayloadKind, wrap_or_legacy};
+use embeddenator::EmbrFS;
+use embeddenator_io::envelope::{BinaryWriteOptions, CompressionCodec, PayloadKind, wrap_or_legacy};
 use embeddenator::vsa::ReversibleVSAConfig;
 use clap::Parser;
 use serde::Serialize;

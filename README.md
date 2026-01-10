@@ -1,9 +1,11 @@
 # Embeddenator — Holographic Computing Substrate
 
-**Version 0.20.0** | Production Rust implementation of sparse ternary VSA (Vector Symbolic Architecture) holographic filesystem and computing substrate.
+> **⚠️ EARLY DEVELOPMENT:** This project is in active development (v0.20.0-alpha). APIs are unstable and subject to change. Not recommended for production use.
+
+**Version 0.20.0-alpha** | Experimental Rust implementation of sparse ternary Vector Symbolic Architecture (VSA) for holographic data encoding.
 
 **Author:** Tyler Zervas <tz-dev@vectorweight.com>  
-**License:** MIT  
+**License:** MIT (see [LICENSE](LICENSE) file)  
 
 [![CI](https://github.com/tzervas/embeddenator/workflows/CI/badge.svg)](https://github.com/tzervas/embeddenator/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -23,20 +25,24 @@ Embeddenator has been refactored into a **modular component architecture** with 
 
 **🐳 Docker:** Multi-arch images available at `ghcr.io/tzervas/embeddenator` ([amd64](https://github.com/tzervas/embeddenator/pkgs/container/embeddenator) + arm64)
 
-## Features
+## Current Capabilities
 
-- **Native Engram Operations**: Work directly on `.engram` files (holographic root state)
-- **Bit-Perfect Reconstruction**: 100% ordered text and binary file recovery
-- **Pure Algebraic Mutations**: Bundle/bind/scalar operations on single root engram
-- **Hierarchical Chunked Encoding**: Designed for TB-scale data
-- **SIMD Acceleration**: Optional AVX2/NEON optimizations for 2-4x query speedup
-- **CLI + Docker**: Complete toolchain with multi-arch container support
-- **Holographic OS Containers**: Full Debian and Ubuntu distributions encoded as engrams
-- **Dual Versioning**: LTS stable releases + nightly bleeding-edge builds
-- **Production-Grade**: Comprehensive test suite with zero clippy warnings
-- **Multi-Architecture**: amd64 supported; arm64 supported via self-hosted runners (CI validation pending)
-- **Test Runner**: Intelligent validation with debug logging (v0.2.0)
-- **AI Assistant Integration**: Architecture for specialized coding and research assistants with embeddenator-enhanced retrieval
+### Implemented Features
+- **Engram Encoding/Decoding**: Create holographic encodings (`.engram` files) of filesystems
+- **Bit-Perfect Reconstruction**: Verified reconstruction of text and binary files from engrams
+- **VSA Operations**: Bundle, bind, and other vector symbolic operations on sparse ternary vectors
+- **Hierarchical Encoding**: Multi-level chunking for handling larger datasets
+- **SIMD Support**: Optional AVX2/NEON optimizations (experimental, 2-4x speedup on supported hardware)
+- **CLI Tool**: Command-line interface for ingest, extract, and query operations
+- **Component Architecture**: Modular design with 6 independent library crates
+- **Test Coverage**: 160+ integration tests covering core functionality (98.5% pass rate)
+
+### Experimental/In Development
+- **FUSE Filesystem**: EmbrFS integration (partial implementation)
+- **Query Performance**: Similarity search and retrieval (basic implementation)
+- **Docker Support**: Multi-arch containers (in development)
+- **Large-Scale Testing**: TB-scale validation (planned)
+- **OS Container Encoding**: Full system encoding (proof-of-concept only)
 
 ## What's New in v0.3.0
 
@@ -64,21 +70,19 @@ Embeddenator has been refactored into a **modular component architecture** with 
 
 Embeddenator uses sparse ternary vectors to represent data holographically:
 
-- **Bundle (⊕)**: Associative superposition - `(A ⊕ B) ⊕ C ≈ A ⊕ (B ⊕ C)`
-- **Bind (⊙)**: Non-commutative composition - `A ⊙ A ≈ I` (self-inverse)
-- **Cosine Similarity**: Algebraic cleanup - correct match >0.75, noise <0.3
+- **Bundle (⊕)**: Superposition operation for combining vectors
+- **Bind (⊙)**: Compositional operation with approximate self-inverse property
+- **Cosine Similarity**: Measure of vector similarity for retrieval
 
-The ternary representation {-1, 0, +1} is **hardware-optimized** for 64-bit CPUs:
-- 39-40 trits encode optimally in a 64-bit register (39 for signed, 40 for unsigned)
-- No SIMD extensions required (AVX/AVX2 optional for acceleration)
-- Based on balanced ternary mathematics for efficient computation
+The ternary representation {-1, 0, +1} enables efficient computation:
+- 39-40 trits can be encoded in a 64-bit register
+- Sparse representation reduces memory and computation requirements
+- Based on balanced ternary arithmetic
 
-**Scalability through Adaptive Sparsity**:
-- Current: 10,000 dimensions @ ~1% sparsity (200 non-zero elements)
-- Balanced: 50,000 dimensions @ 0.4% sparsity (200 non-zero, 100× better collision resistance)
-- High-precision: 100,000 dimensions @ 0.2% sparsity (200 non-zero, 10,000× better collision resistance)
-- **Key insight**: Constant non-zero elements → constant computational cost regardless of dimensionality
-- See [ADR-006](docs/adr/ADR-006-dimensionality-sparsity-scaling.md) for detailed analysis
+**Current Configuration**:
+- 10,000 dimensions with ~1% sparsity (~100-200 non-zero elements per vector)
+- Provides balance between collision resistance and computational efficiency
+- Higher dimensions and sparsity configurations are under investigation
 
 ### Engrams
 
@@ -88,25 +92,13 @@ An **engram** is a holographic encoding of an entire filesystem or dataset:
 - Secure codebook with VSA-lens encoded data (not plaintext)
 - Manifest tracking file structure and metadata
 
-**Security**: The codebook does NOT store plaintext data. Chunks are encoded using a VSA-lens reversible encoding mechanism that is:
-- Mathematically trivial to decode WITH the master key
-- Computationally infeasible without the master key  
-- Quantum resistant (no algebraic structure for quantum algorithms)
-- Enables selective decryption (decrypt only needed chunks)
+**Data Encoding**: The codebook stores encoded vector representations of data chunks. The encoding mechanism:
+- Requires the codebook for reconstruction (codebook acts as a key)
+- Uses sparse ternary vectors for holographic superposition
+- Supports deterministic encoding and decoding
+- **Security Note**: The cryptographic properties of this encoding are under research. Do not use for security-critical applications.
 
-See [ADR-007](docs/adr/ADR-007-codebook-security.md) for details on the VSA-as-a-lens security model.
-
-### Hologram Package Isolation (Advanced)
-
-**Package factoralization** enables selective manipulation of packages within holographic containers:
-
-- **Isolate packages**: Extract individual packages without full reconstruction
-- **Complementary bundling**: Bundle everything *except* target package(s)
-- **Compact encoding**: Balanced ternary representation (~39× compression)
-- **Selective updates**: Update packages without touching the rest of the system
-- **Differential distribution**: Ship only updated packages as compact holograms
-
-See [ADR-005](docs/adr/ADR-005-hologram-package-isolation.md) for technical details on hologram factoralization, balanced ternary encoding, and 64-bit register optimization.
+See [ADR-007](docs/adr/ADR-007-codebook-security.md) for details on the encoding model.
 
 ## Quick Start
 
@@ -319,7 +311,9 @@ embeddenator bundle-hier -e root.engram -m manifest.json \
   --out-sub-engrams-dir ./sub_engrams
 ```
 
-## Docker Usage
+## Docker Usage (Experimental)
+
+> **Note:** Docker support is in development and may not be fully functional.
 
 ### Build Tool Image
 
@@ -341,82 +335,28 @@ docker run -v $(pwd)/workspace:/workspace -v $(pwd)/output:/output \
   extract -e /workspace/root.engram -m /workspace/manifest.json -o /output -v
 ```
 
-### Holographic Container
+## Test Coverage
 
-Build a container from an engram:
+Embeddenator has comprehensive test coverage:
 
-```bash
-# First, create an engram of your desired filesystem
-cargo run --release -- ingest -i ./rootfs -e workspace/root.engram -m workspace/manifest.json
+- **160+ integration tests** across 23 test suites
+- **98.5% pass rate** (166/170 tests passing)
+- **Test categories**: Balanced ternary, codebook operations, VSA properties, error recovery, hierarchical operations, CLI integration
+- **Continuous testing**: All core functionality verified with each build
 
-# Build the holographic container
-docker build -f Dockerfile.holographic -t my-holographic-os:latest .
-```
+### Verified Capabilities
 
-### Holographic OS Images - Dual Versioning Strategy
+- ✅ **Text file reconstruction**: Byte-for-byte identical reconstruction verified
+- ✅ **Binary file recovery**: Exact binary reconstruction tested
+- ✅ **VSA operations**: Bundle, bind, and similarity operations tested
+- ✅ **Hierarchical encoding**: Multi-level chunking verified
+- ✅ **Error recovery**: Corruption and concurrency handling tested
 
-Embeddenator provides pre-built holographic OS images with a dual versioning strategy:
+### In Development
 
-**LTS Stable Releases** (Long-Term Support):
-- **Debian 12 Bookworm** (amd64, arm64)
-- **Ubuntu 24.04 LTS Noble** (amd64, arm64)
-- Tagged with version numbers (e.g., `v0.2.0-lts`)
-- Updated on stable release cycles
-- Recommended for production use
-
-**Testing/Sid/Rolling Releases** (Bleeding Edge):
-- **Debian Testing** (amd64, arm64) - Static version + nightly
-- **Debian Sid** (amd64, arm64) - Static version + nightly
-- **Ubuntu Devel** (amd64, arm64) - Static version + nightly
-- **Ubuntu Rolling** (amd64, arm64) - Static version + nightly
-- Tagged with version + `-nightly` suffix (e.g., `v0.2.0-nightly-20250115`)
-- Built daily at 2 AM UTC with latest packages and Rust nightly
-- Recommended for testing and development
-
-**Pull images:**
-
-```bash
-# LTS stable images
-docker pull ghcr.io/tzervas/embeddenator-holographic-debian-stable-amd64:latest
-docker pull ghcr.io/tzervas/embeddenator-holographic-ubuntu-stable-arm64:latest
-
-# Nightly bleeding-edge images
-docker pull ghcr.io/tzervas/embeddenator-holographic-debian-testing-amd64:nightly
-docker pull ghcr.io/tzervas/embeddenator-holographic-ubuntu-rolling-arm64:nightly
-
-# Specific dated nightly
-docker pull ghcr.io/tzervas/embeddenator-holographic-debian-sid-amd64:v0.2.0-nightly-20250115
-```
-
-**Available OS Configurations:**
-
-| OS | Version | LTS | Nightly | Architectures |
-|----|---------|-----|---------|---------------|
-| Debian | 12 Bookworm | ✅ | ❌ | amd64, arm64 |
-| Debian | Testing | ❌ | ✅ | amd64, arm64 |
-| Debian | Sid | ❌ | ✅ | amd64, arm64 |
-| Ubuntu | 24.04 LTS | ✅ | ❌ | amd64, arm64 |
-| Ubuntu | Devel | ❌ | ✅ | amd64, arm64 |
-| Ubuntu | Rolling | ❌ | ✅ | amd64, arm64 |
-
-## Validation Baseline
-
-Embeddenator guarantees:
-
-- ✅ **100% ordered text reconstruction**: All text files byte-for-byte identical
-- ✅ **Bit-perfect binary recovery**: All binary files exactly match originals
-- ✅ **Algebraic update correctness**: VSA operations maintain mathematical properties
-- ✅ **Multi-file superposition independence**: Files can be extracted independently
-- ✅ **Persistence cycle identity**: Ingest → extract → ingest produces identical engrams
-
-## Success Metrics
-
-Typical performance characteristics:
-
-- **Memory**: <400MB peak for 10,000 tokens
-- **Speed**: Reconstruction <100ms for 10k tokens
-- **Compression**: Engram size ~40-50% of unpacked rootfs
-- **Scalability**: Handles 1M+ tokens with hierarchical encoding
+- ⚠️ **Large-scale testing**: TB-scale datasets not yet fully validated
+- ⚠️ **Performance optimization**: Benchmarking and tuning ongoing
+- ⚠️ **Security audit**: Cryptographic properties under research
 
 ## Architecture
 
@@ -974,16 +914,19 @@ MIT License - see LICENSE file for details
 A: All file types - text, binary, executables, images, etc. Embeddenator is file-format agnostic.
 
 **Q: Is the reconstruction really bit-perfect?**  
-A: Yes! All files are reconstructed exactly byte-for-byte. We have 23 tests verifying this.
+A: Yes, for files tested so far. We have 160+ tests verifying reconstruction accuracy. However, large-scale (TB) testing is still in progress.
+
+**Q: What's the project's development status?**  
+A: This is alpha software (v0.20.0-alpha). Core functionality works and is tested, but APIs are unstable and not recommended for production use. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for details.
 
 **Q: Can I combine multiple engrams?**  
-A: Yes! Use VSA bundle operations to create holographic superpositions. See "Algebraic Operations" in the README.
+A: Yes! The bundle operation allows combining engrams. This is tested for basic cases but advanced algebraic operations are still experimental.
 
 **Q: What's the maximum data size?**  
-A: Theoretically unlimited with hierarchical encoding. Tested with datasets up to 1M+ tokens.
+A: Hierarchical encoding is designed for large datasets. Currently tested with MB-scale data; TB-scale testing is planned but not yet validated.
 
 **Q: How does this compare to compression?**  
-A: Embeddenator focuses on holographic representation, not compression. Engram sizes are typically 40-50% of original data, but the key benefit is algebraic operations on encoded data.
+A: Embeddenator is not primarily a compression tool. It creates holographic representations that enable algebraic operations on encoded data. Size characteristics vary by data type.
 
 ### Reporting Issues
 
@@ -998,8 +941,34 @@ When reporting bugs, please include:
 
 ### Security
 
-If you discover a security vulnerability, please email security@embeddenator.dev (or create a private security advisory on GitHub) rather than opening a public issue.
+**⚠️ Security Notice**: The cryptographic properties of the encoding mechanism are under research. Do not use Embeddenator for security-critical applications or as a replacement for established cryptographic systems.
+
+If you discover a security vulnerability, please email tz-dev@vectorweight.com or create a private security advisory on GitHub rather than opening a public issue.
+
+## Documentation
+
+### Project Documentation
+- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Complete status: what works, what's experimental, what's planned
+- **[TESTING.md](TESTING.md)** - Comprehensive testing guide and infrastructure documentation
+- **[LICENSE](LICENSE)** - MIT License terms
+
+### Technical Documentation
+- **[Component Architecture](docs/COMPONENT_ARCHITECTURE.md)** - Modular crate structure
+- **[Local Development](docs/LOCAL_DEVELOPMENT.md)** - Development environment setup
+- **[ADR Index](docs/adr/README.md)** - Architecture Decision Records
+
+### API Documentation
+```bash
+# Generate and view API documentation
+cargo doc --open
+```
+
+### Handoff Documentation
+- **[QA to Documentation Handoff](docs/handoff/QA_TO_DOCUMENTATION_2026-01-09.md)** - Latest QA phase completion report
 
 ---
 
-Built with ❤️ using Rust, Docker, and holographic computing principles.
+**License:** MIT - See [LICENSE](LICENSE) file for full text  
+**Copyright:** 2025-2026 Tyler Zervas <tz-dev@vectorweight.com>
+
+Built with Rust and Vector Symbolic Architecture principles.
