@@ -51,7 +51,7 @@ embeddenator-retrieval = "0.20.0-alpha.1"
 embeddenator-fs = "0.20.0-alpha.1"
 embeddenator-interop = "0.20.0-alpha.1"
 embeddenator-io = "0.20.0-alpha.1"
-embeddenator-obs = "0.20.0-alpha.1"
+embeddenator-obs = { version = "0.20.0-alpha.1", features = ["tracing"] }
 embeddenator-cli = "0.20.0-alpha.1"
 
 # External dependencies

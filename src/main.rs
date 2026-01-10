@@ -1,4 +1,3 @@
-use embeddenator_cli;
 use std::process;
 
 fn main() {
