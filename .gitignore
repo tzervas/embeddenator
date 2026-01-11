@@ -87,3 +87,6 @@ reports/
 # Benchmark data
 bench_results/
 *.embr
+
+# vscode settings
+.vscode/
