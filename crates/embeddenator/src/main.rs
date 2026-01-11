@@ -1,5 +1,5 @@
 use embeddenator::cli;
-use embeddenator::logging;
+use embeddenator_obs::logging;
 use std::process;
 
 fn main() {

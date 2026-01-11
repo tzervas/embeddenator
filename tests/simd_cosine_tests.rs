@@ -342,7 +342,7 @@ fn test_cosine_with_feature_gate() {
 #[test]
 fn test_integration_with_retrieval() {
     // Verify SIMD cosine works correctly in retrieval context
-    use embeddenator::{TernaryInvertedIndex, RerankedResult};
+    use embeddenator::TernaryInvertedIndex;
     use std::collections::HashMap;
 
     let config = ReversibleVSAConfig::default();
