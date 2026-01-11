@@ -6,5 +6,5 @@
 
 #[test]
 fn common_smoke() {
-	// No-op: ensures this test crate compiles.
+    // No-op: ensures this test crate compiles.
 }

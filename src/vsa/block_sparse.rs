@@ -49,11 +49,11 @@
 //! assert!(bound.nnz() > 0);
 //! ```
 
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
-use crate::vsa::SparseVec;
 use crate::bitsliced::BitslicedTritVec;
+use crate::vsa::SparseVec;
 
 // Re-export SIMD detection from bitsliced module for runtime dispatch
 pub use crate::bitsliced::{has_avx2, has_avx512};
@@ -443,7 +443,7 @@ impl BlockSparseTritVec {
 
         for &(block_id, block) in &self.blocks {
             let base = (block_id as usize) * 64;
-            
+
             // Extract positive indices
             let mut p = block.pos;
             while p != 0 {
@@ -836,7 +836,7 @@ impl BlockSparseTritVec {
         let mut intersecting_a = Vec::new();
         let mut intersecting_b = Vec::new();
         let mut result_ids = Vec::new();
-        
+
         let mut i = 0;
         let mut j = 0;
 
@@ -921,15 +921,18 @@ impl BlockSparseTritVec {
         // 1. Blocks only in self → copy
         // 2. Blocks only in other → copy
         // 3. Blocks in both → bundle
-        
+
         // Collect all blocks with their source
         #[derive(Clone, Copy)]
-        enum Source { OnlyA, OnlyB, Both }
-        
-        let mut all_blocks: Vec<(u32, Block, Block, Source)> = Vec::with_capacity(
-            self.blocks.len() + other.blocks.len()
-        );
-        
+        enum Source {
+            OnlyA,
+            OnlyB,
+            Both,
+        }
+
+        let mut all_blocks: Vec<(u32, Block, Block, Source)> =
+            Vec::with_capacity(self.blocks.len() + other.blocks.len());
+
         let mut i = 0;
         let mut j = 0;
 
@@ -967,8 +970,11 @@ impl BlockSparseTritVec {
         }
 
         // Count overlapping blocks
-        let overlap_count = all_blocks.iter().filter(|(_, _, _, s)| matches!(s, Source::Both)).count();
-        
+        let overlap_count = all_blocks
+            .iter()
+            .filter(|(_, _, _, s)| matches!(s, Source::Both))
+            .count();
+
         #[cfg(target_arch = "x86_64")]
         {
             if has_avx512() && overlap_count >= 4 {
@@ -977,13 +983,19 @@ impl BlockSparseTritVec {
                     .into_iter()
                     .partition(|(_, _, _, s)| matches!(s, Source::Both));
 
-                let overlapping_a: Vec<_> = overlapping.iter().map(|(id, a, _, _)| (*id, *a)).collect();
-                let overlapping_b: Vec<_> = overlapping.iter().map(|(id, _, b, _)| (*id, *b)).collect();
-                
+                let overlapping_a: Vec<_> =
+                    overlapping.iter().map(|(id, a, _, _)| (*id, *a)).collect();
+                let overlapping_b: Vec<_> =
+                    overlapping.iter().map(|(id, _, b, _)| (*id, *b)).collect();
+
                 let mut bundled_overlapping = Vec::with_capacity(overlapping_a.len());
                 // SAFETY: AVX-512 availability checked above
                 unsafe {
-                    avx512::bundle_blocks_avx512(&overlapping_a, &overlapping_b, &mut bundled_overlapping);
+                    avx512::bundle_blocks_avx512(
+                        &overlapping_a,
+                        &overlapping_b,
+                        &mut bundled_overlapping,
+                    );
                 }
 
                 // Merge non-overlapping (just copy) with bundled overlapping
@@ -995,13 +1007,17 @@ impl BlockSparseTritVec {
                             Source::OnlyB => b,
                             Source::Both => unreachable!(),
                         };
-                        if block.is_zero() { None } else { Some((id, block)) }
+                        if block.is_zero() {
+                            None
+                        } else {
+                            Some((id, block))
+                        }
                     })
                     .collect();
-                
+
                 result.extend(bundled_overlapping);
                 result.sort_by_key(|(id, _)| *id);
-                
+
                 return Self {
                     dim: self.dim,
                     blocks: result,
@@ -1018,7 +1034,11 @@ impl BlockSparseTritVec {
                     Source::OnlyB => b,
                     Source::Both => a.bundle(&b),
                 };
-                if bundled.is_zero() { None } else { Some((id, bundled)) }
+                if bundled.is_zero() {
+                    None
+                } else {
+                    Some((id, bundled))
+                }
             })
             .collect();
 
@@ -1047,7 +1067,7 @@ impl BlockSparseTritVec {
         // Collect intersecting blocks
         let mut intersecting_a = Vec::new();
         let mut intersecting_b = Vec::new();
-        
+
         let mut i = 0;
         let mut j = 0;
 
@@ -1075,9 +1095,7 @@ impl BlockSparseTritVec {
         {
             if has_avx512() && intersecting_a.len() >= 4 {
                 // SAFETY: AVX-512 availability checked above
-                return unsafe {
-                    avx512::dot_blocks_avx512(&intersecting_a, &intersecting_b)
-                };
+                return unsafe { avx512::dot_blocks_avx512(&intersecting_a, &intersecting_b) };
             }
         }
 
@@ -1141,7 +1159,10 @@ mod tests {
         assert!(Block::new(0xF0, 0x0F).is_valid());
 
         // Invalid block (overlapping)
-        let invalid = Block { pos: 0x01, neg: 0x01 };
+        let invalid = Block {
+            pos: 0x01,
+            neg: 0x01,
+        };
         assert!(!invalid.is_valid());
     }
 
@@ -1249,13 +1270,13 @@ mod tests {
     #[test]
     fn test_block_get_set_trit() {
         let mut b = Block::ZERO;
-        
+
         b.set_trit(0, 1);
         assert_eq!(b.get_trit(0), 1);
-        
+
         b.set_trit(1, -1);
         assert_eq!(b.get_trit(1), -1);
-        
+
         b.set_trit(2, 0);
         assert_eq!(b.get_trit(2), 0);
 
@@ -1288,7 +1309,7 @@ mod tests {
     #[test]
     fn test_insert_and_get_block() {
         let mut v = BlockSparseTritVec::new(1000);
-        
+
         v.insert_block(5, Block::new(0xFF, 0));
         v.insert_block(10, Block::new(0, 0xFF));
         v.insert_block(2, Block::new(0xF0, 0x0F));
@@ -1364,12 +1385,12 @@ mod tests {
         // Indices should match (they're extracted in sorted order from blocks)
         assert_eq!(recovered.pos.len(), original.pos.len());
         assert_eq!(recovered.neg.len(), original.neg.len());
-        
+
         let mut orig_pos = original.pos.clone();
         let mut orig_neg = original.neg.clone();
         orig_pos.sort();
         orig_neg.sort();
-        
+
         assert_eq!(recovered.pos, orig_pos);
         assert_eq!(recovered.neg, orig_neg);
     }
@@ -1408,7 +1429,13 @@ mod tests {
     #[test]
     fn test_validate_overlap() {
         let mut v = BlockSparseTritVec::new(1000);
-        v.blocks.push((0, Block { pos: 0x01, neg: 0x01 })); // Invalid!
+        v.blocks.push((
+            0,
+            Block {
+                pos: 0x01,
+                neg: 0x01,
+            },
+        )); // Invalid!
 
         assert!(!v.is_valid());
         let err = v.validate().unwrap_err();
@@ -1549,7 +1576,7 @@ mod tests {
         let bundled = v1.bundle(&v2);
         // Should have blocks 0, 1, 2, 3
         assert_eq!(bundled.block_count(), 4);
-        
+
         let ids: Vec<u32> = bundled.blocks.iter().map(|(id, _)| *id).collect();
         assert_eq!(ids, vec![0, 1, 2, 3]);
     }
@@ -1719,14 +1746,20 @@ mod tests {
 
     #[test]
     fn test_error_display() {
-        let e1 = BlockError::Overlap { block_id: 42, overlap: 0xFF };
+        let e1 = BlockError::Overlap {
+            block_id: 42,
+            overlap: 0xFF,
+        };
         assert!(e1.to_string().contains("42"));
         assert!(e1.to_string().contains("8 positions"));
 
         let e2 = BlockError::UnsortedBlocks { index: 5 };
         assert!(e2.to_string().contains("5"));
 
-        let e3 = BlockError::DimensionMismatch { expected: 1000, got: 500 };
+        let e3 = BlockError::DimensionMismatch {
+            expected: 1000,
+            got: 500,
+        };
         assert!(e3.to_string().contains("1000"));
         assert!(e3.to_string().contains("500"));
     }
@@ -1744,7 +1777,10 @@ mod tests {
         // Create overlapping blocks
         for i in 0..20 {
             v1.insert_block(i * 2, Block::new(0xFFFF_FFFF_FFFF_FFFF, 0));
-            v2.insert_block(i * 2, Block::new(0xAAAA_AAAA_AAAA_AAAA, 0x5555_5555_5555_5555));
+            v2.insert_block(
+                i * 2,
+                Block::new(0xAAAA_AAAA_AAAA_AAAA, 0x5555_5555_5555_5555),
+            );
         }
 
         let scalar = v1.bind(&v2);
@@ -1791,7 +1827,10 @@ mod tests {
         // Create overlapping blocks
         for i in 0..50 {
             v1.insert_block(i * 2, Block::new(0xFFFF_FFFF_FFFF_FFFF, 0));
-            v2.insert_block(i * 2, Block::new(0xAAAA_AAAA_AAAA_AAAA, 0x5555_5555_5555_5555));
+            v2.insert_block(
+                i * 2,
+                Block::new(0xAAAA_AAAA_AAAA_AAAA, 0x5555_5555_5555_5555),
+            );
         }
 
         let scalar = v1.dot(&v2);
@@ -1853,7 +1892,7 @@ mod tests {
 #[cfg(target_arch = "x86_64")]
 pub mod avx512 {
     use super::Block;
-    
+
     #[cfg(target_arch = "x86_64")]
     use std::arch::x86_64::*;
 
@@ -1882,43 +1921,43 @@ pub mod avx512 {
         out.reserve(a.len());
 
         let chunks = a.len() / 4;
-        
+
         // Process 4 blocks at a time
         for chunk in 0..chunks {
             let offset = chunk * 4;
-            
+
             // Load 4 blocks from a: interleaved as [pos0,neg0,pos1,neg1,pos2,neg2,pos3,neg3]
             // We need to deinterleave to process pos and neg separately
             let a0 = &a[offset].1;
             let a1 = &a[offset + 1].1;
             let a2 = &a[offset + 2].1;
             let a3 = &a[offset + 3].1;
-            
+
             let b0 = &b[offset].1;
             let b1 = &b[offset + 1].1;
             let b2 = &b[offset + 2].1;
             let b3 = &b[offset + 3].1;
-            
+
             // Load pos values into one register, neg values into another
             let ap = _mm256_set_epi64x(a3.pos as i64, a2.pos as i64, a1.pos as i64, a0.pos as i64);
             let an = _mm256_set_epi64x(a3.neg as i64, a2.neg as i64, a1.neg as i64, a0.neg as i64);
             let bp = _mm256_set_epi64x(b3.pos as i64, b2.pos as i64, b1.pos as i64, b0.pos as i64);
             let bn = _mm256_set_epi64x(b3.neg as i64, b2.neg as i64, b1.neg as i64, b0.neg as i64);
-            
+
             // Bind operation: out_pos = (ap & bp) | (an & bn)
             //                 out_neg = (ap & bn) | (an & bp)
             let pp = _mm256_and_si256(ap, bp);
             let nn = _mm256_and_si256(an, bn);
             let out_pos = _mm256_or_si256(pp, nn);
-            
+
             let pn = _mm256_and_si256(ap, bn);
             let np = _mm256_and_si256(an, bp);
             let out_neg = _mm256_or_si256(pn, np);
-            
+
             // Extract results
             let out_pos_arr: [u64; 4] = std::mem::transmute(out_pos);
             let out_neg_arr: [u64; 4] = std::mem::transmute(out_neg);
-            
+
             // Store non-zero results
             for i in 0..4 {
                 let pos = out_pos_arr[i];
@@ -1928,7 +1967,7 @@ pub mod avx512 {
                 }
             }
         }
-        
+
         // Scalar remainder
         for i in (chunks * 4)..a.len() {
             let bound = a[i].1.bind(&b[i].1);
@@ -1958,46 +1997,42 @@ pub mod avx512 {
 
         let chunks = a.len() / 4;
         let all_ones = _mm256_set1_epi64x(-1i64);
-        
+
         // Process 4 blocks at a time
         for chunk in 0..chunks {
             let offset = chunk * 4;
-            
+
             let a0 = &a[offset].1;
             let a1 = &a[offset + 1].1;
             let a2 = &a[offset + 2].1;
             let a3 = &a[offset + 3].1;
-            
+
             let b0 = &b[offset].1;
             let b1 = &b[offset + 1].1;
             let b2 = &b[offset + 2].1;
             let b3 = &b[offset + 3].1;
-            
+
             let ap = _mm256_set_epi64x(a3.pos as i64, a2.pos as i64, a1.pos as i64, a0.pos as i64);
             let an = _mm256_set_epi64x(a3.neg as i64, a2.neg as i64, a1.neg as i64, a0.neg as i64);
             let bp = _mm256_set_epi64x(b3.pos as i64, b2.pos as i64, b1.pos as i64, b0.pos as i64);
             let bn = _mm256_set_epi64x(b3.neg as i64, b2.neg as i64, b1.neg as i64, b0.neg as i64);
-            
+
             // Bundle operation: out_pos = (ap & !bn) | (bp & !an)
             //                   out_neg = (an & !bp) | (bn & !ap)
             let not_bn = _mm256_xor_si256(bn, all_ones);
             let not_an = _mm256_xor_si256(an, all_ones);
             let not_bp = _mm256_xor_si256(bp, all_ones);
             let not_ap = _mm256_xor_si256(ap, all_ones);
-            
-            let out_pos = _mm256_or_si256(
-                _mm256_and_si256(ap, not_bn),
-                _mm256_and_si256(bp, not_an),
-            );
-            let out_neg = _mm256_or_si256(
-                _mm256_and_si256(an, not_bp),
-                _mm256_and_si256(bn, not_ap),
-            );
-            
+
+            let out_pos =
+                _mm256_or_si256(_mm256_and_si256(ap, not_bn), _mm256_and_si256(bp, not_an));
+            let out_neg =
+                _mm256_or_si256(_mm256_and_si256(an, not_bp), _mm256_and_si256(bn, not_ap));
+
             // Extract results
             let out_pos_arr: [u64; 4] = std::mem::transmute(out_pos);
             let out_neg_arr: [u64; 4] = std::mem::transmute(out_neg);
-            
+
             for i in 0..4 {
                 let pos = out_pos_arr[i];
                 let neg = out_neg_arr[i];
@@ -2006,7 +2041,7 @@ pub mod avx512 {
                 }
             }
         }
-        
+
         // Scalar remainder
         for i in (chunks * 4)..a.len() {
             let bundled = a[i].1.bundle(&b[i].1);
@@ -2024,57 +2059,54 @@ pub mod avx512 {
     ///
     /// Requires AVX-512F support. Check with `has_avx512()` before calling.
     #[target_feature(enable = "avx512f")]
-    pub unsafe fn dot_blocks_avx512(
-        a: &[(u32, Block)],
-        b: &[(u32, Block)],
-    ) -> i64 {
+    pub unsafe fn dot_blocks_avx512(a: &[(u32, Block)], b: &[(u32, Block)]) -> i64 {
         debug_assert_eq!(a.len(), b.len(), "Block arrays must have same length");
 
         let chunks = a.len() / 4;
         let mut acc: i64 = 0;
-        
+
         // Process 4 blocks at a time
         for chunk in 0..chunks {
             let offset = chunk * 4;
-            
+
             let a0 = &a[offset].1;
             let a1 = &a[offset + 1].1;
             let a2 = &a[offset + 2].1;
             let a3 = &a[offset + 3].1;
-            
+
             let b0 = &b[offset].1;
             let b1 = &b[offset + 1].1;
             let b2 = &b[offset + 2].1;
             let b3 = &b[offset + 3].1;
-            
+
             let ap = _mm256_set_epi64x(a3.pos as i64, a2.pos as i64, a1.pos as i64, a0.pos as i64);
             let an = _mm256_set_epi64x(a3.neg as i64, a2.neg as i64, a1.neg as i64, a0.neg as i64);
             let bp = _mm256_set_epi64x(b3.pos as i64, b2.pos as i64, b1.pos as i64, b0.pos as i64);
             let bn = _mm256_set_epi64x(b3.neg as i64, b2.neg as i64, b1.neg as i64, b0.neg as i64);
-            
+
             // Compute AND masks
             let pp = _mm256_and_si256(ap, bp);
             let nn = _mm256_and_si256(an, bn);
             let pn = _mm256_and_si256(ap, bn);
             let np = _mm256_and_si256(an, bp);
-            
+
             // Extract and popcount
             let pp_arr: [u64; 4] = std::mem::transmute(pp);
             let nn_arr: [u64; 4] = std::mem::transmute(nn);
             let pn_arr: [u64; 4] = std::mem::transmute(pn);
             let np_arr: [u64; 4] = std::mem::transmute(np);
-            
+
             for i in 0..4 {
                 acc += (pp_arr[i].count_ones() + nn_arr[i].count_ones()) as i64;
                 acc -= (pn_arr[i].count_ones() + np_arr[i].count_ones()) as i64;
             }
         }
-        
+
         // Scalar remainder
         for i in (chunks * 4)..a.len() {
             acc += a[i].1.dot(&b[i].1) as i64;
         }
-        
+
         acc
     }
 
@@ -2109,10 +2141,7 @@ pub mod avx512 {
     }
 
     /// Stub: AVX-512 not available on this architecture.
-    pub unsafe fn dot_blocks_avx512(
-        _a: &[(u32, Block)],
-        _b: &[(u32, Block)],
-    ) -> i64 {
+    pub unsafe fn dot_blocks_avx512(_a: &[(u32, Block)], _b: &[(u32, Block)]) -> i64 {
         unreachable!("AVX-512 not available on this architecture");
     }
 

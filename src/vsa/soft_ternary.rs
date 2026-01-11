@@ -40,23 +40,23 @@ use crate::vsa::SparseVec;
 #[derive(Clone, Debug)]
 pub struct SoftTernaryVec {
     len: usize,
-    mag_lo: Vec<u64>,  // Magnitude bit 0
-    mag_mi: Vec<u64>,  // Magnitude bit 1
-    mag_hi: Vec<u64>,  // Magnitude bit 2
-    sign: Vec<u64>,    // Sign plane (0 = pos, 1 = neg)
+    mag_lo: Vec<u64>, // Magnitude bit 0
+    mag_mi: Vec<u64>, // Magnitude bit 1
+    mag_hi: Vec<u64>, // Magnitude bit 2
+    sign: Vec<u64>,   // Sign plane (0 = pos, 1 = neg)
 }
 
 impl SoftTernaryVec {
     /// Number of u64 words needed for a dimension.
     #[inline]
     fn word_count(len: usize) -> usize {
-        (len + 63) / 64
+        len.div_ceil(64)
     }
 
     /// Mask for the last word's valid bits.
     #[inline]
     fn last_word_mask(len: usize) -> u64 {
-        if len % 64 == 0 {
+        if len.is_multiple_of(64) {
             u64::MAX
         } else {
             (1u64 << (len % 64)) - 1
@@ -184,12 +184,12 @@ impl SoftTernaryVec {
             let s = self.sign[w];
 
             // Positions getting same-sign votes (reinforce)
-            let reinforce_pos = h_pos & !s;  // Input pos, current pos (or zero)
-            let reinforce_neg = h_neg & s;   // Input neg, current neg
+            let reinforce_pos = h_pos & !s; // Input pos, current pos (or zero)
+            let reinforce_neg = h_neg & s; // Input neg, current neg
 
             // Positions getting opposite-sign votes (cancel)
-            let cancel_pos = h_pos & s;      // Input pos, but current is neg
-            let cancel_neg = h_neg & !s;     // Input neg, but current is pos
+            let cancel_pos = h_pos & s; // Input pos, but current is neg
+            let cancel_neg = h_neg & !s; // Input neg, but current is pos
             let cancel_mask = (cancel_pos | cancel_neg) & (m0 | m1 | m2); // Only cancel if magnitude > 0
 
             // Positions getting fresh votes (magnitude was 0)
@@ -197,10 +197,12 @@ impl SoftTernaryVec {
 
             // Increment magnitude for reinforcing votes (saturating at 7)
             let reinforce = reinforce_pos | reinforce_neg;
-            let (new_m0_inc, new_m1_inc, new_m2_inc) = Self::saturating_increment_3bit(m0, m1, m2, reinforce);
+            let (new_m0_inc, new_m1_inc, new_m2_inc) =
+                Self::saturating_increment_3bit(m0, m1, m2, reinforce);
 
             // Decrement magnitude for canceling votes (floor at 0)
-            let (new_m0_dec, new_m1_dec, new_m2_dec) = Self::saturating_decrement_3bit(new_m0_inc, new_m1_inc, new_m2_inc, cancel_mask);
+            let (new_m0_dec, new_m1_dec, new_m2_dec) =
+                Self::saturating_decrement_3bit(new_m0_inc, new_m1_inc, new_m2_inc, cancel_mask);
 
             // Set magnitude to 1 for fresh votes
             let new_m0 = new_m0_dec | fresh;
@@ -310,8 +312,12 @@ impl SoftTernaryVec {
     /// Saturating 3-bit add: a + b, saturate at 7.
     #[inline]
     fn saturating_add_3bit(
-        a0: u64, a1: u64, a2: u64,
-        b0: u64, b1: u64, b2: u64,
+        a0: u64,
+        a1: u64,
+        a2: u64,
+        b0: u64,
+        b1: u64,
+        b2: u64,
     ) -> (u64, u64, u64, u64) {
         // Full 4-bit add, then saturate
         let sum0 = a0 ^ b0;
@@ -335,8 +341,12 @@ impl SoftTernaryVec {
     /// Absolute subtraction: |a - b|, returns (result, a >= b mask).
     #[inline]
     fn abs_subtract_3bit(
-        a0: u64, a1: u64, a2: u64,
-        b0: u64, b1: u64, b2: u64,
+        a0: u64,
+        a1: u64,
+        a2: u64,
+        b0: u64,
+        b1: u64,
+        b2: u64,
     ) -> (u64, u64, u64, u64) {
         // Compare: a >= b
         // 3-bit comparison: check from MSB to LSB
@@ -381,7 +391,7 @@ impl SoftTernaryVec {
     /// - `threshold = 2`: Need ≥2 votes (majority of 3)
     /// - `threshold = 4`: Need strong consensus
     pub fn harden(&self, threshold: u8) -> BitslicedTritVec {
-        assert!(threshold >= 1 && threshold <= 7, "threshold must be 1-7");
+        assert!((1..=7).contains(&threshold), "threshold must be 1-7");
         let words = Self::word_count(self.len);
         let mut out = BitslicedTritVec::new_zero(self.len);
 
@@ -577,16 +587,16 @@ mod tests {
     fn test_soft_get_set() {
         let mut v = SoftTernaryVec::new_zero(100);
 
-        v.set(0, 3, false);  // +3
-        v.set(1, 7, true);   // -7
+        v.set(0, 3, false); // +3
+        v.set(1, 7, true); // -7
         v.set(50, 1, false); // +1
-        v.set(99, 4, true);  // -4
+        v.set(99, 4, true); // -4
 
         assert_eq!(v.get(0), (3, false));
         assert_eq!(v.get(1), (7, true));
         assert_eq!(v.get(50), (1, false));
         assert_eq!(v.get(99), (4, true));
-        assert_eq!(v.get(2), (0, false));  // Zero
+        assert_eq!(v.get(2), (0, false)); // Zero
 
         assert_eq!(v.get_signed(0), 3);
         assert_eq!(v.get_signed(1), -7);
@@ -602,9 +612,9 @@ mod tests {
 
         let soft = SoftTernaryVec::from_bitsliced(&hard);
 
-        assert_eq!(soft.get(0), (1, false));  // +1
-        assert_eq!(soft.get(1), (1, true));   // -1
-        assert_eq!(soft.get(2), (0, false));  // 0
+        assert_eq!(soft.get(0), (1, false)); // +1
+        assert_eq!(soft.get(1), (1, true)); // -1
+        assert_eq!(soft.get(2), (0, false)); // 0
         assert_eq!(soft.get(50), (1, false)); // +1
     }
 
@@ -619,14 +629,14 @@ mod tests {
             soft.accumulate(&hard);
         }
 
-        assert_eq!(soft.get(0), (3, false));  // Accumulated +3
+        assert_eq!(soft.get(0), (3, false)); // Accumulated +3
 
         // Accumulate one negative vote
         let mut hard = BitslicedTritVec::new_zero(100);
         hard.set(0, Trit::N);
         soft.accumulate(&hard);
 
-        assert_eq!(soft.get(0), (2, false));  // Now +2 (cancellation)
+        assert_eq!(soft.get(0), (2, false)); // Now +2 (cancellation)
     }
 
     #[test]
@@ -647,21 +657,21 @@ mod tests {
     #[test]
     fn test_soft_harden() {
         let mut soft = SoftTernaryVec::new_zero(100);
-        soft.set(0, 3, false);  // +3
-        soft.set(1, 5, true);   // -5
-        soft.set(2, 1, false);  // +1
-        soft.set(3, 0, false);  // 0
+        soft.set(0, 3, false); // +3
+        soft.set(1, 5, true); // -5
+        soft.set(2, 1, false); // +1
+        soft.set(3, 0, false); // 0
 
         // Threshold = 2
         let hard = soft.harden(2);
-        assert_eq!(hard.get(0), Trit::P);  // 3 >= 2
-        assert_eq!(hard.get(1), Trit::N);  // 5 >= 2
-        assert_eq!(hard.get(2), Trit::Z);  // 1 < 2
-        assert_eq!(hard.get(3), Trit::Z);  // 0 < 2
+        assert_eq!(hard.get(0), Trit::P); // 3 >= 2
+        assert_eq!(hard.get(1), Trit::N); // 5 >= 2
+        assert_eq!(hard.get(2), Trit::Z); // 1 < 2
+        assert_eq!(hard.get(3), Trit::Z); // 0 < 2
 
         // Threshold = 1
         let hard = soft.harden(1);
-        assert_eq!(hard.get(2), Trit::P);  // 1 >= 1
+        assert_eq!(hard.get(2), Trit::P); // 1 >= 1
     }
 
     #[test]
@@ -670,35 +680,35 @@ mod tests {
         let mut b = SoftTernaryVec::new_zero(100);
 
         // Same sign: add magnitudes
-        a.set(0, 3, false);  // +3
-        b.set(0, 4, false);  // +4
+        a.set(0, 3, false); // +3
+        b.set(0, 4, false); // +4
 
         // Opposite sign: subtract
-        a.set(1, 5, false);  // +5
-        b.set(1, 3, true);   // -3
+        a.set(1, 5, false); // +5
+        b.set(1, 3, true); // -3
 
         let result = a.soft_bundle(&b);
 
-        assert_eq!(result.get(0), (7, false));  // +3 + +4 = +7
-        assert_eq!(result.get(1), (2, false));  // +5 + -3 = +2
+        assert_eq!(result.get(0), (7, false)); // +3 + +4 = +7
+        assert_eq!(result.get(1), (2, false)); // +5 + -3 = +2
     }
 
     #[test]
     fn test_dot_with_hard() {
         let mut soft = SoftTernaryVec::new_zero(100);
-        soft.set(0, 3, false);  // +3
-        soft.set(1, 2, true);   // -2
+        soft.set(0, 3, false); // +3
+        soft.set(1, 2, true); // -2
 
         let mut hard = BitslicedTritVec::new_zero(100);
-        hard.set(0, Trit::P);  // +1
-        hard.set(1, Trit::P);  // +1
+        hard.set(0, Trit::P); // +1
+        hard.set(1, Trit::P); // +1
 
         // Dot = (+3 × +1) + (-2 × +1) = 3 - 2 = 1
         assert_eq!(soft.dot_with_hard(&hard), 1);
         assert_eq!(soft.dot_with_hard_fast(&hard), 1);
 
-        hard.set(1, Trit::N);  // -1
-        // Dot = (+3 × +1) + (-2 × -1) = 3 + 2 = 5
+        hard.set(1, Trit::N); // -1
+                              // Dot = (+3 × +1) + (-2 × -1) = 3 + 2 = 5
         assert_eq!(soft.dot_with_hard(&hard), 5);
         assert_eq!(soft.dot_with_hard_fast(&hard), 5);
     }

@@ -54,7 +54,11 @@ impl Default for BinaryWriteOptions {
     }
 }
 
-pub fn wrap_or_legacy(kind: PayloadKind, opts: BinaryWriteOptions, raw: &[u8]) -> io::Result<Vec<u8>> {
+pub fn wrap_or_legacy(
+    kind: PayloadKind,
+    opts: BinaryWriteOptions,
+    raw: &[u8],
+) -> io::Result<Vec<u8>> {
     if opts.codec == CompressionCodec::None {
         return Ok(raw.to_vec());
     }
@@ -77,13 +81,16 @@ pub fn unwrap_auto(expected_kind: PayloadKind, data: &[u8]) -> io::Result<Vec<u8
         return Ok(data.to_vec());
     }
 
-    let kind = PayloadKind::from_u8(data[4]).ok_or_else(|| io::Error::other("unknown envelope payload kind"))?;
+    let kind = PayloadKind::from_u8(data[4])
+        .ok_or_else(|| io::Error::other("unknown envelope payload kind"))?;
     if kind != expected_kind {
         return Err(io::Error::other("unexpected envelope payload kind"));
     }
 
-    let codec = CompressionCodec::from_u8(data[5]).ok_or_else(|| io::Error::other("unknown envelope compression codec"))?;
-    let uncompressed_len = u64::from_le_bytes(data[8..16].try_into().expect("slice length checked")) as usize;
+    let codec = CompressionCodec::from_u8(data[5])
+        .ok_or_else(|| io::Error::other("unknown envelope compression codec"))?;
+    let uncompressed_len =
+        u64::from_le_bytes(data[8..16].try_into().expect("slice length checked")) as usize;
 
     let payload = &data[HEADER_LEN..];
     let decoded = match codec {
@@ -124,7 +131,9 @@ fn compress_zstd(_raw: &[u8], _level: Option<i32>) -> io::Result<Vec<u8>> {
 
     #[cfg(not(feature = "compression-zstd"))]
     {
-        Err(io::Error::other("zstd compression support not enabled (enable feature `compression-zstd`)"))
+        Err(io::Error::other(
+            "zstd compression support not enabled (enable feature `compression-zstd`)",
+        ))
     }
 }
 
@@ -137,7 +146,9 @@ fn decompress_zstd(_payload: &[u8]) -> io::Result<Vec<u8>> {
 
     #[cfg(not(feature = "compression-zstd"))]
     {
-        Err(io::Error::other("zstd decompression support not enabled (enable feature `compression-zstd`)"))
+        Err(io::Error::other(
+            "zstd decompression support not enabled (enable feature `compression-zstd`)",
+        ))
     }
 }
 
@@ -149,7 +160,9 @@ fn compress_lz4(_raw: &[u8]) -> io::Result<Vec<u8>> {
 
     #[cfg(not(feature = "compression-lz4"))]
     {
-        Err(io::Error::other("lz4 compression support not enabled (enable feature `compression-lz4`)"))
+        Err(io::Error::other(
+            "lz4 compression support not enabled (enable feature `compression-lz4`)",
+        ))
     }
 }
 
@@ -161,6 +174,8 @@ fn decompress_lz4(_payload: &[u8]) -> io::Result<Vec<u8>> {
 
     #[cfg(not(feature = "compression-lz4"))]
     {
-        Err(io::Error::other("lz4 decompression support not enabled (enable feature `compression-lz4`)"))
+        Err(io::Error::other(
+            "lz4 decompression support not enabled (enable feature `compression-lz4`)",
+        ))
     }
 }

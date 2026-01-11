@@ -8,7 +8,10 @@ fn sparse_vec_strategy(max_nonzeros: usize) -> impl Strategy<Value = SparseVec> 
     // Generate (idx, sign) pairs and canonicalize to unique indices.
     // Keeping this small ensures the property suite stays fast.
     prop::collection::vec(
-        (0usize..embeddenator::DIM, prop_oneof![Just(1i8), Just(-1i8)]),
+        (
+            0usize..embeddenator::DIM,
+            prop_oneof![Just(1i8), Just(-1i8)],
+        ),
         0..max_nonzeros,
     )
     .prop_map(|pairs| {

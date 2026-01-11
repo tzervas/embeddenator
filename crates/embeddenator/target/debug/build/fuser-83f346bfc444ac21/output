@@ -1,0 +1,2 @@
+cargo:rustc-check-cfg=cfg(fuser_mount_impl, values("pure-rust", "libfuse2", "libfuse3"))
+cargo:rustc-cfg=fuser_mount_impl="pure-rust"

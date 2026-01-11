@@ -1,0 +1,11 @@
+/home/kang/Documents/projects/2026/embdntr/embeddenator/crates/embeddenator/target/debug/deps/embeddenator_obs-09612a0735a7c35b.d: /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/lib.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/mod.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/metrics.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/logging.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/hires_timing.rs
+
+/home/kang/Documents/projects/2026/embdntr/embeddenator/crates/embeddenator/target/debug/deps/libembeddenator_obs-09612a0735a7c35b.rlib: /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/lib.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/mod.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/metrics.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/logging.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/hires_timing.rs
+
+/home/kang/Documents/projects/2026/embdntr/embeddenator/crates/embeddenator/target/debug/deps/libembeddenator_obs-09612a0735a7c35b.rmeta: /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/lib.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/mod.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/metrics.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/logging.rs /home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/hires_timing.rs
+
+/home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/lib.rs:
+/home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/mod.rs:
+/home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/metrics.rs:
+/home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/logging.rs:
+/home/kang/.cargo/git/checkouts/embeddenator-obs-2ef2741a9ff84619/e407d7d/src/obs/hires_timing.rs:

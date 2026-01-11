@@ -64,7 +64,10 @@ impl TernarySignatureIndex {
     }
 
     /// Build a signature index from a map using explicit probe dimensions.
-    pub fn build_from_map_with_probes(map: &HashMap<usize, SparseVec>, probe_dims: Vec<usize>) -> Self {
+    pub fn build_from_map_with_probes(
+        map: &HashMap<usize, SparseVec>,
+        probe_dims: Vec<usize>,
+    ) -> Self {
         let mut buckets: HashMap<u64, Vec<usize>> = HashMap::new();
 
         // Deterministic build: iterate IDs in sorted order.
@@ -83,7 +86,10 @@ impl TernarySignatureIndex {
             ids.dedup();
         }
 
-        Self { probe_dims, buckets }
+        Self {
+            probe_dims,
+            buckets,
+        }
     }
 
     pub fn probe_dims(&self) -> &[usize] {
@@ -91,20 +97,27 @@ impl TernarySignatureIndex {
     }
 
     /// Get candidate IDs for a query vector.
-    pub fn candidates_with_options(&self, query: &SparseVec, opts: SignatureQueryOptions) -> Vec<usize> {
+    pub fn candidates_with_options(
+        &self,
+        query: &SparseVec,
+        opts: SignatureQueryOptions,
+    ) -> Vec<usize> {
         if opts.max_candidates == 0 {
             return Vec::new();
         }
 
         let sig = signature_for(query, &self.probe_dims);
         let probe_radius = opts.probe_radius.min(1);
-        let probe_sigs = probe_signatures(sig, self.probe_dims.len(), probe_radius, opts.max_probes);
+        let probe_sigs =
+            probe_signatures(sig, self.probe_dims.len(), probe_radius, opts.max_probes);
 
         let mut seen: HashSet<usize> = HashSet::new();
         let mut out: Vec<usize> = Vec::new();
 
         for ps in probe_sigs {
-            let Some(ids) = self.buckets.get(&ps) else { continue };
+            let Some(ids) = self.buckets.get(&ps) else {
+                continue;
+            };
             for &id in ids {
                 if seen.insert(id) {
                     out.push(id);

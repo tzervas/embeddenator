@@ -20,12 +20,12 @@
 //! If encoding was perfect, correction is empty. If not, correction exactly
 //! compensates. Either way, reconstruction is guaranteed bit-perfect.
 
-use crate::vsa::{SparseVec, ReversibleVSAConfig, DIM};
-use crate::resonator::Resonator;
-use crate::correction::{CorrectionStore, CorrectionStats};
-use crate::retrieval::{RerankedResult, TernaryInvertedIndex};
-use crate::envelope::{BinaryWriteOptions, PayloadKind, unwrap_auto, wrap_or_legacy};
+use crate::correction::{CorrectionStats, CorrectionStore};
+use crate::envelope::{unwrap_auto, wrap_or_legacy, BinaryWriteOptions, PayloadKind};
 use crate::metrics::metrics;
+use crate::resonator::Resonator;
+use crate::retrieval::{RerankedResult, TernaryInvertedIndex};
+use crate::vsa::{ReversibleVSAConfig, SparseVec, DIM};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::collections::{HashMap, HashSet};
@@ -297,7 +297,8 @@ impl DirectorySubEngramStore {
     }
 
     fn path_for_id(&self, id: &str) -> PathBuf {
-        self.dir.join(format!("{}.subengram", escape_sub_engram_id(id)))
+        self.dir
+            .join(format!("{}.subengram", escape_sub_engram_id(id)))
     }
 }
 
@@ -328,9 +329,11 @@ pub fn save_hierarchical_manifest<P: AsRef<Path>>(
     let mut levels = hierarchical.levels.clone();
     levels.sort_by(|a, b| a.level.cmp(&b.level));
     for level in &mut levels {
-        level
-            .items
-            .sort_by(|a, b| a.path.cmp(&b.path).then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id)));
+        level.items.sort_by(|a, b| {
+            a.path
+                .cmp(&b.path)
+                .then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id))
+        });
     }
 
     let mut sub_engrams: BTreeMap<String, SubEngram> = BTreeMap::new();
@@ -455,7 +458,8 @@ pub fn query_hierarchical_codebook_with_store(
     let mut frontier: Vec<FrontierItem> = Vec::new();
     if let Some(level0) = hierarchical.levels.first() {
         for item in &level0.items {
-            let Some(sub) = get_cached_sub_engram(&mut sub_cache, store, &item.sub_engram_id) else {
+            let Some(sub) = get_cached_sub_engram(&mut sub_cache, store, &item.sub_engram_id)
+            else {
                 continue;
             };
             frontier.push(FrontierItem {
@@ -505,7 +509,8 @@ pub fn query_hierarchical_codebook_with_store(
                 .expect("index cache insert")
         };
 
-        let mut local_hits = idx.query_top_k_reranked(query, codebook, bounds.candidate_k, bounds.k);
+        let mut local_hits =
+            idx.query_top_k_reranked(query, codebook, bounds.candidate_k, bounds.k);
         for hit in &mut local_hits {
             hit.sub_engram_id = node.sub_engram_id.clone();
         }
@@ -881,16 +886,18 @@ impl EmbrFS {
             }
 
             let chunk_id = self.manifest.total_chunks + i;
-            
+
             // Encode chunk to sparse vector
             let chunk_vec = SparseVec::encode_data(chunk, config, Some(&logical_path));
-            
+
             // Immediately verify: decode and compare
             let decoded = chunk_vec.decode_data(config, Some(&logical_path), chunk.len());
-            
+
             // Store correction if needed (guarantees reconstruction)
-            self.engram.corrections.add(chunk_id as u64, chunk, &decoded);
-            
+            self.engram
+                .corrections
+                .add(chunk_id as u64, chunk, &decoded);
+
             if chunk != decoded.as_slice() {
                 corrections_needed += 1;
             }
@@ -1025,14 +1032,16 @@ impl EmbrFS {
                     } else {
                         DEFAULT_CHUNK_SIZE
                     };
-                    
+
                     // Decode the sparse vector to bytes
                     // IMPORTANT: Use the same path as during encoding for correct shift calculation
                     // Also use the same chunk_size as during ingest for correct correction matching
                     let decoded = chunk_vec.decode_data(config, Some(&file_entry.path), chunk_size);
-                    
+
                     // Apply correction to guarantee bit-perfect reconstruction
-                    let chunk_data = if let Some(corrected) = engram.corrections.apply(chunk_id as u64, &decoded) {
+                    let chunk_data = if let Some(corrected) =
+                        engram.corrections.apply(chunk_id as u64, &decoded)
+                    {
                         corrected
                     } else {
                         // No correction found - use decoded directly
@@ -1151,14 +1160,16 @@ impl EmbrFS {
                 } else {
                     DEFAULT_CHUNK_SIZE
                 };
-                
+
                 let chunk_data = if let Some(vector) = self.engram.codebook.get(&chunk_id) {
                     // Decode the SparseVec back to bytes using reversible encoding
                     // IMPORTANT: Use the same path as during encoding for correct shift calculation
                     let decoded = vector.decode_data(config, Some(&file_entry.path), chunk_size);
-                    
+
                     // Apply correction to guarantee bit-perfect reconstruction
-                    if let Some(corrected) = self.engram.corrections.apply(chunk_id as u64, &decoded) {
+                    if let Some(corrected) =
+                        self.engram.corrections.apply(chunk_id as u64, &decoded)
+                    {
                         corrected
                     } else {
                         decoded
@@ -1168,13 +1179,16 @@ impl EmbrFS {
                     // Create a query vector from the chunk_id using reversible encoding
                     let query_vec = SparseVec::encode_data(&chunk_id.to_le_bytes(), config, None);
                     let recovered_vec = resonator.project(&query_vec);
-                    
+
                     // Decode the recovered vector back to bytes
                     // For resonator recovery, try with path first, fall back to no path
-                    let decoded = recovered_vec.decode_data(config, Some(&file_entry.path), chunk_size);
-                    
+                    let decoded =
+                        recovered_vec.decode_data(config, Some(&file_entry.path), chunk_size);
+
                     // Apply correction if available (may not be if chunk was lost)
-                    if let Some(corrected) = self.engram.corrections.apply(chunk_id as u64, &decoded) {
+                    if let Some(corrected) =
+                        self.engram.corrections.apply(chunk_id as u64, &decoded)
+                    {
                         corrected
                     } else {
                         // No correction available - best effort recovery
@@ -1182,8 +1196,8 @@ impl EmbrFS {
                     }
                 } else {
                     return Err(io::Error::new(
-                        io::ErrorKind::NotFound, 
-                        format!("Missing chunk {} and no resonator available", chunk_id)
+                        io::ErrorKind::NotFound,
+                        format!("Missing chunk {} and no resonator available", chunk_id),
                     ));
                 };
 
@@ -1275,9 +1289,9 @@ impl EmbrFS {
                 }
                 level_prefixes
                     .entry(level)
-                    .or_insert_with(HashMap::new)
+                    .or_default()
                     .entry(prefix.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(file_entry);
             }
         }
@@ -1302,12 +1316,8 @@ impl EmbrFS {
                 prefix_keys.sort();
 
                 for prefix in prefix_keys {
-                    let mut files: Vec<&FileEntry> = prefixes
-                        .get(prefix)
-                        .expect("prefix key")
-                        .iter()
-                        .copied()
-                        .collect();
+                    let mut files: Vec<&FileEntry> =
+                        prefixes.get(prefix).expect("prefix key").to_vec();
                     files.sort_by(|a, b| a.path.cmp(&b.path));
 
                     // Create permutation shift based on prefix hash
@@ -1338,7 +1348,8 @@ impl EmbrFS {
                     }
 
                     // Apply sparsity control
-                    if component_bundle.pos.len() + component_bundle.neg.len() > max_level_sparsity {
+                    if component_bundle.pos.len() + component_bundle.neg.len() > max_level_sparsity
+                    {
                         component_bundle = component_bundle.thin(max_level_sparsity);
                     }
 
@@ -1371,7 +1382,8 @@ impl EmbrFS {
                     if let Some(max_chunks) = max_chunks_per_node.filter(|v| *v > 0) {
                         if chunk_ids.len() > max_chunks {
                             let mut shard_ids: Vec<String> = Vec::new();
-                            for (shard_idx, chunk_slice) in chunk_ids.chunks(max_chunks).enumerate() {
+                            for (shard_idx, chunk_slice) in chunk_ids.chunks(max_chunks).enumerate()
+                            {
                                 let shard_id = format!("{}__shard_{:04}", sub_id, shard_idx);
                                 shard_ids.push(shard_id.clone());
                                 sub_engrams.insert(
@@ -1433,8 +1445,11 @@ impl EmbrFS {
                 }
             }
 
-            manifest_items
-                .sort_by(|a, b| a.path.cmp(&b.path).then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id)));
+            manifest_items.sort_by(|a, b| {
+                a.path
+                    .cmp(&b.path)
+                    .then_with(|| a.sub_engram_id.cmp(&b.sub_engram_id))
+            });
 
             // Apply final sparsity control to level bundle
             if level_bundle.pos.len() + level_bundle.neg.len() > max_level_sparsity {
@@ -1530,12 +1545,15 @@ impl EmbrFS {
                     } else {
                         DEFAULT_CHUNK_SIZE
                     };
-                    
+
                     // Decode using hierarchical inverse transformations
-                    let decoded = chunk_vector.decode_data(config, Some(&file_entry.path), chunk_size);
-                    
+                    let decoded =
+                        chunk_vector.decode_data(config, Some(&file_entry.path), chunk_size);
+
                     // Apply correction if available
-                    let chunk_data = if let Some(corrected) = self.engram.corrections.apply(chunk_id as u64, &decoded) {
+                    let chunk_data = if let Some(corrected) =
+                        self.engram.corrections.apply(chunk_id as u64, &decoded)
+                    {
                         corrected
                     } else {
                         decoded

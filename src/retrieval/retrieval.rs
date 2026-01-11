@@ -165,7 +165,10 @@ impl TernaryInvertedIndex {
         // Collect and select top-k.
         let mut results: Vec<SearchResult> = touched
             .into_iter()
-            .map(|id| SearchResult { id, score: scores[id] })
+            .map(|id| SearchResult {
+                id,
+                score: scores[id],
+            })
             .collect();
 
         results.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.id.cmp(&b.id)));

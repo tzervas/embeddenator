@@ -165,7 +165,7 @@ impl BitslicedTritVec {
     /// Number of u64 words needed for `len` trits.
     #[inline(always)]
     pub const fn word_count(len: usize) -> usize {
-        (len + 63) / 64
+        len.div_ceil(64)
     }
 
     /// Mask for valid bits in the last word.
@@ -342,7 +342,12 @@ impl BitslicedTritVec {
         // Last word with masking
         let mask = Self::last_word_mask(n);
         let (ap, an) = unsafe { (*self.pos.get_unchecked(last), *self.neg.get_unchecked(last)) };
-        let (bp, bn) = unsafe { (*other.pos.get_unchecked(last), *other.neg.get_unchecked(last)) };
+        let (bp, bn) = unsafe {
+            (
+                *other.pos.get_unchecked(last),
+                *other.neg.get_unchecked(last),
+            )
+        };
 
         unsafe {
             *out.pos.get_unchecked_mut(last) = ((ap & bp) | (an & bn)) & mask;
@@ -419,7 +424,12 @@ impl BitslicedTritVec {
         // Last word with masking
         let mask = Self::last_word_mask(n);
         let (ap, an) = unsafe { (*self.pos.get_unchecked(last), *self.neg.get_unchecked(last)) };
-        let (bp, bn) = unsafe { (*other.pos.get_unchecked(last), *other.neg.get_unchecked(last)) };
+        let (bp, bn) = unsafe {
+            (
+                *other.pos.get_unchecked(last),
+                *other.neg.get_unchecked(last),
+            )
+        };
 
         unsafe {
             *out.pos.get_unchecked_mut(last) = ((ap & !bn) | (bp & !an)) & mask;
@@ -551,11 +561,17 @@ impl BitslicedTritVec {
         }
 
         // Last word with masking
-        let (ap, an) = unsafe { 
-            (*self.pos.get_unchecked(last) & mask, *self.neg.get_unchecked(last) & mask) 
+        let (ap, an) = unsafe {
+            (
+                *self.pos.get_unchecked(last) & mask,
+                *self.neg.get_unchecked(last) & mask,
+            )
         };
-        let (bp, bn) = unsafe { 
-            (*other.pos.get_unchecked(last) & mask, *other.neg.get_unchecked(last) & mask) 
+        let (bp, bn) = unsafe {
+            (
+                *other.pos.get_unchecked(last) & mask,
+                *other.neg.get_unchecked(last) & mask,
+            )
         };
 
         let pp = (ap & bp).count_ones();
@@ -615,7 +631,7 @@ impl BitslicedTritVec {
     /// - out[0] = src[1023]  (last element wraps to first)
     /// - out[1] = src[0]
     /// - out[2] = src[1]
-    /// ...
+    ///   ...
     ///
     /// For bitsliced, we decompose shift k = 64q + r where:
     /// - q = k / 64 (word-level rotation)
@@ -638,7 +654,7 @@ impl BitslicedTritVec {
 
         // For non-64-aligned dimensions, fall back to naive to ensure correctness
         // at boundaries. The optimization is still valuable for the common case.
-        if self.len % 64 != 0 {
+        if !self.len.is_multiple_of(64) {
             return self.permute(shift);
         }
 
@@ -675,7 +691,7 @@ impl BitslicedTritVec {
             // In general for out word w:
             //   - Low bits [0..bit_shift) come from src[(w - word_shift - 1 + words) % words]
             //     specifically the HIGH bits [64-bit_shift..64) of that word
-            //   - High bits [bit_shift..64) come from src[(w - word_shift + words) % words]  
+            //   - High bits [bit_shift..64) come from src[(w - word_shift + words) % words]
             //     specifically the LOW bits [0..64-bit_shift) of that word
             //
             // Bitwise:
@@ -791,7 +807,7 @@ impl BitslicedTritVec {
     pub fn from_packed(packed: &crate::ternary_vec::PackedTritVec) -> Self {
         const EVEN_BITS: u64 = 0x5555_5555_5555_5555;
 
-        let packed_words = (packed.len() + 31) / 32;
+        let packed_words = packed.len().div_ceil(32);
         let out_words = Self::word_count(packed.len());
 
         let mut out = Self {
@@ -829,7 +845,7 @@ impl BitslicedTritVec {
         use crate::ternary_vec::PackedTritVec;
 
         let mut packed = PackedTritVec::new_zero(self.len);
-        let packed_words = (self.len + 31) / 32;
+        let packed_words = self.len.div_ceil(32);
 
         for pw_idx in 0..packed_words {
             let base_trit = pw_idx * 32;
@@ -989,14 +1005,12 @@ impl CarrySaveBundle {
             // Carry-save add for positive votes:
             // new_carry = (sum & input) | (carry & (sum ^ input))
             // new_sum = sum ^ input
-            let new_carry_p =
-                (self.sum_pos[w] & vp) | (self.carry_pos[w] & (self.sum_pos[w] ^ vp));
+            let new_carry_p = (self.sum_pos[w] & vp) | (self.carry_pos[w] & (self.sum_pos[w] ^ vp));
             self.sum_pos[w] ^= vp;
             self.carry_pos[w] = new_carry_p;
 
             // Same for negative votes
-            let new_carry_n =
-                (self.sum_neg[w] & vn) | (self.carry_neg[w] & (self.sum_neg[w] ^ vn));
+            let new_carry_n = (self.sum_neg[w] & vn) | (self.carry_neg[w] & (self.sum_neg[w] ^ vn));
             self.sum_neg[w] ^= vn;
             self.carry_neg[w] = new_carry_n;
         }
@@ -1030,11 +1044,9 @@ impl CarrySaveBundle {
             // a1 == b1: !(pos_1 ^ neg_1)
             // a0 > b0: pos_0 & !neg_0
 
-            let pos_gt_neg =
-                (pos_1 & !neg_1) | (!(pos_1 ^ neg_1) & pos_0 & !neg_0);
+            let pos_gt_neg = (pos_1 & !neg_1) | (!(pos_1 ^ neg_1) & pos_0 & !neg_0);
 
-            let neg_gt_pos =
-                (neg_1 & !pos_1) | (!(pos_1 ^ neg_1) & neg_0 & !pos_0);
+            let neg_gt_pos = (neg_1 & !pos_1) | (!(pos_1 ^ neg_1) & neg_0 & !pos_0);
 
             // Only set if there were actual votes
             let has_pos = pos_0 | pos_1;
@@ -1166,18 +1178,14 @@ pub mod avx512 {
             // out_pos = (ap & !bn) | (bp & !an)
             let not_bn = _mm512_xor_si512(bn, _mm512_set1_epi64(-1));
             let not_an = _mm512_xor_si512(an, _mm512_set1_epi64(-1));
-            let out_pos = _mm512_or_si512(
-                _mm512_and_si512(ap, not_bn),
-                _mm512_and_si512(bp, not_an),
-            );
+            let out_pos =
+                _mm512_or_si512(_mm512_and_si512(ap, not_bn), _mm512_and_si512(bp, not_an));
 
             // out_neg = (an & !bp) | (bn & !ap)
             let not_bp = _mm512_xor_si512(bp, _mm512_set1_epi64(-1));
             let not_ap = _mm512_xor_si512(ap, _mm512_set1_epi64(-1));
-            let out_neg = _mm512_or_si512(
-                _mm512_and_si512(an, not_bp),
-                _mm512_and_si512(bn, not_ap),
-            );
+            let out_neg =
+                _mm512_or_si512(_mm512_and_si512(an, not_bp), _mm512_and_si512(bn, not_ap));
 
             _mm512_storeu_si512(out.pos.as_mut_ptr().add(offset) as *mut __m512i, out_pos);
             _mm512_storeu_si512(out.neg.as_mut_ptr().add(offset) as *mut __m512i, out_neg);
@@ -1423,7 +1431,12 @@ mod tests {
             }
 
             // Also verify nnz is preserved
-            assert_eq!(naive.nnz(), optimized.nnz(), "nnz mismatch for shift={}", shift);
+            assert_eq!(
+                naive.nnz(),
+                optimized.nnz(),
+                "nnz mismatch for shift={}",
+                shift
+            );
         }
     }
 
@@ -1479,10 +1492,10 @@ mod tests {
         let mut v = BitslicedTritVec::new_zero(dim);
 
         // Set specific bits to track rotation
-        v.set(0, Trit::P);   // Word 0, bit 0
-        v.set(32, Trit::N);  // Word 0, bit 32
-        v.set(64, Trit::P);  // Word 1, bit 0
-        v.set(96, Trit::N);  // Word 1, bit 32
+        v.set(0, Trit::P); // Word 0, bit 0
+        v.set(32, Trit::N); // Word 0, bit 32
+        v.set(64, Trit::P); // Word 1, bit 0
+        v.set(96, Trit::N); // Word 1, bit 32
 
         // Shift by 32 bits (half a word)
         let shifted = v.permute_optimized(32);

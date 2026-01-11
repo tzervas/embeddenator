@@ -130,10 +130,14 @@ impl TestMetrics {
         let count = sorted.len() as f64;
         let mean = sum as f64 / count;
 
-        let variance = sorted.iter().map(|&t| {
-            let diff = t as f64 - mean;
-            diff * diff
-        }).sum::<f64>() / count;
+        let variance = sorted
+            .iter()
+            .map(|&t| {
+                let diff = t as f64 - mean;
+                diff * diff
+            })
+            .sum::<f64>()
+            / count;
 
         TimingStats {
             count: sorted.len(),
@@ -172,7 +176,9 @@ impl TestMetrics {
 
         if !self.op_counts.is_empty() {
             report.push_str("Operations: ");
-            let ops: Vec<_> = self.op_counts.iter()
+            let ops: Vec<_> = self
+                .op_counts
+                .iter()
                 .map(|(k, v)| format!("{}={}", k, v))
                 .collect();
             report.push_str(&ops.join(", "));
@@ -181,7 +187,9 @@ impl TestMetrics {
 
         if !self.custom_metrics.is_empty() {
             report.push_str("Metrics: ");
-            let metrics: Vec<_> = self.custom_metrics.iter()
+            let metrics: Vec<_> = self
+                .custom_metrics
+                .iter()
                 .map(|(k, v)| format!("{}={:.4}", k, v))
                 .collect();
             report.push_str(&metrics.join(", "));
@@ -383,7 +391,7 @@ impl IntegrityValidator {
         let a_nnz = a.nnz();
         let a2_pos = a_squared.to_sparse().pos.len();
         let a2_neg = a_squared.to_sparse().neg.len();
-        
+
         if a2_neg != 0 {
             report.record_invariant_violation(format!(
                 "Self-inverse violation: A⊙A has {} negative trits (should be 0)",
@@ -403,7 +411,7 @@ impl IntegrityValidator {
         let ba = b.bind(a);
         let ab_sparse = ab.to_sparse();
         let ba_sparse = ba.to_sparse();
-        
+
         if ab_sparse.pos != ba_sparse.pos || ab_sparse.neg != ba_sparse.neg {
             report.record_invariant_violation("Commutativity violation: A⊙B ≠ B⊙A");
         } else {
@@ -434,11 +442,14 @@ impl IntegrityValidator {
         }
 
         // Conflict cancel: P + N = Z
-        let conflict_pos: Vec<usize> = a.to_sparse().pos.iter()
+        let conflict_pos: Vec<usize> = a
+            .to_sparse()
+            .pos
+            .iter()
             .filter(|&&i| b.to_sparse().neg.contains(&i))
             .copied()
             .collect();
-        
+
         for &pos in &conflict_pos {
             let result_trit = ab.get(pos);
             if result_trit != crate::ternary::Trit::Z {
@@ -465,7 +476,8 @@ impl IntegrityValidator {
         if expected.len() != actual.len() {
             report.fail(format!(
                 "Length mismatch: expected {}, got {}",
-                expected.len(), actual.len()
+                expected.len(),
+                actual.len()
             ));
             return report;
         }
@@ -476,15 +488,13 @@ impl IntegrityValidator {
         for w in 0..words {
             let pos_diff = expected.pos_word(w) ^ actual.pos_word(w);
             let neg_diff = expected.neg_word(w) ^ actual.neg_word(w);
-            
+
             let pos_flips = pos_diff.count_ones();
             let neg_flips = neg_diff.count_ones();
-            
+
             total_flips += pos_flips as u64 + neg_flips as u64;
-            
-            if pos_flips == 1 && neg_flips == 0 {
-                report.record_bitflip();
-            } else if pos_flips == 0 && neg_flips == 1 {
+
+            if (pos_flips == 1 && neg_flips == 0) || (pos_flips == 0 && neg_flips == 1) {
                 report.record_bitflip();
             } else if pos_flips + neg_flips > 0 {
                 report.record_corruption();
@@ -549,7 +559,7 @@ impl StorageFootprint {
         let nnz = sparse.pos.len() + sparse.neg.len();
         // Sparse storage: 2 vecs of usize indices
         let sparse_bytes = (nnz * std::mem::size_of::<usize>()) as u64;
-        
+
         Self {
             sparse_bytes,
             dimension: dim,
@@ -563,7 +573,7 @@ impl StorageFootprint {
         let words = crate::bitsliced::BitslicedTritVec::word_count(bs.len());
         // Bitsliced: 2 planes of u64 words
         let bitsliced_bytes = (words * 2 * std::mem::size_of::<u64>()) as u64;
-        
+
         Self {
             bitsliced_bytes,
             dimension: bs.len(),
@@ -694,7 +704,7 @@ impl ChaosInjector {
                     crate::ternary::Trit::P => crate::ternary::Trit::N,
                     crate::ternary::Trit::N => crate::ternary::Trit::P,
                     crate::ternary::Trit::Z => {
-                        if state % 2 == 0 {
+                        if state.is_multiple_of(2) {
                             crate::ternary::Trit::P
                         } else {
                             crate::ternary::Trit::N
@@ -784,16 +794,15 @@ macro_rules! assert_bitsliced_eq {
 /// Assert that cosine similarity is above threshold.
 #[macro_export]
 macro_rules! assert_cosine_above {
-    ($a:expr, $b:expr, $threshold:expr) => {
-        {
-            let cos = $a.cosine(&$b);
-            assert!(
-                cos >= $threshold,
-                "Cosine similarity {:.4} below threshold {:.4}",
-                cos, $threshold
-            );
-        }
-    };
+    ($a:expr, $b:expr, $threshold:expr) => {{
+        let cos = $a.cosine(&$b);
+        assert!(
+            cos >= $threshold,
+            "Cosine similarity {:.4} below threshold {:.4}",
+            cos,
+            $threshold
+        );
+    }};
 }
 
 /// Assert that an operation preserves nnz.
@@ -801,9 +810,11 @@ macro_rules! assert_cosine_above {
 macro_rules! assert_nnz_preserved {
     ($before:expr, $after:expr) => {
         assert_eq!(
-            $before.nnz(), $after.nnz(),
+            $before.nnz(),
+            $after.nnz(),
             "NNZ changed: {} -> {}",
-            $before.nnz(), $after.nnz()
+            $before.nnz(),
+            $after.nnz()
         );
     };
 }
@@ -819,7 +830,7 @@ mod tests {
     #[test]
     fn test_metrics_timing() {
         let mut metrics = TestMetrics::new("test_op");
-        
+
         for _ in 0..10 {
             metrics.time_operation(|| {
                 std::thread::sleep(std::time::Duration::from_micros(100));
@@ -834,11 +845,11 @@ mod tests {
     #[test]
     fn test_integrity_report() {
         let mut report = IntegrityReport::default();
-        
+
         report.pass();
         report.pass();
         report.fail("test failure");
-        
+
         assert_eq!(report.checks_total, 3);
         assert_eq!(report.checks_passed, 2);
         assert!(!report.is_ok());
@@ -878,6 +889,11 @@ mod tests {
 
         assert_eq!(flipped.len(), 5);
         // NNZ might change due to flips
-        assert!(v.nnz() != original_nnz || flipped.iter().any(|&p| sparse.pos.contains(&p) || sparse.neg.contains(&p)));
+        assert!(
+            v.nnz() != original_nnz
+                || flipped
+                    .iter()
+                    .any(|&p| sparse.pos.contains(&p) || sparse.neg.contains(&p))
+        );
     }
 }

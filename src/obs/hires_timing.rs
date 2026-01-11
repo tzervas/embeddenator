@@ -230,7 +230,7 @@ fn rdtsc() -> u64 {
 }
 
 /// Get TSC frequency (cached after first calibration)
-/// 
+///
 /// This is the critical optimization - we only calibrate once and cache
 /// the result in a static atomic, avoiding expensive file I/O on every
 /// timer creation.
@@ -357,7 +357,8 @@ impl HiResMetrics {
         }
 
         // Add to sum of squares (ns² to avoid overflow)
-        self.sum_sq_ns2.fetch_add(ns.saturating_mul(ns), Ordering::Relaxed);
+        self.sum_sq_ns2
+            .fetch_add(ns.saturating_mul(ns), Ordering::Relaxed);
     }
 
     /// Record from HiResTimer
@@ -373,11 +374,7 @@ impl HiResMetrics {
         let max_ps = self.max_ps.load(Ordering::Relaxed);
         let sum_sq_ns2 = self.sum_sq_ns2.load(Ordering::Relaxed);
 
-        let mean_ps = if count > 0 {
-            total_ps / count
-        } else {
-            0
-        };
+        let mean_ps = if count > 0 { total_ps / count } else { 0 };
 
         // Variance = E[X²] - E[X]² (computed in ns for numerical stability)
         let mean_ns = mean_ps / PS_PER_NS;
@@ -533,9 +530,17 @@ mod tests {
         let elapsed = timer.elapsed();
 
         // Should be at least 100µs = 100,000,000 ps
-        assert!(elapsed.picoseconds >= 100_000_000, "elapsed: {} ps", elapsed.picoseconds);
+        assert!(
+            elapsed.picoseconds >= 100_000_000,
+            "elapsed: {} ps",
+            elapsed.picoseconds
+        );
         // But not more than 10ms (accounting for scheduling jitter)
-        assert!(elapsed.picoseconds < 10_000_000_000_000, "elapsed: {} ps", elapsed.picoseconds);
+        assert!(
+            elapsed.picoseconds < 10_000_000_000_000,
+            "elapsed: {} ps",
+            elapsed.picoseconds
+        );
     }
 
     #[test]

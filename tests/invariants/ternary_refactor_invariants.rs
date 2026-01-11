@@ -170,8 +170,13 @@ fn invariant_cosine_dot_matches_reference() {
 
         // Recover dot from cosine definition used in SparseVec::cosine:
         // cosine = dot / (sqrt(|a|) * sqrt(|b|))
-        let denom = ((a.pos.len() + a.neg.len()) as f64).sqrt() * ((b.pos.len() + b.neg.len()) as f64).sqrt();
-        let dot_from_cos = if denom == 0.0 { 0.0 } else { a.cosine(&b) * denom };
+        let denom = ((a.pos.len() + a.neg.len()) as f64).sqrt()
+            * ((b.pos.len() + b.neg.len()) as f64).sqrt();
+        let dot_from_cos = if denom == 0.0 {
+            0.0
+        } else {
+            a.cosine(&b) * denom
+        };
 
         // Floating error margin; dot is integer.
         let rounded = dot_from_cos.round() as i32;

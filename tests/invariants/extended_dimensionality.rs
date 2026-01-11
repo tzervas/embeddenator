@@ -15,7 +15,9 @@ fn make_sparse_deterministic(dim: usize, density: f64, seed: u64) -> SparseVec {
     // Use simple LCG for determinism
     let mut state = seed;
     let lcg = |s: &mut u64| {
-        *s = s.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        *s = s
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         *s
     };
 
@@ -25,10 +27,8 @@ fn make_sparse_deterministic(dim: usize, density: f64, seed: u64) -> SparseVec {
             if !pos.contains(&idx) && !neg.contains(&idx) {
                 pos.push(idx);
             }
-        } else {
-            if !pos.contains(&idx) && !neg.contains(&idx) {
-                neg.push(idx);
-            }
+        } else if !pos.contains(&idx) && !neg.contains(&idx) {
+            neg.push(idx);
         }
     }
 
@@ -44,8 +44,8 @@ const LARGE_DIMS: &[usize] = &[10_000_000, 100_000_000];
 
 /// Estimate memory needed for a single bitsliced vector.
 fn memory_estimate_mb(dim: usize) -> f64 {
-    let words = (dim + 63) / 64;
-    let bytes = words * 2 * 8;  // 2 planes, 8 bytes per word
+    let words = dim.div_ceil(64);
+    let bytes = words * 2 * 8; // 2 planes, 8 bytes per word
     bytes as f64 / 1_000_000.0
 }
 
@@ -53,7 +53,7 @@ fn memory_estimate_mb(dim: usize) -> f64 {
 fn can_allocate(dim: usize, vectors_needed: usize) -> bool {
     let mb_per_vec = memory_estimate_mb(dim);
     let total_mb = mb_per_vec * vectors_needed as f64;
-    
+
     // Conservative: require less than 4GB (most CI has 8GB+)
     total_mb < 4096.0
 }
@@ -79,7 +79,11 @@ fn test_bitsliced_bind_small_dims() {
         // Sample verification
         for idx in [0, dim / 4, dim / 2, dim - 1] {
             let expected = trit_mul(a.get(idx), b.get(idx));
-            assert_eq!(result.get(idx), expected, "dim={dim}, idx={idx}: bind mismatch");
+            assert_eq!(
+                result.get(idx),
+                expected,
+                "dim={dim}, idx={idx}: bind mismatch"
+            );
         }
     }
 }
@@ -100,7 +104,11 @@ fn test_bitsliced_bundle_small_dims() {
         // Sample verification
         for idx in [0, dim / 4, dim / 2, dim - 1] {
             let expected = trit_bundle(a.get(idx), b.get(idx));
-            assert_eq!(result.get(idx), expected, "dim={dim}, idx={idx}: bundle mismatch");
+            assert_eq!(
+                result.get(idx),
+                expected,
+                "dim={dim}, idx={idx}: bundle mismatch"
+            );
         }
     }
 }
@@ -143,7 +151,7 @@ fn test_soft_ternary_small_dims() {
         assert!(nnz <= dim, "dim={dim}: nnz cannot exceed dim");
 
         // Harden and verify
-        let hardened = soft.harden(2);  // Need ≥2 votes
+        let hardened = soft.harden(2); // Need ≥2 votes
         assert_eq!(hardened.len(), dim);
     }
 }
@@ -213,7 +221,11 @@ fn test_bitsliced_bundle_medium_dims() {
         let result = a.bundle(&b);
         let bundle_time = start.elapsed();
 
-        eprintln!("dim={}: bundle={:.2}ms", dim, bundle_time.as_secs_f64() * 1000.0);
+        eprintln!(
+            "dim={}: bundle={:.2}ms",
+            dim,
+            bundle_time.as_secs_f64() * 1000.0
+        );
 
         // Sample verification
         let mut rng_state = 888u64;
@@ -250,7 +262,7 @@ fn test_soft_accumulate_medium_dims() {
         let acc_time = start.elapsed();
 
         let start = Instant::now();
-        let hardened = soft.harden(3);  // Need ≥3 votes (majority of 7 - ties = 4)
+        let hardened = soft.harden(3); // Need ≥3 votes (majority of 7 - ties = 4)
         let harden_time = start.elapsed();
 
         eprintln!(
@@ -273,11 +285,18 @@ fn test_soft_accumulate_medium_dims() {
 fn test_bitsliced_bind_large_dims() {
     for &dim in LARGE_DIMS {
         if !can_allocate(dim, 3) {
-            eprintln!("Skipping dim={dim} (need {:.0}MB)", memory_estimate_mb(dim) * 3.0);
+            eprintln!(
+                "Skipping dim={dim} (need {:.0}MB)",
+                memory_estimate_mb(dim) * 3.0
+            );
             continue;
         }
 
-        eprintln!("Testing dim={} (vectors will use ~{:.0}MB each)", dim, memory_estimate_mb(dim));
+        eprintln!(
+            "Testing dim={} (vectors will use ~{:.0}MB each)",
+            dim,
+            memory_estimate_mb(dim)
+        );
 
         let sparse_a = make_sparse_deterministic(dim, 0.0001, 99999);
         let sparse_b = make_sparse_deterministic(dim, 0.0001, 12121);
@@ -337,7 +356,11 @@ fn test_bitsliced_bundle_large_dims() {
         let result = a.bundle(&b);
         let bundle_time = start.elapsed();
 
-        eprintln!("dim={}: bundle={:.2}ms", dim, bundle_time.as_secs_f64() * 1000.0);
+        eprintln!(
+            "dim={}: bundle={:.2}ms",
+            dim,
+            bundle_time.as_secs_f64() * 1000.0
+        );
 
         // Sample verification
         let mut rng_state = 78787u64;
@@ -375,10 +398,15 @@ fn test_bitsliced_dot_large_dims() {
         let dot = a.dot(&b);
         let dot_time = start.elapsed();
 
-        eprintln!("dim={}: dot={:.2}ms, value={}", dim, dot_time.as_secs_f64() * 1000.0, dot);
+        eprintln!(
+            "dim={}: dot={:.2}ms, value={}",
+            dim,
+            dot_time.as_secs_f64() * 1000.0,
+            dot
+        );
 
         // Sanity check: dot should be reasonable magnitude for sparse vectors
-        let max_dot = (dim as f64 * 0.0001 * 2.0) as i32;  // rough upper bound
+        let max_dot = (dim as f64 * 0.0001 * 2.0) as i32; // rough upper bound
         assert!(dot.abs() <= max_dot, "dim={dim}: dot={dot} seems too large");
     }
 }
@@ -386,7 +414,8 @@ fn test_bitsliced_dot_large_dims() {
 #[test]
 #[ignore = "requires >800MB RAM for soft vectors"]
 fn test_soft_ternary_large_dims() {
-    for &dim in &[10_000_000usize] {  // Start with 10M
+    for &dim in &[10_000_000usize] {
+        // Start with 10M
         eprintln!("Testing soft ternary at dim={}", dim);
 
         let mut soft = SoftTernaryVec::new_zero(dim);
@@ -401,7 +430,10 @@ fn test_soft_ternary_large_dims() {
         }
         let acc_time = start.elapsed();
 
-        eprintln!("15x accumulate took {:.2}ms", acc_time.as_secs_f64() * 1000.0);
+        eprintln!(
+            "15x accumulate took {:.2}ms",
+            acc_time.as_secs_f64() * 1000.0
+        );
 
         let start = Instant::now();
         // Use threshold=2 for large dims (lower probability of overlap)
@@ -409,7 +441,11 @@ fn test_soft_ternary_large_dims() {
         let hardened = soft.harden(threshold);
         let harden_time = start.elapsed();
 
-        eprintln!("harden took {:.2}ms, nnz={}", harden_time.as_secs_f64() * 1000.0, hardened.nnz());
+        eprintln!(
+            "harden took {:.2}ms, nnz={}",
+            harden_time.as_secs_f64() * 1000.0,
+            hardened.nnz()
+        );
 
         assert_eq!(hardened.len(), dim);
         // For very large dims with sparse accumulation, may have no survivors - that's ok
@@ -429,11 +465,17 @@ fn test_100m_dimension_stress() {
     let dim = 100_000_000;
 
     eprintln!("=== 100M DIMENSION STRESS TEST ===");
-    eprintln!("Memory per bitsliced vector: {:.0}MB", memory_estimate_mb(dim));
+    eprintln!(
+        "Memory per bitsliced vector: {:.0}MB",
+        memory_estimate_mb(dim)
+    );
 
     // Only proceed if we have enough memory
     if !can_allocate(dim, 3) {
-        eprintln!("Insufficient memory for 100M test (need ~{}MB)", (memory_estimate_mb(dim) * 3.0) as u64);
+        eprintln!(
+            "Insufficient memory for 100M test (need ~{}MB)",
+            (memory_estimate_mb(dim) * 3.0) as u64
+        );
         return;
     }
 
@@ -451,7 +493,8 @@ fn test_100m_dimension_stress() {
     let start = Instant::now();
     let bind_result = a.bind(&b);
     let bind_time = start.elapsed();
-    eprintln!("Bind: {:.2}ms ({:.1} GB/s effective bandwidth)",
+    eprintln!(
+        "Bind: {:.2}ms ({:.1} GB/s effective bandwidth)",
         bind_time.as_secs_f64() * 1000.0,
         (memory_estimate_mb(dim) * 3.0) / 1000.0 / bind_time.as_secs_f64()
     );
@@ -466,7 +509,11 @@ fn test_100m_dimension_stress() {
     let start = Instant::now();
     let dot = a.dot(&b);
     let dot_time = start.elapsed();
-    eprintln!("Dot: {:.2}ms, value={}", dot_time.as_secs_f64() * 1000.0, dot);
+    eprintln!(
+        "Dot: {:.2}ms, value={}",
+        dot_time.as_secs_f64() * 1000.0,
+        dot
+    );
 
     // Verify results
     assert_eq!(bind_result.len(), dim);
@@ -494,7 +541,11 @@ fn test_100m_dimension_stress() {
         }
     }
 
-    assert_eq!(failures, 0, "Had {} failures in sampled verification", failures);
+    assert_eq!(
+        failures, 0,
+        "Had {} failures in sampled verification",
+        failures
+    );
 
     eprintln!("=== 100M STRESS TEST PASSED ===");
 }
@@ -556,7 +607,7 @@ fn test_soft_vs_hard_bundle_precision() {
     for v in &vectors {
         soft.accumulate(v);
     }
-    let soft_result = soft.harden(4);  // majority = ceil(7/2) = 4
+    let soft_result = soft.harden(4); // majority = ceil(7/2) = 4
 
     // Compare results
     let mut matches = 0;
@@ -583,7 +634,11 @@ fn test_soft_vs_hard_bundle_precision() {
     );
 
     // Should have high agreement (>85% for sparse inputs)
-    assert!(match_pct > 85.0, "Expected >85% match, got {:.1}%", match_pct);
+    assert!(
+        match_pct > 85.0,
+        "Expected >85% match, got {:.1}%",
+        match_pct
+    );
 }
 
 #[test]
@@ -592,17 +647,17 @@ fn test_soft_dot_accuracy() {
 
     // Create soft vector with known values
     let mut soft = SoftTernaryVec::new_zero(dim);
-    soft.set(0, 5, false);   // +5
-    soft.set(1, 3, true);    // -3
+    soft.set(0, 5, false); // +5
+    soft.set(1, 3, true); // -3
     soft.set(100, 7, false); // +7
-    soft.set(500, 2, true);  // -2
+    soft.set(500, 2, true); // -2
 
     // Create hard query vector
     let mut hard = BitslicedTritVec::new_zero(dim);
-    hard.set(0, Trit::P);    // +1 at 0
-    hard.set(1, Trit::N);    // -1 at 1
-    hard.set(100, Trit::P);  // +1 at 100
-    hard.set(500, Trit::P);  // +1 at 500
+    hard.set(0, Trit::P); // +1 at 0
+    hard.set(1, Trit::N); // -1 at 1
+    hard.set(100, Trit::P); // +1 at 100
+    hard.set(500, Trit::P); // +1 at 500
 
     // Expected dot:
     // +5 × +1 = +5
@@ -626,14 +681,27 @@ fn test_soft_dot_accuracy() {
 #[test]
 fn test_scaling_report() {
     eprintln!("\n=== MEMORY SCALING REPORT ===");
-    eprintln!("{:<12} {:>15} {:>15} {:>12}", "Dimension", "Bitsliced (MB)", "Soft (MB)", "Words");
+    eprintln!(
+        "{:<12} {:>15} {:>15} {:>12}",
+        "Dimension", "Bitsliced (MB)", "Soft (MB)", "Words"
+    );
 
-    for dim in [1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000] {
-        let words = (dim + 63) / 64;
+    for dim in [
+        1_000usize,
+        10_000,
+        100_000,
+        1_000_000,
+        10_000_000,
+        100_000_000,
+    ] {
+        let words = dim.div_ceil(64);
         let bitsliced_mb = memory_estimate_mb(dim);
-        let soft_mb = (words * 4 * 8) as f64 / 1_000_000.0;  // 4 planes
+        let soft_mb = (words * 4 * 8) as f64 / 1_000_000.0; // 4 planes
 
-        eprintln!("{:<12} {:>15.2} {:>15.2} {:>12}", dim, bitsliced_mb, soft_mb, words);
+        eprintln!(
+            "{:<12} {:>15.2} {:>15.2} {:>12}",
+            dim, bitsliced_mb, soft_mb, words
+        );
     }
     eprintln!();
 }

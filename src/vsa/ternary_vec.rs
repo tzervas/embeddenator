@@ -34,7 +34,7 @@ impl PackedTritVec {
 
     pub fn new_zero(len: usize) -> Self {
         let bits = len.saturating_mul(2);
-        let words = (bits + 63) / 64;
+        let words = bits.div_ceil(64);
         Self {
             len,
             data: vec![0u64; words],
@@ -44,7 +44,7 @@ impl PackedTritVec {
     #[inline]
     fn word_count_for_len(len: usize) -> usize {
         let bits = len.saturating_mul(2);
-        (bits + 63) / 64
+        bits.div_ceil(64)
     }
 
     #[inline]

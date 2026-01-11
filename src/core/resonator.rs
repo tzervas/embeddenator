@@ -5,7 +5,7 @@
 //! - Factorization of compound representations
 //! - Noise reduction through codebook projection
 
-use crate::vsa::{SparseVec, ReversibleVSAConfig};
+use crate::vsa::{ReversibleVSAConfig, SparseVec};
 use serde::{Deserialize, Serialize};
 
 /// Result of resonator factorization
@@ -77,7 +77,11 @@ impl Resonator {
     /// let resonator = Resonator::with_params(codebook, 20, 0.0001);
     /// assert_eq!(resonator.max_iterations, 20);
     /// ```
-    pub fn with_params(codebook: Vec<SparseVec>, max_iterations: usize, convergence_threshold: f64) -> Self {
+    pub fn with_params(
+        codebook: Vec<SparseVec>,
+        max_iterations: usize,
+        convergence_threshold: f64,
+    ) -> Self {
         Self {
             codebook,
             max_iterations,
@@ -171,9 +175,7 @@ impl Resonator {
         }
 
         // Initialize factor estimates randomly
-        let mut factors: Vec<SparseVec> = (0..num_factors)
-            .map(|_| SparseVec::random())
-            .collect();
+        let mut factors: Vec<SparseVec> = (0..num_factors).map(|_| SparseVec::random()).collect();
         let mut iterations = 0;
         let mut final_delta = f64::INFINITY;
 
@@ -256,7 +258,13 @@ impl Resonator {
     ///
     /// // Note: For 100% fidelity, use CorrectionStore with EmbrFS
     /// ```
-    pub fn recover_data(&self, encoded: &SparseVec, config: &ReversibleVSAConfig, path: Option<&str>, expected_size: usize) -> Vec<u8> {
+    pub fn recover_data(
+        &self,
+        encoded: &SparseVec,
+        config: &ReversibleVSAConfig,
+        path: Option<&str>,
+        expected_size: usize,
+    ) -> Vec<u8> {
         // First attempt direct decoding
         let mut result = encoded.decode_data(config, path, expected_size);
 
@@ -300,7 +308,12 @@ impl Resonator {
     /// let missing_ids = vec![1, 2];
     /// let recovered = resonator.recover_chunks(&available_chunks, &missing_ids, &config);
     /// ```
-    pub fn recover_chunks(&self, _available_chunks: &std::collections::HashMap<usize, Vec<u8>>, missing_chunk_ids: &[usize], _config: &ReversibleVSAConfig) -> std::collections::HashMap<usize, Vec<u8>> {
+    pub fn recover_chunks(
+        &self,
+        _available_chunks: &std::collections::HashMap<usize, Vec<u8>>,
+        missing_chunk_ids: &[usize],
+        _config: &ReversibleVSAConfig,
+    ) -> std::collections::HashMap<usize, Vec<u8>> {
         let mut recovered = std::collections::HashMap::new();
 
         for &chunk_id in missing_chunk_ids {

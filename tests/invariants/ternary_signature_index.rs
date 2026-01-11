@@ -1,5 +1,5 @@
-use embeddenator::{ReversibleVSAConfig, SparseVec};
 use embeddenator::signature::{SignatureQueryOptions, TernarySignatureIndex};
+use embeddenator::{ReversibleVSAConfig, SparseVec};
 use std::collections::HashMap;
 
 #[test]
@@ -33,7 +33,10 @@ fn signature_index_is_deterministic_over_build() {
 
     let mut map = HashMap::new();
     for i in 0..50usize {
-        map.insert(i, SparseVec::encode_data(format!("doc-{i}").as_bytes(), &cfg, None));
+        map.insert(
+            i,
+            SparseVec::encode_data(format!("doc-{i}").as_bytes(), &cfg, None),
+        );
     }
 
     let a = TernarySignatureIndex::build_from_map(&map);
@@ -42,8 +45,20 @@ fn signature_index_is_deterministic_over_build() {
     assert_eq!(a.probe_dims(), b.probe_dims());
 
     let q = SparseVec::encode_data(b"doc-7", &cfg, None);
-    let ca = a.candidates_with_options(&q, SignatureQueryOptions { max_candidates: 100, ..SignatureQueryOptions::default() });
-    let cb = b.candidates_with_options(&q, SignatureQueryOptions { max_candidates: 100, ..SignatureQueryOptions::default() });
+    let ca = a.candidates_with_options(
+        &q,
+        SignatureQueryOptions {
+            max_candidates: 100,
+            ..SignatureQueryOptions::default()
+        },
+    );
+    let cb = b.candidates_with_options(
+        &q,
+        SignatureQueryOptions {
+            max_candidates: 100,
+            ..SignatureQueryOptions::default()
+        },
+    );
 
     assert_eq!(ca, cb);
 }

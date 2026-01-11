@@ -41,6 +41,7 @@ pub enum Trit {
 impl Trit {
     /// Multiply two trits (binding operation at trit level)
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn mul(self, other: Trit) -> Trit {
         match (self, other) {
             (Trit::Zero, _) | (_, Trit::Zero) => Trit::Zero,
@@ -67,6 +68,7 @@ impl Trit {
 
     /// Negate a trit
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn neg(self) -> Trit {
         match self {
             Trit::Neg => Trit::Pos,
@@ -187,7 +189,9 @@ impl Tryte {
     /// Trit-wise multiplication (bind at tryte level)
     pub fn bind(&self, other: &Tryte) -> Tryte {
         assert_eq!(self.len(), other.len(), "Tryte sizes must match for bind");
-        let trits = self.trits.iter()
+        let trits = self
+            .trits
+            .iter()
             .zip(other.trits.iter())
             .map(|(&a, &b)| a * b)
             .collect();
@@ -197,7 +201,9 @@ impl Tryte {
     /// Trit-wise majority voting (bundle at tryte level)
     pub fn bundle(&self, other: &Tryte) -> Tryte {
         assert_eq!(self.len(), other.len(), "Tryte sizes must match for bundle");
-        let trits = self.trits.iter()
+        let trits = self
+            .trits
+            .iter()
             .zip(other.trits.iter())
             .map(|(&a, &b)| {
                 let sum = a.to_i8() + b.to_i8();
@@ -209,7 +215,8 @@ impl Tryte {
 
     /// Dot product contribution (for cosine similarity)
     pub fn dot(&self, other: &Tryte) -> i64 {
-        self.trits.iter()
+        self.trits
+            .iter()
             .zip(other.trits.iter())
             .map(|(&a, &b)| (a.to_i8() * b.to_i8()) as i64)
             .sum()
@@ -217,7 +224,8 @@ impl Tryte {
 
     /// L2 norm squared (count of non-zero trits)
     pub fn norm_squared(&self) -> i64 {
-        self.trits.iter()
+        self.trits
+            .iter()
             .map(|&t| if t == Trit::Zero { 0 } else { 1 })
             .sum()
     }
@@ -249,10 +257,7 @@ pub enum TritDepthConfig {
     Variable(Vec<u8>),
 
     /// Adaptive: start with base, expand where needed
-    Adaptive {
-        base_depth: u8,
-        max_depth: u8,
-    },
+    Adaptive { base_depth: u8, max_depth: u8 },
 }
 
 impl Default for DimensionalConfig {
@@ -260,7 +265,7 @@ impl Default for DimensionalConfig {
         DimensionalConfig {
             num_dimensions: 10_000,
             trit_depth: TritDepthConfig::Uniform(6), // 6 trits = 729 states
-            target_sparsity: 0.02, // 2% non-zero
+            target_sparsity: 0.02,                   // 2% non-zero
             adaptive_precision: false,
         }
     }
@@ -291,7 +296,10 @@ impl DimensionalConfig {
     pub fn adaptive(num_dims: usize, base_depth: u8, max_depth: u8) -> Self {
         DimensionalConfig {
             num_dimensions: num_dims,
-            trit_depth: TritDepthConfig::Adaptive { base_depth, max_depth },
+            trit_depth: TritDepthConfig::Adaptive {
+                base_depth,
+                max_depth,
+            },
             target_sparsity: 200.0 / num_dims as f64,
             adaptive_precision: true,
         }
@@ -309,14 +317,10 @@ impl DimensionalConfig {
     /// Calculate total information capacity in bits
     pub fn total_capacity_bits(&self) -> f64 {
         let log2_3: f64 = 3.0f64.log2(); // ≈ 1.585
-        
+
         match &self.trit_depth {
-            TritDepthConfig::Uniform(d) => {
-                self.num_dimensions as f64 * (*d as f64) * log2_3
-            }
-            TritDepthConfig::Variable(depths) => {
-                depths.iter().map(|&d| d as f64 * log2_3).sum()
-            }
+            TritDepthConfig::Uniform(d) => self.num_dimensions as f64 * (*d as f64) * log2_3,
+            TritDepthConfig::Variable(depths) => depths.iter().map(|&d| d as f64 * log2_3).sum(),
             TritDepthConfig::Adaptive { base_depth, .. } => {
                 self.num_dimensions as f64 * (*base_depth as f64) * log2_3
             }
@@ -335,7 +339,7 @@ impl DimensionalConfig {
         };
 
         // Index (4 bytes) + trits (ceil(avg_depth * 1.585 / 8)) per non-zero
-        non_zero_dims * (4 + (avg_depth * 2 + 7) / 8)
+        non_zero_dims * (4 + (avg_depth * 2).div_ceil(8))
     }
 }
 
@@ -362,7 +366,7 @@ impl HyperVec {
     /// Create from dense representation
     pub fn from_dense(config: DimensionalConfig, values: &[i64]) -> Self {
         let mut vec = HyperVec::new(config.clone());
-        
+
         for (dim, &value) in values.iter().enumerate() {
             if dim >= config.num_dimensions {
                 break;
@@ -373,16 +377,13 @@ impl HyperVec {
                 vec.dimensions.insert(dim, tryte);
             }
         }
-        
+
         vec
     }
 
     /// Get value at dimension (returns 0 for unset dimensions)
     pub fn get(&self, dim: usize) -> i64 {
-        self.dimensions
-            .get(&dim)
-            .map(|t| t.to_i64())
-            .unwrap_or(0)
+        self.dimensions.get(&dim).map(|t| t.to_i64()).unwrap_or(0)
     }
 
     /// Set value at dimension
@@ -407,19 +408,23 @@ impl HyperVec {
     }
 
     /// Bundle operation (⊕): Superposition via majority voting
-    /// 
+    ///
     /// Algebraic properties:
     /// - Associative: (A ⊕ B) ⊕ C = A ⊕ (B ⊕ C)
     /// - Commutative: A ⊕ B = B ⊕ A
     /// - Preserves similarity to inputs
     pub fn bundle(&self, other: &HyperVec) -> HyperVec {
-        assert_eq!(self.config.num_dimensions, other.config.num_dimensions,
-                   "Dimension count must match for bundle");
+        assert_eq!(
+            self.config.num_dimensions, other.config.num_dimensions,
+            "Dimension count must match for bundle"
+        );
 
         let mut result = HyperVec::new(self.config.clone());
-        
+
         // Union of all dimension indices
-        let all_dims: std::collections::BTreeSet<_> = self.dimensions.keys()
+        let all_dims: std::collections::BTreeSet<_> = self
+            .dimensions
+            .keys()
             .chain(other.dimensions.keys())
             .copied()
             .collect();
@@ -427,12 +432,12 @@ impl HyperVec {
         for dim in all_dims {
             let depth = self.config.depth_for_dimension(dim);
             let zero = Tryte::zero(depth as usize);
-            
+
             let a = self.dimensions.get(&dim).unwrap_or(&zero);
             let b = other.dimensions.get(&dim).unwrap_or(&zero);
-            
+
             let bundled = a.bundle(b);
-            
+
             // Only store if non-zero
             if bundled.to_i64() != 0 {
                 result.dimensions.insert(dim, bundled);
@@ -449,8 +454,10 @@ impl HyperVec {
     /// - Distributes over bundle: A ⊙ (B ⊕ C) = (A ⊙ B) ⊕ (A ⊙ C)
     /// - Creates quasi-orthogonal result
     pub fn bind(&self, other: &HyperVec) -> HyperVec {
-        assert_eq!(self.config.num_dimensions, other.config.num_dimensions,
-                   "Dimension count must match for bind");
+        assert_eq!(
+            self.config.num_dimensions, other.config.num_dimensions,
+            "Dimension count must match for bind"
+        );
 
         let mut result = HyperVec::new(self.config.clone());
 
@@ -492,7 +499,7 @@ impl HyperVec {
     }
 
     /// Cosine similarity: Normalized dot product
-    /// 
+    ///
     /// Returns value in [-1, 1]:
     /// - 1.0: Identical vectors
     /// - 0.0: Orthogonal vectors
@@ -503,10 +510,10 @@ impl HyperVec {
         let mut norm_b: i64 = 0;
 
         // Calculate norms
-        for (_, tryte) in &self.dimensions {
+        for tryte in self.dimensions.values() {
             norm_a += tryte.norm_squared();
         }
-        for (_, tryte) in &other.dimensions {
+        for tryte in other.dimensions.values() {
             norm_b += tryte.norm_squared();
         }
 
@@ -525,7 +532,7 @@ impl HyperVec {
     }
 
     /// Thin to target sparsity (Context-Dependent Thinning)
-    /// 
+    ///
     /// Reduces vector density while preserving signal structure
     pub fn thin(&self, target_nnz: usize) -> HyperVec {
         if self.nnz() <= target_nnz {
@@ -535,10 +542,12 @@ impl HyperVec {
         let mut result = HyperVec::new(self.config.clone());
 
         // Sort by magnitude, keep highest
-        let mut indexed: Vec<_> = self.dimensions.iter()
+        let mut indexed: Vec<_> = self
+            .dimensions
+            .iter()
             .map(|(&d, t)| (d, t.clone(), t.to_i64().abs()))
             .collect();
-        
+
         indexed.sort_by(|a, b| b.2.cmp(&a.2));
 
         for (dim, tryte, _) in indexed.into_iter().take(target_nnz) {
@@ -568,10 +577,10 @@ impl HyperVec {
         // Format: [num_entries: u32][entries...]
         // Entry: [dim: u32][num_trits: u8][trit_data...]
         let mut bytes = Vec::new();
-        
+
         // Number of entries
         bytes.extend((self.dimensions.len() as u32).to_le_bytes());
-        
+
         for (&dim, tryte) in &self.dimensions {
             // Dimension index
             bytes.extend((dim as u32).to_le_bytes());
@@ -581,7 +590,7 @@ impl HyperVec {
             let packed_trits = pack_trits(&tryte.trits);
             bytes.extend(packed_trits);
         }
-        
+
         bytes
     }
 
@@ -600,18 +609,18 @@ impl HyperVec {
                 return None;
             }
 
-            let dim = u32::from_le_bytes(bytes[offset..offset+4].try_into().ok()?) as usize;
+            let dim = u32::from_le_bytes(bytes[offset..offset + 4].try_into().ok()?) as usize;
             offset += 4;
 
             let num_trits = bytes[offset] as usize;
             offset += 1;
 
-            let packed_bytes = (num_trits + 4) / 5; // 5 trits per byte
+            let packed_bytes = num_trits.div_ceil(5); // 5 trits per byte
             if offset + packed_bytes > bytes.len() {
                 return None;
             }
 
-            let trits = unpack_trits(&bytes[offset..offset+packed_bytes], num_trits);
+            let trits = unpack_trits(&bytes[offset..offset + packed_bytes], num_trits);
             offset += packed_bytes;
 
             vec.dimensions.insert(dim, Tryte { trits });
@@ -624,11 +633,11 @@ impl HyperVec {
 /// Pack trits into bytes (5 trits per byte)
 fn pack_trits(trits: &[Trit]) -> Vec<u8> {
     let mut bytes = Vec::new();
-    
+
     for chunk in trits.chunks(5) {
         let mut byte: u8 = 0;
         let mut power: u8 = 1;
-        
+
         for &trit in chunk {
             // Encode: -1 -> 2, 0 -> 0, +1 -> 1
             let encoded = match trit {
@@ -639,27 +648,27 @@ fn pack_trits(trits: &[Trit]) -> Vec<u8> {
             byte += encoded * power;
             power *= 3;
         }
-        
+
         bytes.push(byte);
     }
-    
+
     bytes
 }
 
 /// Unpack bytes to trits
 fn unpack_trits(bytes: &[u8], num_trits: usize) -> Vec<Trit> {
     let mut trits = Vec::with_capacity(num_trits);
-    
+
     for &byte in bytes {
         let mut remaining = byte;
         for _ in 0..5 {
             if trits.len() >= num_trits {
                 break;
             }
-            
+
             let encoded = remaining % 3;
             remaining /= 3;
-            
+
             // Decode: 2 -> -1, 0 -> 0, 1 -> +1
             let trit = match encoded {
                 2 => Trit::Neg,
@@ -670,7 +679,7 @@ fn unpack_trits(bytes: &[u8], num_trits: usize) -> Vec<Trit> {
             trits.push(trit);
         }
     }
-    
+
     trits
 }
 
@@ -679,13 +688,13 @@ fn unpack_trits(bytes: &[u8], num_trits: usize) -> Vec<Trit> {
 pub struct DifferentialEncoding {
     /// Coefficients against codebook basis (sparse)
     pub coefficients: HyperVec,
-    
+
     /// Residual that couldn't be captured by basis
     pub residual: HyperVec,
-    
+
     /// Dimensions that needed precision expansion
     pub expanded_dims: Vec<(usize, u8)>,
-    
+
     /// Reconstruction quality (1.0 = perfect)
     pub quality: f64,
 }
@@ -694,13 +703,13 @@ pub struct DifferentialEncoding {
 pub struct DifferentialEncoder {
     /// Configuration
     pub config: DimensionalConfig,
-    
+
     /// Basis vectors (the codebook)
     pub basis: Vec<HyperVec>,
-    
+
     /// Threshold for considering a match
     pub match_threshold: f64,
-    
+
     /// Threshold for expanding precision
     pub precision_threshold: f64,
 }
@@ -725,11 +734,11 @@ impl DifferentialEncoder {
     pub fn encode(&self, data: &HyperVec) -> DifferentialEncoding {
         let mut coefficients = HyperVec::new(self.config.clone());
         let mut expanded_dims = Vec::new();
-        
+
         // Project data onto each basis vector
         for (basis_idx, basis_vec) in self.basis.iter().enumerate() {
             let similarity = data.cosine(basis_vec);
-            
+
             if similarity.abs() > self.match_threshold {
                 // Quantize coefficient to balanced ternary
                 let coef_value = (similarity * 100.0) as i64;
@@ -740,24 +749,28 @@ impl DifferentialEncoder {
         // Compute residual (what basis couldn't capture)
         let reconstructed = self.reconstruct_from_coefficients(&coefficients);
         let mut residual = HyperVec::new(self.config.clone());
-        
+
         for dim in 0..self.config.num_dimensions {
             let original_val = data.get(dim);
             let reconstructed_val = reconstructed.get(dim);
             let diff = original_val - reconstructed_val;
-            
+
             if diff.abs() > 0 {
                 residual.set(dim, diff);
-                
+
                 // Check if we need more precision
                 let relative_error = if original_val != 0 {
                     (diff as f64).abs() / (original_val as f64).abs()
                 } else {
                     0.0
                 };
-                
+
                 if relative_error > self.precision_threshold {
-                    if let TritDepthConfig::Adaptive { base_depth, max_depth } = &self.config.trit_depth {
+                    if let TritDepthConfig::Adaptive {
+                        base_depth,
+                        max_depth,
+                    } = &self.config.trit_depth
+                    {
                         let new_depth = (*base_depth + 2).min(*max_depth);
                         expanded_dims.push((dim, new_depth));
                     }
@@ -779,11 +792,11 @@ impl DifferentialEncoder {
     /// Reconstruct from coefficients only
     fn reconstruct_from_coefficients(&self, coefficients: &HyperVec) -> HyperVec {
         let mut result = HyperVec::new(self.config.clone());
-        
+
         for (&basis_idx, coef_tryte) in &coefficients.dimensions {
             if let Some(basis_vec) = self.basis.get(basis_idx) {
                 let coef = coef_tryte.to_i64() as f64 / 100.0;
-                
+
                 // Scale basis vector by coefficient and bundle
                 for (&dim, tryte) in &basis_vec.dimensions {
                     let scaled = (tryte.to_i64() as f64 * coef) as i64;
@@ -792,43 +805,48 @@ impl DifferentialEncoder {
                 }
             }
         }
-        
+
         result
     }
 
     /// Full reconstruction from differential encoding
     pub fn decode(&self, encoding: &DifferentialEncoding) -> HyperVec {
         let mut result = self.reconstruct_from_coefficients(&encoding.coefficients);
-        
+
         // Add residual corrections
         for (&dim, tryte) in &encoding.residual.dimensions {
             let current = result.get(dim);
             result.set(dim, current + tryte.to_i64());
         }
-        
+
         result
     }
 
     /// Calculate reconstruction quality
-    fn calculate_quality(&self, original: &HyperVec, coefficients: &HyperVec, residual: &HyperVec) -> f64 {
+    fn calculate_quality(
+        &self,
+        original: &HyperVec,
+        coefficients: &HyperVec,
+        residual: &HyperVec,
+    ) -> f64 {
         let reconstructed = self.reconstruct_from_coefficients(coefficients);
-        
+
         let mut total_error: f64 = 0.0;
         let mut total_energy: f64 = 0.0;
-        
+
         for dim in 0..self.config.num_dimensions {
             let orig = original.get(dim) as f64;
             let recon = reconstructed.get(dim) as f64;
             let res = residual.get(dim) as f64;
-            
+
             total_energy += orig * orig;
             total_error += (orig - recon - res).powi(2);
         }
-        
+
         if total_energy == 0.0 {
             return 1.0;
         }
-        
+
         1.0 - (total_error / total_energy).sqrt()
     }
 }
@@ -848,7 +866,7 @@ mod tests {
     #[test]
     fn test_tryte_roundtrip() {
         let test_values = [0i64, 1, -1, 42, -42, 100, -100, 364, -364];
-        
+
         for &value in &test_values {
             let tryte = Tryte::from_i64(value, 6);
             let decoded = tryte.to_i64();
@@ -861,7 +879,7 @@ mod tests {
         // 6 trits = 729 states = range [-364, 364]
         assert_eq!(Tryte::max_value(6), 364);
         assert_eq!(Tryte::min_value(6), -364);
-        
+
         // 8 trits = 6561 states = range [-3280, 3280]
         assert_eq!(Tryte::max_value(8), 3280);
     }
@@ -871,10 +889,10 @@ mod tests {
         let config = DimensionalConfig::default();
         let a = HyperVec::from_dense(config.clone(), &[1, 0, -1, 1, 0]);
         let b = HyperVec::from_dense(config.clone(), &[0, 1, -1, 0, 1]);
-        
+
         let ab = a.bundle(&b);
         let ba = b.bundle(&a);
-        
+
         assert_eq!(ab.dimensions.len(), ba.dimensions.len());
         for (dim, tryte) in &ab.dimensions {
             assert_eq!(tryte.to_i64(), ba.get(*dim));
@@ -888,11 +906,11 @@ mod tests {
         a.set(0, 1);
         a.set(1, -1);
         a.set(2, 1);
-        
+
         // A ⊙ A should produce all 1s (positive) for non-zero dimensions
         let aa = a.bind(&a);
-        
-        for (_, tryte) in &aa.dimensions {
+
+        for tryte in aa.dimensions.values() {
             assert_eq!(tryte.to_i64(), 1, "Self-bind should produce +1");
         }
     }
@@ -904,10 +922,10 @@ mod tests {
         a.set(0, 1);
         a.set(100, -1);
         a.set(500, 1);
-        
+
         let permuted = a.permute(1000);
         let recovered = permuted.inverse_permute(1000);
-        
+
         assert_eq!(a.get(0), recovered.get(0));
         assert_eq!(a.get(100), recovered.get(100));
         assert_eq!(a.get(500), recovered.get(500));
@@ -920,9 +938,12 @@ mod tests {
         a.set(0, 1);
         a.set(1, -1);
         a.set(2, 1);
-        
+
         let similarity = a.cosine(&a);
-        assert!((similarity - 1.0).abs() < 0.001, "Self-similarity should be 1.0");
+        assert!(
+            (similarity - 1.0).abs() < 0.001,
+            "Self-similarity should be 1.0"
+        );
     }
 
     #[test]
@@ -932,10 +953,10 @@ mod tests {
         vec.set(0, 42);
         vec.set(100, -17);
         vec.set(1000, 100);
-        
+
         let packed = vec.pack();
         let unpacked = HyperVec::unpack(config, &packed).expect("Unpack failed");
-        
+
         assert_eq!(vec.get(0), unpacked.get(0));
         assert_eq!(vec.get(100), unpacked.get(100));
         assert_eq!(vec.get(1000), unpacked.get(1000));
@@ -945,22 +966,22 @@ mod tests {
     fn test_differential_encoding() {
         let config = DimensionalConfig::compact();
         let mut encoder = DifferentialEncoder::new(config.clone());
-        
+
         // Add some basis vectors
         let mut basis1 = HyperVec::new(config.clone());
         basis1.set(0, 1);
         basis1.set(1, 1);
         encoder.add_basis(basis1);
-        
+
         // Create data similar to basis
         let mut data = HyperVec::new(config.clone());
         data.set(0, 1);
         data.set(1, 1);
         data.set(2, 1); // Extra dimension
-        
+
         let encoding = encoder.encode(&data);
         let decoded = encoder.decode(&encoding);
-        
+
         // Should reconstruct original
         assert_eq!(data.get(0), decoded.get(0));
         assert_eq!(data.get(1), decoded.get(1));

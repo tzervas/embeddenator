@@ -113,27 +113,29 @@ fn check_validity_detailed(v: &BlockSparseTritVec) -> Result<(), ValidityError> 
 
 /// Strategy for generating valid SparseVec instances.
 fn sparse_vec_strategy(max_nnz: usize, dim: usize) -> impl Strategy<Value = SparseVec> {
-    prop::collection::vec((0usize..dim, prop_oneof![Just(1i8), Just(-1i8)]), 0..max_nnz).prop_map(
-        |pairs| {
-            let mut by_idx: BTreeMap<usize, i8> = BTreeMap::new();
-            for (idx, sign) in pairs {
-                by_idx.insert(idx, sign);
-            }
-
-            let mut pos = Vec::new();
-            let mut neg = Vec::new();
-
-            for (idx, sign) in by_idx {
-                match sign {
-                    1 => pos.push(idx),
-                    -1 => neg.push(idx),
-                    _ => {}
-                }
-            }
-
-            SparseVec { pos, neg }
-        },
+    prop::collection::vec(
+        (0usize..dim, prop_oneof![Just(1i8), Just(-1i8)]),
+        0..max_nnz,
     )
+    .prop_map(|pairs| {
+        let mut by_idx: BTreeMap<usize, i8> = BTreeMap::new();
+        for (idx, sign) in pairs {
+            by_idx.insert(idx, sign);
+        }
+
+        let mut pos = Vec::new();
+        let mut neg = Vec::new();
+
+        for (idx, sign) in by_idx {
+            match sign {
+                1 => pos.push(idx),
+                -1 => neg.push(idx),
+                _ => {}
+            }
+        }
+
+        SparseVec { pos, neg }
+    })
 }
 
 /// Strategy for generating valid BlockSparseTritVec via SparseVec conversion.
@@ -608,7 +610,7 @@ mod billion_dimension {
         // Insert a few blocks at high indices
         let sparse = SparseVec {
             pos: vec![999_999_936, 999_999_937], // Block 15_624_999
-            neg: vec![0, 1],                      // Block 0
+            neg: vec![0, 1],                     // Block 0
         };
         let v = BlockSparseTritVec::from_sparse(&sparse, 1_000_000_000);
 

@@ -104,7 +104,7 @@ fn calc_sparse_storage(sparse: &SparseVec, dim: usize) -> (usize, f64) {
 }
 
 fn calc_bitsliced_storage(dim: usize) -> usize {
-    let words = (dim + 63) / 64;
+    let words = dim.div_ceil(64);
     words * 2 * std::mem::size_of::<u64>()
 }
 
@@ -118,7 +118,7 @@ fn bits_per_trit_bitsliced() -> f64 {
 
 /// Verify bitsliced vector has no overlapping pos/neg bits
 fn verify_no_overlap(bs: &BitslicedTritVec) -> Result<(), String> {
-    let words = (bs.len() + 63) / 64;
+    let words = bs.len().div_ceil(64);
     for w in 0..words {
         let overlap = bs.pos_word(w) & bs.neg_word(w);
         if overlap != 0 {
@@ -135,7 +135,7 @@ fn verify_no_overlap(bs: &BitslicedTritVec) -> Result<(), String> {
 
 /// Verify trailing bits are zero
 fn verify_trailing_zeros(bs: &BitslicedTritVec) -> Result<(), String> {
-    let words = (bs.len() + 63) / 64;
+    let words = bs.len().div_ceil(64);
     if words == 0 {
         return Ok(());
     }
@@ -157,7 +157,7 @@ fn verify_trailing_zeros(bs: &BitslicedTritVec) -> Result<(), String> {
 /// Count bit differences between two vectors
 fn count_bit_differences(a: &BitslicedTritVec, b: &BitslicedTritVec) -> (u64, u64) {
     assert_eq!(a.len(), b.len());
-    let words = (a.len() + 63) / 64;
+    let words = a.len().div_ceil(64);
     let mut pos_diffs = 0u64;
     let mut neg_diffs = 0u64;
     for w in 0..words {
@@ -343,11 +343,17 @@ fn test_storage_footprint_calculations() {
         );
 
         // Verify calculations
-        assert_eq!(sparse_bytes, (sparse.pos.len() + sparse.neg.len()) * std::mem::size_of::<usize>() * 2);
-        assert_eq!(bitsliced_bytes, ((dim + 63) / 64) * 2 * 8);
+        assert_eq!(
+            sparse_bytes,
+            (sparse.pos.len() + sparse.neg.len()) * std::mem::size_of::<usize>() * 2
+        );
+        assert_eq!(bitsliced_bytes, dim.div_ceil(64) * 2 * 8);
     }
 
-    println!("\nBits per trit (bitsliced): {:.1}", bits_per_trit_bitsliced());
+    println!(
+        "\nBits per trit (bitsliced): {:.1}",
+        bits_per_trit_bitsliced()
+    );
     println!("✓ Storage calculations verified");
 }
 
@@ -384,12 +390,12 @@ fn test_bitflip_detection_single() {
         "Injected flip at {}: {:?} → {:?}",
         flip_pos, original_trit, new_trit
     );
-    println!("Detected: {} pos bits, {} neg bits changed", pos_diff, neg_diff);
-
-    assert!(
-        pos_diff + neg_diff >= 1,
-        "Failed to detect single bitflip"
+    println!(
+        "Detected: {} pos bits, {} neg bits changed",
+        pos_diff, neg_diff
     );
+
+    assert!(pos_diff + neg_diff >= 1, "Failed to detect single bitflip");
     println!("✓ Single bitflip detection works");
 }
 
@@ -503,12 +509,10 @@ fn test_permute_preserves_integrity() {
         );
 
         // No overlap
-        verify_no_overlap(&permuted)
-            .unwrap_or_else(|e| panic!("shift={}: {}", shift, e));
+        verify_no_overlap(&permuted).unwrap_or_else(|e| panic!("shift={}: {}", shift, e));
 
         // Trailing zeros
-        verify_trailing_zeros(&permuted)
-            .unwrap_or_else(|e| panic!("shift={}: {}", shift, e));
+        verify_trailing_zeros(&permuted).unwrap_or_else(|e| panic!("shift={}: {}", shift, e));
 
         // Inverse restores original
         let restored = permuted.permute_optimized(dim - shift);
@@ -612,7 +616,11 @@ fn test_hybrid_cross_representation_ops() {
     let bound_rev = dense_hybrid.bind(&sparse_hybrid, dim);
     let bundled_rev = dense_hybrid.bundle(&sparse_hybrid, dim);
 
-    assert_eq!(bound.nnz(dim), bound_rev.nnz(dim), "Bind not commutative by nnz");
+    assert_eq!(
+        bound.nnz(dim),
+        bound_rev.nnz(dim),
+        "Bind not commutative by nnz"
+    );
     assert_eq!(
         bundled.nnz(dim),
         bundled_rev.nnz(dim),

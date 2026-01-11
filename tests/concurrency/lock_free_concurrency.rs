@@ -79,11 +79,7 @@ fn test_atomic_inode_counter_concurrent() {
                 // Record allocated inodes
                 let mut global = allocated.lock().unwrap();
                 for ino in local_inos {
-                    assert!(
-                        global.insert(ino),
-                        "Duplicate inode {} allocated!",
-                        ino
-                    );
+                    assert!(global.insert(ino), "Duplicate inode {} allocated!", ino);
                 }
             })
         })
@@ -274,15 +270,11 @@ fn test_lock_free_operation_timing_picosecond() {
 
     // Measure get_attr
     let ino = fs.lookup_path("/perf_50.txt").unwrap();
-    let (_, attr_stats) = measure_n(10_000, || {
-        std::hint::black_box(fs.get_attr(ino))
-    });
+    let (_, attr_stats) = measure_n(10_000, || std::hint::black_box(fs.get_attr(ino)));
 
     // Measure read_dir
     let root_ino = fs.lookup_path("/").unwrap();
-    let (_, readdir_stats) = measure_n(1_000, || {
-        std::hint::black_box(fs.read_dir(root_ino))
-    });
+    let (_, readdir_stats) = measure_n(1_000, || std::hint::black_box(fs.read_dir(root_ino)));
 
     println!("┌─────────────────────────────────────────────────────────────┐");
     println!("│           Lock-Free Operation Timing (Picoseconds)         │");
@@ -311,7 +303,9 @@ fn test_arcswap_snapshot_consistency() {
     let fs = Arc::new(EngramFSBuilder::new().build());
 
     // Add initial file
-    let _ino = fs.add_file("/snapshot_test.txt", b"initial".to_vec()).unwrap();
+    let _ino = fs
+        .add_file("/snapshot_test.txt", b"initial".to_vec())
+        .unwrap();
 
     let inconsistencies = Arc::new(AtomicUsize::new(0));
     let iterations = Arc::new(AtomicUsize::new(0));
@@ -436,7 +430,11 @@ fn test_aggregate_functions_concurrent() {
 
     let anomalies = reader.join().unwrap();
 
-    assert_eq!(anomalies, 0, "Detected {} aggregate function anomalies", anomalies);
+    assert_eq!(
+        anomalies, 0,
+        "Detected {} aggregate function anomalies",
+        anomalies
+    );
 
     let final_count = fs.file_count();
     let final_size = fs.total_size();
@@ -487,7 +485,9 @@ fn test_ensure_directory_concurrency() {
     assert!(to_ino > 0);
 
     // All directories should be distinct
-    let dirs: HashSet<_> = vec![deep_ino, nested_ino, path_ino, to_ino].into_iter().collect();
+    let dirs: HashSet<_> = vec![deep_ino, nested_ino, path_ino, to_ino]
+        .into_iter()
+        .collect();
     assert_eq!(dirs.len(), 4, "Directory inodes should be unique");
 
     // Check directory attributes
@@ -538,15 +538,21 @@ fn test_concurrent_duplicate_rejection() {
     // In practice, due to the race window being small, we expect very few
     // "extra" successes (typically 1-10 on most systems).
     assert!(
-        total_success >= 1 && total_success <= 20,
+        (1..=20).contains(&total_success),
         "Expected 1-20 successes due to race window, got {}",
         total_success
     );
 
     // Verify final state is consistent - file should exist with correct data
-    assert!(fs.lookup_path("/same_file.txt").is_some(), "File should exist");
+    assert!(
+        fs.lookup_path("/same_file.txt").is_some(),
+        "File should exist"
+    );
 
-    println!("✓ Duplicate handling: {} of 800 attempts created file (race window expected)", total_success);
+    println!(
+        "✓ Duplicate handling: {} of 800 attempts created file (race window expected)",
+        total_success
+    );
 }
 
 /// Stress test with mixed operations
@@ -758,7 +764,8 @@ fn test_memory_ordering_visibility() {
         let done = Arc::clone(&writer_done);
 
         thread::spawn(move || {
-            fs.add_file("/ordering_test.txt", b"visible".to_vec()).unwrap();
+            fs.add_file("/ordering_test.txt", b"visible".to_vec())
+                .unwrap();
             done.store(true, Ordering::Release);
         })
     };

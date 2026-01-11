@@ -44,10 +44,10 @@ pub struct ReversibleVSAConfig {
 impl Default for ReversibleVSAConfig {
     fn default() -> Self {
         ReversibleVSAConfig {
-            block_size: 256,  // 256-byte blocks
+            block_size: 256, // 256-byte blocks
             max_path_depth: 10,
             base_shift: 1000,
-            target_sparsity: 200,  // Default sparsity level
+            target_sparsity: 200, // Default sparsity level
         }
     }
 }
@@ -103,20 +103,20 @@ impl SparseVec {
         if a.is_empty() || b.is_empty() {
             return 0;
         }
-        
+
         let mut i = 0usize;
         let mut j = 0usize;
         let mut count = 0usize;
-        
+
         // Unrolled main loop - process 2 comparisons per iteration when possible
         let len_a = a.len();
         let len_b = b.len();
-        
+
         while i < len_a && j < len_b {
             // Use get_unchecked for bounds-checked loops (safe because of while condition)
             let ai = unsafe { *a.get_unchecked(i) };
             let bj = unsafe { *b.get_unchecked(j) };
-            
+
             if ai < bj {
                 i += 1;
             } else if ai > bj {
@@ -141,7 +141,7 @@ impl SparseVec {
         if b.is_empty() {
             return a.to_vec();
         }
-        
+
         let mut out = Vec::with_capacity(a.len() + b.len());
         let mut i = 0usize;
         let mut j = 0usize;
@@ -151,7 +151,7 @@ impl SparseVec {
         while i < len_a && j < len_b {
             let ai = unsafe { *a.get_unchecked(i) };
             let bj = unsafe { *b.get_unchecked(j) };
-            
+
             if ai < bj {
                 out.push(ai);
                 i += 1;
@@ -187,7 +187,7 @@ impl SparseVec {
         if a.is_empty() {
             return Vec::new();
         }
-        
+
         let mut out = Vec::with_capacity(a.len());
         let mut i = 0usize;
         let mut j = 0usize;
@@ -197,7 +197,7 @@ impl SparseVec {
         while i < len_a && j < len_b {
             let ai = unsafe { *a.get_unchecked(i) };
             let bj = unsafe { *b.get_unchecked(j) };
-            
+
             if ai < bj {
                 out.push(ai);
                 i += 1;
@@ -360,7 +360,12 @@ impl SparseVec {
     /// // Note: For 100% fidelity, use CorrectionStore with EmbrFS
     /// // Raw decode may have minor differences that corrections compensate for
     /// ```
-    pub fn decode_data(&self, config: &ReversibleVSAConfig, path: Option<&str>, expected_size: usize) -> Vec<u8> {
+    pub fn decode_data(
+        &self,
+        config: &ReversibleVSAConfig,
+        path: Option<&str>,
+        expected_size: usize,
+    ) -> Vec<u8> {
         if self.pos.is_empty() && self.neg.is_empty() {
             return Vec::new();
         }
@@ -381,7 +386,7 @@ impl SparseVec {
         };
 
         // Estimate number of blocks based on expected size
-        let estimated_blocks = (expected_size + config.block_size - 1) / config.block_size;
+        let estimated_blocks = expected_size.div_ceil(config.block_size);
 
         // For single block case
         if estimated_blocks <= 1 {
@@ -578,9 +583,13 @@ impl SparseVec {
     /// assert!(sim1 > 0.3);
     /// assert!(sim2 > 0.3);
     /// ```
-    pub fn bundle_with_config(&self, other: &SparseVec, config: Option<&ReversibleVSAConfig>) -> SparseVec {
+    pub fn bundle_with_config(
+        &self,
+        other: &SparseVec,
+        config: Option<&ReversibleVSAConfig>,
+    ) -> SparseVec {
         let mut result = self.bundle(other);
-        
+
         // Apply thinning if config provided and result exceeds target sparsity
         if let Some(cfg) = config {
             let current_count = result.pos.len() + result.neg.len();
@@ -588,7 +597,7 @@ impl SparseVec {
                 result = result.thin(cfg.target_sparsity);
             }
         }
-        
+
         result
     }
 
@@ -741,10 +750,7 @@ impl SparseVec {
             return collected[0].bundle(collected[1]);
         }
 
-        let total_nnz: usize = collected
-            .iter()
-            .map(|v| v.pos.len() + v.neg.len())
-            .sum();
+        let total_nnz: usize = collected.iter().map(|v| v.pos.len() + v.neg.len()).sum();
 
         if total_nnz == 0 {
             return SparseVec {
@@ -1039,8 +1045,16 @@ impl SparseVec {
     pub fn inverse_permute(&self, shift: usize) -> SparseVec {
         let inverse_permute_index = |idx: usize| (idx + DIM - (shift % DIM)) % DIM;
 
-        let pos: Vec<usize> = self.pos.iter().map(|&idx| inverse_permute_index(idx)).collect();
-        let neg: Vec<usize> = self.neg.iter().map(|&idx| inverse_permute_index(idx)).collect();
+        let pos: Vec<usize> = self
+            .pos
+            .iter()
+            .map(|&idx| inverse_permute_index(idx))
+            .collect();
+        let neg: Vec<usize> = self
+            .neg
+            .iter()
+            .map(|&idx| inverse_permute_index(idx))
+            .collect();
 
         // Indices must remain sorted for efficient operations
         let mut pos = pos;
@@ -1071,22 +1085,22 @@ impl SparseVec {
     /// Performance: O(n log n) due to sorting, where n = target_non_zero
     pub fn thin(&self, target_non_zero: usize) -> SparseVec {
         let current_count = self.pos.len() + self.neg.len();
-        
+
         // Edge case: already at or below target
         if current_count <= target_non_zero {
             return self.clone();
         }
-        
+
         // Edge case: target is zero
         if target_non_zero == 0 {
             return SparseVec::new();
         }
-        
+
         // Calculate how many to keep from each polarity
         let pos_ratio = self.pos.len() as f32 / current_count as f32;
         let target_pos = (target_non_zero as f32 * pos_ratio).round() as usize;
         let target_neg = target_non_zero - target_pos;
-        
+
         // Randomly sample indices using deterministic seed based on vector content
         let mut seed = [0u8; 32];
         seed[0..4].copy_from_slice(&(self.pos.len() as u32).to_le_bytes());
@@ -1094,19 +1108,19 @@ impl SparseVec {
         seed[8..12].copy_from_slice(&(target_non_zero as u32).to_le_bytes());
         // Rest remains zero for deterministic seeding
         let mut rng = rand::rngs::StdRng::from_seed(seed);
-        
+
         // Sample positive indices
         let mut sampled_pos: Vec<usize> = self.pos.clone();
         sampled_pos.shuffle(&mut rng);
         sampled_pos.truncate(target_pos);
         sampled_pos.sort_unstable();
-        
+
         // Sample negative indices
         let mut sampled_neg: Vec<usize> = self.neg.clone();
         sampled_neg.shuffle(&mut rng);
         sampled_neg.truncate(target_neg);
         sampled_neg.sort_unstable();
-        
+
         SparseVec {
             pos: sampled_pos,
             neg: sampled_neg,

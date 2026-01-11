@@ -7,7 +7,7 @@
 //! # The Problem
 //!
 //! When you bundle N vectors: R = V₁ ⊕ V₂ ⊕ ... ⊕ Vₙ
-//! 
+//!
 //! And then query: Q = R ⊙ Vᵢ⁻¹ (unbind to retrieve Vᵢ)
 //!
 //! You get: Q ≈ Vᵢ + noise (crosstalk from other vectors)
@@ -41,8 +41,8 @@
 
 use crate::ternary::Trit;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use sha2::{Sha256, Digest};
 
 /// Correction type for different error scenarios
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -77,9 +77,9 @@ impl ChunkCorrection {
     pub fn new(chunk_id: u64, original: &[u8], approximation: &[u8]) -> Self {
         let hash = compute_hash(original);
         let parity = compute_data_parity(original);
-        
+
         let correction = compute_correction(original, approximation);
-        
+
         ChunkCorrection {
             chunk_id,
             correction,
@@ -97,7 +97,7 @@ impl ChunkCorrection {
     pub fn apply(&self, approximation: &[u8]) -> Vec<u8> {
         match &self.correction {
             CorrectionType::None => approximation.to_vec(),
-            
+
             CorrectionType::BitFlips(flips) => {
                 let mut result = approximation.to_vec();
                 for &(pos, mask) in flips {
@@ -107,7 +107,7 @@ impl ChunkCorrection {
                 }
                 result
             }
-            
+
             CorrectionType::TritFlips(flips) => {
                 // Convert to bytes, apply trit corrections
                 let mut result = approximation.to_vec();
@@ -129,17 +129,17 @@ impl ChunkCorrection {
                 }
                 result
             }
-            
+
             CorrectionType::BlockReplace { offset, original } => {
                 let mut result = approximation.to_vec();
                 let start = *offset as usize;
                 let end = std::cmp::min(start + original.len(), result.len());
                 if start < result.len() {
-                    result[start..end].copy_from_slice(&original[..end-start]);
+                    result[start..end].copy_from_slice(&original[..end - start]);
                 }
                 result
             }
-            
+
             CorrectionType::Verbatim(data) => data.clone(),
         }
     }
@@ -192,11 +192,11 @@ fn compute_correction(original: &[u8], approximation: &[u8]) -> CorrectionType {
     // Count differences
     let mut diff_positions: Vec<(u64, u8, u8)> = Vec::new();
     let max_len = std::cmp::max(original.len(), approximation.len());
-    
+
     for i in 0..max_len {
         let orig_byte = original.get(i).copied().unwrap_or(0);
         let approx_byte = approximation.get(i).copied().unwrap_or(0);
-        
+
         if orig_byte != approx_byte {
             diff_positions.push((i as u64, orig_byte, approx_byte));
         }
@@ -204,7 +204,7 @@ fn compute_correction(original: &[u8], approximation: &[u8]) -> CorrectionType {
 
     // Choose correction strategy based on number of differences
     let diff_count = diff_positions.len();
-    
+
     if diff_count == 0 {
         return CorrectionType::None;
     }
@@ -219,7 +219,7 @@ fn compute_correction(original: &[u8], approximation: &[u8]) -> CorrectionType {
         let first_diff = diff_positions.first().map(|p| p.0).unwrap_or(0);
         let last_diff = diff_positions.last().map(|p| p.0).unwrap_or(0);
         let span = (last_diff - first_diff + 1) as usize;
-        
+
         // If span is small compared to storing individual corrections
         if span < diff_count * 9 {
             let start = first_diff as usize;
@@ -236,7 +236,7 @@ fn compute_correction(original: &[u8], approximation: &[u8]) -> CorrectionType {
         .iter()
         .map(|&(pos, orig, approx)| (pos, orig ^ approx))
         .collect();
-    
+
     CorrectionType::BitFlips(bit_flips)
 }
 
@@ -245,16 +245,16 @@ fn compute_correction(original: &[u8], approximation: &[u8]) -> CorrectionType {
 pub struct CorrectionStore {
     /// Corrections indexed by chunk ID
     corrections: HashMap<u64, ChunkCorrection>,
-    
+
     /// Total storage used by corrections
     total_correction_bytes: u64,
-    
+
     /// Total original data size
     total_original_bytes: u64,
-    
+
     /// Chunks that needed no correction
     perfect_chunks: u64,
-    
+
     /// Chunks that needed correction
     corrected_chunks: u64,
 }
@@ -268,16 +268,16 @@ impl CorrectionStore {
     /// Add a correction for a chunk
     pub fn add(&mut self, chunk_id: u64, original: &[u8], approximation: &[u8]) {
         let correction = ChunkCorrection::new(chunk_id, original, approximation);
-        
+
         self.total_original_bytes += original.len() as u64;
-        
+
         if correction.needs_correction() {
             self.total_correction_bytes += correction.storage_size() as u64;
             self.corrected_chunks += 1;
         } else {
             self.perfect_chunks += 1;
         }
-        
+
         self.corrections.insert(chunk_id, correction);
     }
 
@@ -290,7 +290,7 @@ impl CorrectionStore {
     pub fn apply(&self, chunk_id: u64, approximation: &[u8]) -> Option<Vec<u8>> {
         let correction = self.corrections.get(&chunk_id)?;
         let result = correction.apply(approximation);
-        
+
         // Verify correction worked
         if correction.verify(&result) {
             Some(result)
@@ -345,7 +345,9 @@ pub struct CorrectionStats {
 
 impl std::fmt::Display for CorrectionStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Corrections: {}/{} chunks perfect ({:.1}%), \
+        write!(
+            f,
+            "Corrections: {}/{} chunks perfect ({:.1}%), \
                    {:.2}% overhead ({} bytes corrections / {} bytes original)",
             self.perfect_chunks,
             self.total_chunks,
@@ -366,10 +368,9 @@ pub struct ReconstructionVerifier {
 impl ReconstructionVerifier {
     /// Create a new verifier from original data
     pub fn from_chunks(chunks: impl Iterator<Item = (u64, Vec<u8>)>) -> Self {
-        let expected_hashes: HashMap<u64, [u8; 8]> = chunks
-            .map(|(id, data)| (id, compute_hash(&data)))
-            .collect();
-        
+        let expected_hashes: HashMap<u64, [u8; 8]> =
+            chunks.map(|(id, data)| (id, compute_hash(&data))).collect();
+
         ReconstructionVerifier { expected_hashes }
     }
 
@@ -421,10 +422,17 @@ pub struct VerificationResult {
 impl std::fmt::Display for VerificationResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.perfect {
-            write!(f, "✓ Perfect reconstruction: {} chunks verified", self.verified)
+            write!(
+                f,
+                "✓ Perfect reconstruction: {} chunks verified",
+                self.verified
+            )
         } else {
-            write!(f, "✗ Reconstruction issues: {} verified, {} failed, {} missing",
-                self.verified, self.failed, self.missing)
+            write!(
+                f,
+                "✗ Reconstruction issues: {} verified, {} failed, {} missing",
+                self.verified, self.failed, self.missing
+            )
         }
     }
 }
@@ -437,9 +445,9 @@ mod tests {
     fn test_no_correction_needed() {
         let original = b"hello world";
         let approximation = b"hello world";
-        
+
         let correction = ChunkCorrection::new(0, original, approximation);
-        
+
         assert!(!correction.needs_correction());
         assert_eq!(correction.storage_size(), 0);
     }
@@ -449,11 +457,11 @@ mod tests {
         let original = b"hello world";
         let mut approximation = original.to_vec();
         approximation[0] ^= 0x01; // Flip one bit
-        
+
         let correction = ChunkCorrection::new(0, original, &approximation);
-        
+
         assert!(correction.needs_correction());
-        
+
         let recovered = correction.apply(&approximation);
         assert_eq!(recovered, original);
         assert!(correction.verify(&recovered));
@@ -463,11 +471,11 @@ mod tests {
     fn test_verbatim_correction() {
         let original = b"completely different data here";
         let approximation = b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-        
+
         let correction = ChunkCorrection::new(0, original, approximation);
-        
+
         assert!(correction.needs_correction());
-        
+
         let recovered = correction.apply(approximation);
         assert_eq!(recovered, original);
     }
@@ -475,18 +483,18 @@ mod tests {
     #[test]
     fn test_correction_store() {
         let mut store = CorrectionStore::new();
-        
+
         // Add some perfect chunks
         store.add(0, b"chunk0", b"chunk0");
         store.add(1, b"chunk1", b"chunk1");
-        
+
         // Add a chunk needing correction
         store.add(2, b"chunk2", b"chunkX");
-        
+
         let stats = store.stats();
         assert_eq!(stats.perfect_chunks, 2);
         assert_eq!(stats.corrected_chunks, 1);
-        
+
         // Verify correction works
         let recovered = store.apply(2, b"chunkX").unwrap();
         assert_eq!(recovered, b"chunk2");
@@ -499,16 +507,16 @@ mod tests {
             (1u64, b"chunk1".to_vec()),
             (2u64, b"chunk2".to_vec()),
         ];
-        
+
         let verifier = ReconstructionVerifier::from_chunks(chunks.clone().into_iter());
-        
+
         // Verify correct chunks
         assert!(verifier.verify_chunk(0, b"chunk0"));
         assert!(verifier.verify_chunk(1, b"chunk1"));
-        
+
         // Verify incorrect chunk fails
         assert!(!verifier.verify_chunk(0, b"wrong"));
-        
+
         // Verify all
         let result = verifier.verify_all(chunks.into_iter());
         assert!(result.perfect);
@@ -522,7 +530,7 @@ mod tests {
         let hash1 = compute_hash(data);
         let hash2 = compute_hash(data);
         assert_eq!(hash1, hash2);
-        
+
         // Different data should produce different hash
         let hash3 = compute_hash(b"different data");
         assert_ne!(hash1, hash3);

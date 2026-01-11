@@ -58,25 +58,25 @@ impl BalancedTernaryWord {
     /// Range: -(3^38-1)/2 to +(3^38-1)/2
     pub const MAX_VALUE: i64 = 675_425_858_836_496_044;
     pub const MIN_VALUE: i64 = -675_425_858_836_496_044;
-    
+
     /// Number of trits in the data portion (38 trits = 61 bits)
     pub const DATA_TRITS: usize = 38;
-    
+
     /// Number of trits for metadata/parity (stored in upper 3 bits)
     pub const META_TRITS: usize = 2;
 
     /// Create a new word from a signed integer value and metadata
     pub fn new(value: i64, metadata: WordMetadata) -> Option<Self> {
-        if value < Self::MIN_VALUE || value > Self::MAX_VALUE {
+        if !(Self::MIN_VALUE..=Self::MAX_VALUE).contains(&value) {
             return None;
         }
-        
+
         // Convert signed value to balanced ternary representation
         let encoded = Self::encode_balanced_ternary(value);
-        
+
         // Pack metadata into upper 3 bits
         let meta_bits = (metadata as u64) << 61;
-        
+
         Some(BalancedTernaryWord {
             packed: encoded | meta_bits,
         })
@@ -116,7 +116,7 @@ impl BalancedTernaryWord {
     }
 
     /// Encode a signed integer to balanced ternary packed representation
-    /// 
+    ///
     /// We store the value directly as a base-3 representation where:
     /// - Digit 0 = trit 0
     /// - Digit 1 = trit +1  
@@ -127,12 +127,12 @@ impl BalancedTernaryWord {
         let mut v = value;
         let mut result: u64 = 0;
         let mut power: u64 = 1;
-        
+
         for _ in 0..Self::DATA_TRITS {
             // Get remainder in range [-1, 0, 1]
             let mut rem = v % 3;
             v /= 3;
-            
+
             if rem == 2 {
                 rem = -1;
                 v += 1;
@@ -140,7 +140,7 @@ impl BalancedTernaryWord {
                 rem = 1;
                 v -= 1;
             }
-            
+
             // Encode: -1 -> 2, 0 -> 0, +1 -> 1
             let encoded = match rem {
                 -1 => 2u64,
@@ -148,11 +148,11 @@ impl BalancedTernaryWord {
                 1 => 1u64,
                 _ => 0u64, // Safety fallback
             };
-            
+
             result += encoded * power;
             power *= 3;
         }
-        
+
         result
     }
 
@@ -161,20 +161,20 @@ impl BalancedTernaryWord {
         let mut result: i64 = 0;
         let mut power: i64 = 1;
         let mut remaining = packed;
-        
+
         for _ in 0..Self::DATA_TRITS {
             let trit = remaining % 3;
             remaining /= 3;
-            
+
             match trit {
-                0 => {}, // Add 0
+                0 => {} // Add 0
                 1 => result += power,
                 2 => result -= power, // -1 in balanced ternary
                 _ => unreachable!(),
             }
             power *= 3;
         }
-        
+
         result
     }
 
@@ -184,11 +184,11 @@ impl BalancedTernaryWord {
         let mut result: u64 = 0;
         let mut remaining = packed;
         let mut power: u64 = 1;
-        
+
         for _ in 0..Self::DATA_TRITS {
             let trit = remaining % 3;
             remaining /= 3;
-            
+
             // Negate: 0->0, 1->2, 2->1
             let negated = match trit {
                 0 => 0,
@@ -199,7 +199,7 @@ impl BalancedTernaryWord {
             result += negated * power;
             power *= 3;
         }
-        
+
         result
     }
 
@@ -207,11 +207,11 @@ impl BalancedTernaryWord {
     pub fn compute_parity(&self) -> i8 {
         let mut sum: i64 = 0;
         let mut remaining = self.data_bits();
-        
+
         for _ in 0..Self::DATA_TRITS {
             let trit = (remaining % 3) as i64;
             remaining /= 3;
-            
+
             // Convert to balanced: 0->0, 1->1, 2->-1
             sum += match trit {
                 0 => 0,
@@ -220,7 +220,7 @@ impl BalancedTernaryWord {
                 _ => 0,
             };
         }
-        
+
         // Parity trit: makes sum divisible by 3
         ((3 - (sum.rem_euclid(3))) % 3) as i8
     }
@@ -259,20 +259,20 @@ pub struct BasisVector {
 pub struct Codebook {
     /// Version for compatibility
     pub version: u32,
-    
+
     /// Dimensionality of basis vectors
     pub dimensionality: usize,
-    
+
     /// The basis vectors forming the encoding dictionary
     /// Data is projected onto these bases
     pub basis_vectors: Vec<BasisVector>,
-    
+
     /// Semantic marker vectors for outlier detection
     pub semantic_markers: Vec<SparseVec>,
-    
+
     /// Statistics for adaptive encoding
     pub statistics: CodebookStatistics,
-    
+
     /// Cryptographic salt for key derivation (optional)
     pub salt: Option<[u8; 32]>,
 }
@@ -333,32 +333,32 @@ impl Codebook {
     pub fn initialize_standard_basis(&mut self) {
         // Add basis vectors for common byte patterns
         // These act as a "vocabulary" for differential encoding
-        
+
         // Zero runs (common in binary)
         self.add_basis_for_pattern(0, b"\x00\x00\x00\x00", "zero_run");
-        
+
         // ASCII space/newline (common in text)
         self.add_basis_for_pattern(1, b"    ", "space_run");
         self.add_basis_for_pattern(2, b"\n\n", "newline_pair");
-        
+
         // Common text patterns
         self.add_basis_for_pattern(3, b"the ", "the_space");
         self.add_basis_for_pattern(4, b"ing ", "ing_space");
         self.add_basis_for_pattern(5, b"tion", "tion");
-        
+
         // Binary markers
         self.add_basis_for_pattern(6, b"\x89PNG", "png_header");
         self.add_basis_for_pattern(7, b"\xFF\xD8\xFF", "jpeg_header");
         self.add_basis_for_pattern(8, b"PK\x03\x04", "zip_header");
-        
+
         // Add semantic markers for entropy detection
         self.initialize_semantic_markers();
     }
 
     /// Add a basis vector for a specific pattern
     fn add_basis_for_pattern(&mut self, id: u32, pattern: &[u8], label: &str) {
-        use sha2::{Sha256, Digest};
-        
+        use sha2::{Digest, Sha256};
+
         // Generate deterministic sparse vector from pattern
         let mut hasher = Sha256::new();
         hasher.update(pattern);
@@ -366,11 +366,11 @@ impl Codebook {
             hasher.update(salt);
         }
         let hash = hasher.finalize();
-        
+
         // Use hash to seed sparse vector generation
         let seed: [u8; 32] = hash.into();
         let vector = SparseVec::from_seed(&seed, self.dimensionality);
-        
+
         self.basis_vectors.push(BasisVector {
             id,
             vector,
@@ -387,7 +387,7 @@ impl Codebook {
             let mut hasher = Sha256::new();
             hasher.update(b"embeddenator:semantic_marker:v1:");
             hasher.update(label.as_bytes());
-            hasher.update(&(self.dimensionality as u64).to_le_bytes());
+            hasher.update((self.dimensionality as u64).to_le_bytes());
             if let Some(salt) = &self.salt {
                 hasher.update(salt);
             }
@@ -416,51 +416,51 @@ impl Codebook {
         let mut coefficients = HashMap::new();
         let mut residual = Vec::new();
         let mut outliers = Vec::new();
-        
+
         // 1. Analyze data for semantic outliers (entropy spikes)
         let detected_outliers = self.detect_semantic_outliers(data);
         outliers.extend(detected_outliers);
-        
+
         // 2. Project data chunks onto basis vectors
         let chunk_size = 64; // Process in 64-byte chunks
         for (chunk_idx, chunk) in data.chunks(chunk_size).enumerate() {
             let chunk_vec = SparseVec::from_bytes(chunk);
-            
+
             // Find best matching basis vectors
-            let mut best_matches: Vec<(u32, f64)> = self.basis_vectors
+            let mut best_matches: Vec<(u32, f64)> = self
+                .basis_vectors
                 .iter()
                 .map(|basis| (basis.id, chunk_vec.cosine(&basis.vector)))
                 .filter(|(_, sim)| *sim > 0.3) // Threshold for relevance
                 .collect();
-            
+
             best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-            
+
             // Take top N matches
             for (basis_id, similarity) in best_matches.iter().take(4) {
                 // Encode coefficient as balanced ternary
                 let coef_value = (*similarity * 1000.0) as i64;
                 if let Some(word) = BalancedTernaryWord::new(coef_value, WordMetadata::Data) {
-                    coefficients.insert(
-                        *basis_id * 1000 + chunk_idx as u32,
-                        word,
-                    );
+                    coefficients.insert(*basis_id * 1000 + chunk_idx as u32, word);
                 }
             }
-            
+
             // 3. Compute residual (what basis couldn't capture)
             let reconstructed = self.reconstruct_chunk(&coefficients, chunk_idx, chunk.len());
             let chunk_residual = self.compute_residual(chunk, &reconstructed);
-            
+
             for residual_byte in chunk_residual {
-                if let Some(word) = BalancedTernaryWord::new(residual_byte as i64, WordMetadata::Residual) {
+                if let Some(word) =
+                    BalancedTernaryWord::new(residual_byte as i64, WordMetadata::Residual)
+                {
                     residual.push(word);
                 }
             }
         }
-        
+
         // Calculate quality score
         let quality_score = self.calculate_quality_score(data, &coefficients, &residual);
-        
+
         ProjectionResult {
             coefficients,
             residual,
@@ -473,30 +473,33 @@ impl Codebook {
     fn detect_semantic_outliers(&self, data: &[u8]) -> Vec<SemanticOutlier> {
         let mut outliers = Vec::new();
         let window_size = 32;
-        
+
         if data.len() < window_size {
             return outliers;
         }
-        
+
         for i in 0..data.len() - window_size {
             let window = &data[i..i + window_size];
             let entropy = self.calculate_entropy(window);
-            
+
             // High entropy windows are outliers (compressed/encrypted data)
             if entropy > 7.5 {
                 let pattern_vec = SparseVec::from_bytes(window);
-                
+
                 // Encode the outlier pattern
                 let mut encoded_pattern = Vec::new();
                 for chunk in window.chunks(8) {
-                    let value = chunk.iter()
+                    let value = chunk
+                        .iter()
                         .enumerate()
                         .fold(0i64, |acc, (j, &b)| acc + ((b as i64) << (j * 8)));
-                    if let Some(word) = BalancedTernaryWord::new(value, WordMetadata::SemanticOutlier) {
+                    if let Some(word) =
+                        BalancedTernaryWord::new(value, WordMetadata::SemanticOutlier)
+                    {
                         encoded_pattern.push(word);
                     }
                 }
-                
+
                 outliers.push(SemanticOutlier {
                     position: i,
                     length: window_size,
@@ -504,15 +507,15 @@ impl Codebook {
                     encoded_pattern,
                     semantic_vec: pattern_vec,
                 });
-                
+
                 // Skip ahead to avoid overlapping outliers
                 // i += window_size / 2; // Can't mutate loop variable, handled by dedup later
             }
         }
-        
+
         // Deduplicate overlapping outliers
         outliers.dedup_by(|a, b| a.position.abs_diff(b.position) < window_size / 2);
-        
+
         outliers
     }
 
@@ -522,9 +525,10 @@ impl Codebook {
         for &byte in data {
             counts[byte as usize] += 1;
         }
-        
+
         let len = data.len() as f64;
-        counts.iter()
+        counts
+            .iter()
             .filter(|&&c| c > 0)
             .map(|&c| {
                 let p = c as f64 / len;
@@ -547,7 +551,8 @@ impl Codebook {
 
     /// Compute residual between original and reconstructed
     fn compute_residual(&self, original: &[u8], reconstructed: &[u8]) -> Vec<u8> {
-        original.iter()
+        original
+            .iter()
             .zip(reconstructed.iter())
             .map(|(&o, &r)| o.wrapping_sub(r))
             .collect()
@@ -567,16 +572,16 @@ impl Codebook {
     /// Reconstruct original data from projection result
     pub fn reconstruct(&self, projection: &ProjectionResult, expected_size: usize) -> Vec<u8> {
         let mut result = Vec::with_capacity(expected_size);
-        
+
         // 1. Reconstruct from basis coefficients
         let chunk_size = 64;
-        let num_chunks = (expected_size + chunk_size - 1) / chunk_size;
-        
+        let num_chunks = expected_size.div_ceil(chunk_size);
+
         for chunk_idx in 0..num_chunks {
             let chunk = self.reconstruct_chunk(&projection.coefficients, chunk_idx, chunk_size);
             result.extend(chunk);
         }
-        
+
         // 2. Apply residual corrections
         for (i, residual_word) in projection.residual.iter().enumerate() {
             if i < result.len() {
@@ -584,7 +589,7 @@ impl Codebook {
                 result[i] = result[i].wrapping_add(correction);
             }
         }
-        
+
         // 3. Apply semantic outlier corrections
         for outlier in &projection.outliers {
             if outlier.position + outlier.length <= result.len() {
@@ -596,7 +601,7 @@ impl Codebook {
                         decoded.push(((value >> (j * 8)) & 0xFF) as u8);
                     }
                 }
-                
+
                 for (j, &byte) in decoded.iter().enumerate().take(outlier.length) {
                     if outlier.position + j < result.len() {
                         result[outlier.position + j] = byte;
@@ -604,7 +609,7 @@ impl Codebook {
                 }
             }
         }
-        
+
         result.truncate(expected_size);
         result
     }
@@ -613,33 +618,33 @@ impl Codebook {
 impl SparseVec {
     /// Create a sparse vector from a seed (deterministic)
     pub fn from_seed(seed: &[u8; 32], dim: usize) -> Self {
-        use rand::SeedableRng;
         use rand::seq::SliceRandom;
-        
+        use rand::SeedableRng;
+
         let mut rng = rand::rngs::StdRng::from_seed(*seed);
         let sparsity = dim / 100; // 1% density
-        
+
         let mut indices: Vec<usize> = (0..dim).collect();
         indices.shuffle(&mut rng);
-        
+
         let mut pos: Vec<_> = indices[..sparsity].to_vec();
         let mut neg: Vec<_> = indices[sparsity..sparsity * 2].to_vec();
-        
+
         pos.sort_unstable();
         neg.sort_unstable();
-        
+
         SparseVec { pos, neg }
     }
 
     /// Create a sparse vector directly from bytes
     pub fn from_bytes(data: &[u8]) -> Self {
-        use sha2::{Sha256, Digest};
-        
+        use sha2::{Digest, Sha256};
+
         let mut hasher = Sha256::new();
         hasher.update(data);
         let hash = hasher.finalize();
         let seed: [u8; 32] = hash.into();
-        
+
         Self::from_seed(&seed, DIM)
     }
 }
@@ -650,10 +655,18 @@ mod tests {
 
     #[test]
     fn test_balanced_ternary_roundtrip() {
-        let test_values = [0i64, 1, -1, 100, -100, 12345, -12345, 
-                          BalancedTernaryWord::MAX_VALUE / 2,
-                          BalancedTernaryWord::MIN_VALUE / 2];
-        
+        let test_values = [
+            0i64,
+            1,
+            -1,
+            100,
+            -100,
+            12345,
+            -12345,
+            BalancedTernaryWord::MAX_VALUE / 2,
+            BalancedTernaryWord::MIN_VALUE / 2,
+        ];
+
         for &value in &test_values {
             let word = BalancedTernaryWord::new(value, WordMetadata::Data).unwrap();
             let decoded = word.decode();
@@ -671,22 +684,32 @@ mod tests {
     #[test]
     fn test_balanced_ternary_range() {
         // Should succeed at boundaries
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MAX_VALUE, WordMetadata::Data).is_some());
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MIN_VALUE, WordMetadata::Data).is_some());
-        
+        assert!(
+            BalancedTernaryWord::new(BalancedTernaryWord::MAX_VALUE, WordMetadata::Data).is_some()
+        );
+        assert!(
+            BalancedTernaryWord::new(BalancedTernaryWord::MIN_VALUE, WordMetadata::Data).is_some()
+        );
+
         // Should fail outside boundaries
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MAX_VALUE + 1, WordMetadata::Data).is_none());
-        assert!(BalancedTernaryWord::new(BalancedTernaryWord::MIN_VALUE - 1, WordMetadata::Data).is_none());
+        assert!(
+            BalancedTernaryWord::new(BalancedTernaryWord::MAX_VALUE + 1, WordMetadata::Data)
+                .is_none()
+        );
+        assert!(
+            BalancedTernaryWord::new(BalancedTernaryWord::MIN_VALUE - 1, WordMetadata::Data)
+                .is_none()
+        );
     }
 
     #[test]
     fn test_codebook_projection() {
         let mut codebook = Codebook::new(10000);
         codebook.initialize_standard_basis();
-        
+
         let data = b"the quick brown fox jumps over the lazy dog";
         let projection = codebook.project(data);
-        
+
         assert!(projection.quality_score > 0.0);
         assert!(!projection.coefficients.is_empty() || !projection.residual.is_empty());
     }
@@ -695,6 +718,6 @@ mod tests {
     fn test_parity_computation() {
         let word = BalancedTernaryWord::new(12345, WordMetadata::Data).unwrap();
         let parity = word.compute_parity();
-        assert!(parity >= -1 && parity <= 1);
+        assert!((-1..=1).contains(&parity));
     }
 }

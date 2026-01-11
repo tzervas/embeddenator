@@ -118,8 +118,14 @@ fn bitsliced_bind_produces_orthogonal_result() {
 
     let sim_a = bound.cosine(&a).abs();
     let sim_b = bound.cosine(&b).abs();
-    assert!(sim_a < 0.30, "bitsliced bind result too similar to a: {sim_a}");
-    assert!(sim_b < 0.30, "bitsliced bind result too similar to b: {sim_b}");
+    assert!(
+        sim_a < 0.30,
+        "bitsliced bind result too similar to a: {sim_a}"
+    );
+    assert!(
+        sim_b < 0.30,
+        "bitsliced bind result too similar to b: {sim_b}"
+    );
 }
 
 // ============================================================================

@@ -306,9 +306,7 @@ impl HybridTritVec {
     /// Dot product: $\langle a, b \rangle = \sum_i a_i \cdot b_i$
     pub fn dot(&self, other: &Self, dim: usize) -> i64 {
         match (self, other) {
-            (HybridTritVec::BlockSparse(a), HybridTritVec::BlockSparse(b)) => {
-                a.dot_dispatch(b)
-            }
+            (HybridTritVec::BlockSparse(a), HybridTritVec::BlockSparse(b)) => a.dot_dispatch(b),
             (HybridTritVec::BlockSparse(_), _) | (_, HybridTritVec::BlockSparse(_)) => {
                 if dim >= MIN_BLOCK_SPARSE_DIM {
                     let a_bs = self.to_block_sparse(dim);
@@ -332,9 +330,7 @@ impl HybridTritVec {
     pub fn cosine(&self, other: &Self, dim: usize) -> f64 {
         match (self, other) {
             (HybridTritVec::Sparse(a), HybridTritVec::Sparse(b)) => a.cosine(b),
-            (HybridTritVec::BlockSparse(a), HybridTritVec::BlockSparse(b)) => {
-                a.cosine_dispatch(b)
-            }
+            (HybridTritVec::BlockSparse(a), HybridTritVec::BlockSparse(b)) => a.cosine_dispatch(b),
             (HybridTritVec::BlockSparse(_), _) | (_, HybridTritVec::BlockSparse(_)) => {
                 if dim >= MIN_BLOCK_SPARSE_DIM {
                     let a_bs = self.to_block_sparse(dim);
@@ -364,9 +360,7 @@ impl HybridTritVec {
                 let result = s.permute(shift);
                 HybridTritVec::from_sparse(result, dim)
             }
-            HybridTritVec::Bitsliced(b) => {
-                HybridTritVec::Bitsliced(b.permute_optimized(shift))
-            }
+            HybridTritVec::Bitsliced(b) => HybridTritVec::Bitsliced(b.permute_optimized(shift)),
             HybridTritVec::BlockSparse(bs) => {
                 // Block-sparse doesn't have optimized permute; convert to sparse
                 let sparse = bs.to_sparse();
@@ -575,19 +569,20 @@ mod tests {
         assert!(ha.is_sparse());
 
         // Force bitsliced for second operand
-        let hb = HybridTritVec::Bitsliced(
-            BitslicedTritVec::from_sparse(&sparse_vec, DIM)
-        );
+        let hb = HybridTritVec::Bitsliced(BitslicedTritVec::from_sparse(&sparse_vec, DIM));
         assert!(hb.is_bitsliced());
 
         // Cross-representation bind should work
         let result = ha.bind(&hb, DIM);
-        
+
         // Bind with self should give all +1s at non-zero positions (self-inverse property)
         let result_sparse = result.to_sparse();
         // All positions should be positive (P * P = P, N * N = P)
         assert!(result_sparse.neg.is_empty());
-        assert_eq!(result_sparse.pos.len(), sparse_vec.pos.len() + sparse_vec.neg.len());
+        assert_eq!(
+            result_sparse.pos.len(),
+            sparse_vec.pos.len() + sparse_vec.neg.len()
+        );
     }
 
     #[test]
@@ -605,10 +600,10 @@ mod tests {
             .collect();
 
         let result = HybridTritVec::bundle_many(hybrids.iter(), DIM);
-        
+
         // Result should be bitsliced (bundle_many always uses carry-save)
         assert!(result.is_bitsliced());
-        
+
         // Should have non-zero elements
         assert!(result.nnz(DIM) > 0);
     }
@@ -620,10 +615,13 @@ mod tests {
             pos: (0..100).collect(),
             neg: (100..200).collect(),
         };
-        
+
         // Even though density is high, small dim should stay sparse
         let hybrid = HybridTritVec::from_sparse(dense, 200);
-        assert!(hybrid.is_sparse(), "Small dim should stay sparse regardless of density");
+        assert!(
+            hybrid.is_sparse(),
+            "Small dim should stay sparse regardless of density"
+        );
     }
 
     #[test]
@@ -632,11 +630,11 @@ mod tests {
             pos: vec![0, 10],
             neg: vec![5, 50],
         };
-        
+
         let hybrid = HybridTritVec::from_sparse(sparse.clone(), DIM);
         let negated = hybrid.negate();
         let negated_sparse = negated.to_sparse();
-        
+
         // Pos and neg should be swapped
         assert_eq!(negated_sparse.pos, sparse.neg);
         assert_eq!(negated_sparse.neg, sparse.pos);
@@ -648,10 +646,10 @@ mod tests {
             pos: vec![0, 100],
             neg: vec![50],
         };
-        
+
         let hybrid = HybridTritVec::from_sparse(sparse.clone(), DIM);
         let permuted = hybrid.permute(100, DIM);
-        
+
         // nnz should be preserved
         assert_eq!(permuted.nnz(DIM), hybrid.nnz(DIM));
     }
@@ -832,7 +830,7 @@ mod tests {
         assert!(hybrid.is_block_sparse());
 
         let permuted = hybrid.permute(64, large_dim);
-        
+
         // nnz should be preserved
         assert_eq!(permuted.nnz(large_dim), hybrid.nnz(large_dim));
     }
@@ -855,10 +853,10 @@ mod tests {
 
         // Cross-representation bind should work
         let result = ha.bind(&hb, large_dim);
-        
+
         // At large dim, should convert to block-sparse
         assert!(result.is_block_sparse());
-        
+
         // Self-bind should give all positives
         let result_sparse = result.to_sparse();
         assert!(result_sparse.neg.is_empty());
@@ -910,7 +908,8 @@ mod tests {
         assert_eq!(bs2.nnz(), 3);
 
         // From BlockSparse (should clone)
-        let h_blocksparse = HybridTritVec::BlockSparse(BlockSparseTritVec::from_sparse(&sparse, dim));
+        let h_blocksparse =
+            HybridTritVec::BlockSparse(BlockSparseTritVec::from_sparse(&sparse, dim));
         let bs3 = h_blocksparse.to_block_sparse(dim);
         assert_eq!(bs3.nnz(), 3);
     }
@@ -922,10 +921,10 @@ mod tests {
             pos: vec![0, 100],
             neg: vec![50],
         };
-        
+
         let block_sparse = BlockSparseTritVec::from_sparse(&sparse, dim);
         let hybrid = HybridTritVec::from_block_sparse(block_sparse);
-        
+
         assert!(hybrid.is_block_sparse());
         assert_eq!(hybrid.nnz(dim), 3);
     }
@@ -937,10 +936,10 @@ mod tests {
             pos: vec![0, 100],
             neg: vec![50],
         };
-        
+
         let block_sparse = BlockSparseTritVec::from_sparse(&sparse, dim);
         let hybrid: HybridTritVec = block_sparse.into();
-        
+
         assert!(hybrid.is_block_sparse());
     }
 
@@ -951,12 +950,12 @@ mod tests {
             pos: vec![0, 100, 1000, 5000],
             neg: vec![50, 500],
         };
-        
+
         let hybrid = HybridTritVec::from_sparse(sparse, dim);
         assert!(hybrid.is_block_sparse());
-        
+
         assert_eq!(hybrid.nnz(dim), 6);
-        
+
         let density = hybrid.density(dim);
         let expected_density = 6.0 / dim as f64;
         assert!((density - expected_density).abs() < 1e-15);

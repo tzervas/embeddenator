@@ -290,7 +290,9 @@ impl ChunkCache {
         self.order.push_back(key);
 
         while self.map.len() > self.max_entries || self.total_bytes > self.max_bytes {
-            let Some(evict) = self.order.pop_front() else { break };
+            let Some(evict) = self.order.pop_front() else {
+                break;
+            };
             if let Some(v) = self.map.remove(&evict) {
                 self.total_bytes = self.total_bytes.saturating_sub(v.len());
             }
@@ -312,7 +314,7 @@ impl ChunkCache {
 /// - `chunk_cache`: `RwLock` with read-then-write pattern for cache access
 ///
 /// This eliminates read-lock contention in the hot path (FUSE operations).
-/// 
+///
 /// # Performance Notes
 ///
 /// Uses `FxHashMap` (rustc-hash) for faster hashing on string keys.
@@ -320,16 +322,16 @@ impl ChunkCache {
 pub struct EngramFS {
     /// Inode to file attributes mapping (lock-free reads)
     inodes: ArcSwap<FxHashMap<Ino, FileAttr>>,
-    
+
     /// Inode to path mapping (lock-free reads)
     inode_paths: ArcSwap<FxHashMap<Ino, String>>,
-    
+
     /// Path to inode mapping (lock-free reads)
     path_inodes: ArcSwap<FxHashMap<String, Ino>>,
-    
+
     /// Directory contents (parent_ino -> entries) (lock-free reads)
     directories: ArcSwap<FxHashMap<Ino, Vec<DirEntry>>>,
-    
+
     /// File records (ino -> backing/preloaded bytes + attrs) (lock-free reads)
     files: ArcSwap<FxHashMap<Ino, FileRecord>>,
 
@@ -345,16 +347,16 @@ pub struct EngramFS {
     /// Small LRU chunk cache to avoid repeated decode on hot reads.
     /// Uses RwLock because LRU cache mutates on read (access order).
     chunk_cache: Arc<RwLock<ChunkCache>>,
-    
+
     /// Next available inode number (lock-free increment)
     next_ino: AtomicU64,
-    
+
     /// Read-only mode
     read_only: bool,
-    
+
     /// TTL for cached attributes
     attr_ttl: Duration,
-    
+
     /// TTL for cached entries
     entry_ttl: Duration,
 }
@@ -406,7 +408,8 @@ impl EngramFS {
         fs.chunk_size = chunk_size;
 
         for file_entry in &manifest.files {
-            let _ = fs.add_backed_file(&file_entry.path, file_entry.chunks.clone(), file_entry.size);
+            let _ =
+                fs.add_backed_file(&file_entry.path, file_entry.chunks.clone(), file_entry.size);
         }
 
         fs
@@ -464,7 +467,7 @@ impl EngramFS {
     /// The assigned inode number for the new file
     pub fn add_file(&self, path: &str, data: Vec<u8>) -> Result<Ino, &'static str> {
         let path = normalize_path(path);
-        
+
         // Check if already exists - lock-free read
         if self.path_inodes.load().contains_key(&path) {
             return Err("File already exists");
@@ -477,7 +480,7 @@ impl EngramFS {
         // Create file
         let ino = self.alloc_ino();
         let size = data.len() as u64;
-        
+
         let attr = FileAttr {
             ino,
             size,
@@ -534,7 +537,12 @@ impl EngramFS {
     }
 
     /// Add a file whose bytes are backed by an engram and decoded on-demand.
-    pub fn add_backed_file(&self, path: &str, chunks: Vec<usize>, size: usize) -> Result<Ino, &'static str> {
+    pub fn add_backed_file(
+        &self,
+        path: &str,
+        chunks: Vec<usize>,
+        size: usize,
+    ) -> Result<Ino, &'static str> {
         let path = normalize_path(path);
 
         // Lock-free existence check
@@ -579,7 +587,11 @@ impl EngramFS {
             new_map.insert(
                 ino,
                 FileRecord {
-                    storage: FileStorage::Backed(BackedFile { path: path.clone(), chunks: chunks.clone(), size }),
+                    storage: FileStorage::Backed(BackedFile {
+                        path: path.clone(),
+                        chunks: chunks.clone(),
+                        size,
+                    }),
                     attr: attr.clone(),
                 },
             );
@@ -605,7 +617,7 @@ impl EngramFS {
     /// Ensure a directory exists, creating it if necessary
     fn ensure_directory(&self, path: &str) -> Result<Ino, &'static str> {
         let path = normalize_path(path);
-        
+
         // Root always exists
         if path == "/" {
             return Ok(ROOT_INO);
@@ -728,7 +740,13 @@ impl EngramFS {
         }
     }
 
-    fn read_backed_range(&self, ino: Ino, backed: &BackedFile, start: usize, end: usize) -> Vec<u8> {
+    fn read_backed_range(
+        &self,
+        ino: Ino,
+        backed: &BackedFile,
+        start: usize,
+        end: usize,
+    ) -> Vec<u8> {
         if start >= end {
             return Vec::new();
         }
@@ -774,7 +792,8 @@ impl EngramFS {
                 continue;
             };
             let decoded = chunk_vec.decode_data(cfg, Some(&backed.path), chunk_size);
-            let chunk_bytes = if let Some(corrected) = engram.corrections.apply(chunk_id, &decoded) {
+            let chunk_bytes = if let Some(corrected) = engram.corrections.apply(chunk_id, &decoded)
+            {
                 corrected
             } else {
                 decoded
@@ -811,11 +830,11 @@ impl EngramFS {
         if ino == ROOT_INO {
             return Some(ROOT_INO); // Root's parent is itself
         }
-        
+
         let paths = self.inode_paths.load();
         let path = paths.get(&ino)?;
         let parent = parent_path(path)?;
-        
+
         self.path_inodes.load().get(&parent).copied()
     }
 
@@ -857,8 +876,11 @@ impl fuser::Filesystem for EngramFS {
         _req: &fuser::Request<'_>,
         _config: &mut fuser::KernelConfig,
     ) -> Result<(), libc::c_int> {
-        eprintln!("EngramFS initialized: {} files, {} bytes total",
-            self.file_count(), self.total_size());
+        eprintln!(
+            "EngramFS initialized: {} files, {} bytes total",
+            self.file_count(),
+            self.total_size()
+        );
         Ok(())
     }
 
@@ -969,13 +991,7 @@ impl fuser::Filesystem for EngramFS {
     }
 
     /// Open a file
-    fn open(
-        &mut self,
-        _req: &fuser::Request<'_>,
-        ino: u64,
-        flags: i32,
-        reply: fuser::ReplyOpen,
-    ) {
+    fn open(&mut self, _req: &fuser::Request<'_>, ino: u64, flags: i32, reply: fuser::ReplyOpen) {
         // Check if file exists and is a file.
         match self.get_attr(ino) {
             Some(attr) if attr.kind == FileKind::Directory => {
@@ -1066,11 +1082,7 @@ impl fuser::Filesystem for EngramFS {
         }
 
         // Skip entries before offset and emit remaining
-        for (i, (ino, kind, name)) in entries
-            .into_iter()
-            .enumerate()
-            .skip(offset as usize)
-        {
+        for (i, (ino, kind, name)) in entries.into_iter().enumerate().skip(offset as usize) {
             // Reply returns true if buffer is full
             if reply.add(ino, (i + 1) as i64, kind, &name) {
                 break;
@@ -1100,25 +1112,19 @@ impl fuser::Filesystem for EngramFS {
         let total_blocks = (total_size + block_size - 1) / block_size;
 
         reply.statfs(
-            total_blocks,       // blocks - total data blocks
-            0,                  // bfree - free blocks (0 for read-only)
-            0,                  // bavail - available blocks (0 for read-only)
-            total_files,        // files - total file nodes
-            0,                  // ffree - free file nodes (0 for read-only)
-            block_size as u32,  // bsize - block size
-            255,                // namelen - maximum name length
-            block_size as u32,  // frsize - fragment size
+            total_blocks,      // blocks - total data blocks
+            0,                 // bfree - free blocks (0 for read-only)
+            0,                 // bavail - available blocks (0 for read-only)
+            total_files,       // files - total file nodes
+            0,                 // ffree - free file nodes (0 for read-only)
+            block_size as u32, // bsize - block size
+            255,               // namelen - maximum name length
+            block_size as u32, // frsize - fragment size
         );
     }
 
     /// Check file access permissions
-    fn access(
-        &mut self,
-        _req: &fuser::Request<'_>,
-        ino: u64,
-        mask: i32,
-        reply: fuser::ReplyEmpty,
-    ) {
+    fn access(&mut self, _req: &fuser::Request<'_>, ino: u64, mask: i32, reply: fuser::ReplyEmpty) {
         // Check if file exists
         if self.get_attr(ino).is_none() {
             reply.error(libc::ENOENT);
@@ -1152,7 +1158,12 @@ impl fuser::Filesystem for EngramFS {
     }
 }
 
-fn slice_chunk_bounds(start: usize, end: usize, chunk_index: usize, chunk_size: usize) -> (usize, usize) {
+fn slice_chunk_bounds(
+    start: usize,
+    end: usize,
+    chunk_index: usize,
+    chunk_size: usize,
+) -> (usize, usize) {
     let chunk_start = chunk_index * chunk_size;
     let chunk_end = chunk_start + chunk_size;
     let a = start.saturating_sub(chunk_start);
@@ -1347,7 +1358,7 @@ impl Default for EngramFSBuilder {
 // =============================================================================
 
 /// Normalize a path (ensure leading /, remove trailing /)
-/// 
+///
 /// Performance: This is on the hot path - uses minimal allocations.
 #[inline]
 fn normalize_path(path: &str) -> String {
@@ -1356,9 +1367,9 @@ fn normalize_path(path: &str) -> String {
     } else {
         format!("/{}", path)
     };
-    
+
     if path.len() > 1 && path.ends_with('/') {
-        path[..path.len()-1].to_string()
+        path[..path.len() - 1].to_string()
     } else {
         path
     }
@@ -1371,7 +1382,7 @@ fn parent_path(path: &str) -> Option<String> {
     if path == "/" {
         return None;
     }
-    
+
     match path.rfind('/') {
         Some(0) => Some("/".to_string()),
         Some(pos) => Some(path[..pos].to_string()),
@@ -1450,10 +1461,10 @@ mod tests {
     #[test]
     fn test_add_file() {
         let fs = EngramFS::new(true);
-        
+
         let ino = fs.add_file("/test.txt", b"hello world".to_vec()).unwrap();
         assert!(ino > ROOT_INO);
-        
+
         let data = fs.read_data(ino, 0, 100).unwrap();
         assert_eq!(data, b"hello world");
     }
@@ -1461,9 +1472,9 @@ mod tests {
     #[test]
     fn test_nested_directories() {
         let fs = EngramFS::new(true);
-        
+
         fs.add_file("/a/b/c/file.txt", b"deep".to_vec()).unwrap();
-        
+
         // All directories should exist
         assert!(fs.lookup_path("/a").is_some());
         assert!(fs.lookup_path("/a/b").is_some());
@@ -1474,14 +1485,14 @@ mod tests {
     #[test]
     fn test_readdir() {
         let fs = EngramFS::new(true);
-        
+
         fs.add_file("/foo.txt", b"foo".to_vec()).unwrap();
         fs.add_file("/bar.txt", b"bar".to_vec()).unwrap();
         fs.add_file("/subdir/baz.txt", b"baz".to_vec()).unwrap();
-        
+
         let root_entries = fs.read_dir(ROOT_INO).unwrap();
         assert_eq!(root_entries.len(), 3); // foo.txt, bar.txt, subdir
-        
+
         let names: Vec<_> = root_entries.iter().map(|e| e.name.as_str()).collect();
         assert!(names.contains(&"foo.txt"));
         assert!(names.contains(&"bar.txt"));
@@ -1492,13 +1503,13 @@ mod tests {
     fn test_read_partial() {
         let fs = EngramFS::new(true);
         let data = b"0123456789";
-        
+
         let ino = fs.add_file("/test.txt", data.to_vec()).unwrap();
-        
+
         // Read middle portion
         let partial = fs.read_data(ino, 3, 4).unwrap();
         assert_eq!(partial, b"3456");
-        
+
         // Read past end
         let past_end = fs.read_data(ino, 20, 10).unwrap();
         assert!(past_end.is_empty());
@@ -1510,20 +1521,20 @@ mod tests {
             .add_file("/a.txt", b"a".to_vec())
             .add_file("/b.txt", b"b".to_vec())
             .build();
-        
+
         assert_eq!(fs.file_count(), 2);
     }
 
     #[test]
     fn test_get_parent() {
         let fs = EngramFS::new(true);
-        
+
         fs.add_file("/a/b/c.txt", b"test".to_vec()).unwrap();
-        
+
         let c_ino = fs.lookup_path("/a/b/c.txt").unwrap();
         let b_ino = fs.lookup_path("/a/b").unwrap();
         let a_ino = fs.lookup_path("/a").unwrap();
-        
+
         assert_eq!(fs.get_parent(c_ino), Some(b_ino));
         assert_eq!(fs.get_parent(b_ino), Some(a_ino));
         assert_eq!(fs.get_parent(a_ino), Some(ROOT_INO));
@@ -1545,7 +1556,7 @@ mod tests {
         {
             let dir: fuser::FileType = FileKind::Directory.into();
             assert_eq!(dir, fuser::FileType::Directory);
-            
+
             let file: fuser::FileType = FileKind::RegularFile.into();
             assert_eq!(file, fuser::FileType::RegularFile);
         }

@@ -46,16 +46,16 @@ pub fn cosine_scalar(a: &SparseVec, b: &SparseVec) -> f64 {
     let nn = intersection_count_sorted(&a.neg, &b.neg) as i32;
     let pn = intersection_count_sorted(&a.pos, &b.neg) as i32;
     let np = intersection_count_sorted(&a.neg, &b.pos) as i32;
-    
+
     let dot = (pp + nn) - (pn + np);
-    
+
     let a_norm = (a.pos.len() + a.neg.len()) as f64;
     let b_norm = (b.pos.len() + b.neg.len()) as f64;
-    
+
     if a_norm == 0.0 || b_norm == 0.0 {
         return 0.0;
     }
-    
+
     dot as f64 / (a_norm.sqrt() * b_norm.sqrt())
 }
 
@@ -65,7 +65,7 @@ fn intersection_count_sorted(a: &[usize], b: &[usize]) -> usize {
     let mut i = 0;
     let mut j = 0;
     let mut count = 0;
-    
+
     while i < a.len() && j < b.len() {
         match a[i].cmp(&b[j]) {
             std::cmp::Ordering::Less => i += 1,
@@ -91,22 +91,22 @@ unsafe fn cosine_avx2_impl(a: &SparseVec, b: &SparseVec) -> f64 {
 
     // For sparse vectors, we still need to find intersections first
     // Then we can use SIMD to accelerate the intersection counting
-    
+
     // Use vectorized comparison for intersection counting
     let pp = intersection_count_simd_avx2(&a.pos, &b.pos) as i32;
     let nn = intersection_count_simd_avx2(&a.neg, &b.neg) as i32;
     let pn = intersection_count_simd_avx2(&a.pos, &b.neg) as i32;
     let np = intersection_count_simd_avx2(&a.neg, &b.pos) as i32;
-    
+
     let dot = (pp + nn) - (pn + np);
-    
+
     let a_norm = (a.pos.len() + a.neg.len()) as f64;
     let b_norm = (b.pos.len() + b.neg.len()) as f64;
-    
+
     if a_norm == 0.0 || b_norm == 0.0 {
         return 0.0;
     }
-    
+
     dot as f64 / (a_norm.sqrt() * b_norm.sqrt())
 }
 
@@ -118,21 +118,21 @@ unsafe fn intersection_count_simd_avx2(a: &[usize], b: &[usize]) -> usize {
     let mut i = 0;
     let mut j = 0;
     let mut count = 0;
-    
+
     // Process in chunks where both arrays have enough elements
     const CHUNK_SIZE: usize = 4; // Process 4 elements at a time with AVX2
-    
+
     // Vectorized comparison loop
     while i + CHUNK_SIZE <= a.len() && j + CHUNK_SIZE <= b.len() {
         // Load 4 usize values from each array
         // Note: We need to handle this carefully since usize is 8 bytes on x86_64
-        
+
         // For now, fall back to scalar for the vectorized portion due to complexity
         // of handling variable-stride sorted merge with SIMD
         // Real optimization benefit comes from having dense vectors
         break;
     }
-    
+
     // Scalar fallback for remainder
     while i < a.len() && j < b.len() {
         match a[i].cmp(&b[j]) {
@@ -145,7 +145,7 @@ unsafe fn intersection_count_simd_avx2(a: &[usize], b: &[usize]) -> usize {
             }
         }
     }
-    
+
     count
 }
 
@@ -177,16 +177,16 @@ unsafe fn cosine_neon_impl(a: &SparseVec, b: &SparseVec) -> f64 {
     let nn = intersection_count_simd_neon(&a.neg, &b.neg) as i32;
     let pn = intersection_count_simd_neon(&a.pos, &b.neg) as i32;
     let np = intersection_count_simd_neon(&a.neg, &b.pos) as i32;
-    
+
     let dot = (pp + nn) - (pn + np);
-    
+
     let a_norm = (a.pos.len() + a.neg.len()) as f64;
     let b_norm = (b.pos.len() + b.neg.len()) as f64;
-    
+
     if a_norm == 0.0 || b_norm == 0.0 {
         return 0.0;
     }
-    
+
     dot as f64 / (a_norm.sqrt() * b_norm.sqrt())
 }
 
@@ -197,7 +197,7 @@ unsafe fn intersection_count_simd_neon(a: &[usize], b: &[usize]) -> usize {
     let mut i = 0;
     let mut j = 0;
     let mut count = 0;
-    
+
     while i < a.len() && j < b.len() {
         match a[i].cmp(&b[j]) {
             std::cmp::Ordering::Less => i += 1,
@@ -209,7 +209,7 @@ unsafe fn intersection_count_simd_neon(a: &[usize], b: &[usize]) -> usize {
             }
         }
     }
-    
+
     count
 }
 
@@ -224,20 +224,28 @@ mod tests {
         let a = SparseVec::encode_data(b"hello", &config, None);
         let b = SparseVec::encode_data(b"hello", &config, None);
         let c = SparseVec::encode_data(b"world", &config, None);
-        
+
         // Identical vectors should have similarity ~1.0
         let sim_same = cosine_scalar(&a, &b);
-        assert!(sim_same > 0.9, "Expected high similarity for identical vectors, got {}", sim_same);
-        
+        assert!(
+            sim_same > 0.9,
+            "Expected high similarity for identical vectors, got {}",
+            sim_same
+        );
+
         // Different vectors should have lower similarity
         let sim_diff = cosine_scalar(&a, &c);
-        assert!(sim_diff < 0.5, "Expected low similarity for different vectors, got {}", sim_diff);
+        assert!(
+            sim_diff < 0.5,
+            "Expected low similarity for different vectors, got {}",
+            sim_diff
+        );
     }
 
     #[test]
     fn test_simd_matches_scalar() {
         let config = ReversibleVSAConfig::default();
-        
+
         // Test with various data inputs
         let test_cases = vec![
             (b"test data 1".as_slice(), b"test data 1".as_slice()),
@@ -245,14 +253,14 @@ mod tests {
             (b"short".as_slice(), b"longer test data".as_slice()),
             (b"alpha".as_slice(), b"beta".as_slice()),
         ];
-        
+
         for (data_a, data_b) in test_cases {
             let a = SparseVec::encode_data(data_a, &config, None);
             let b = SparseVec::encode_data(data_b, &config, None);
-            
+
             let scalar_result = cosine_scalar(&a, &b);
             let simd_result = cosine_simd(&a, &b);
-            
+
             // Results should be very close (within floating point tolerance)
             let diff = (scalar_result - simd_result).abs();
             assert!(
@@ -270,13 +278,16 @@ mod tests {
     #[test]
     fn test_empty_vectors() {
         let config = ReversibleVSAConfig::default();
-        let empty = SparseVec { pos: vec![], neg: vec![] };
+        let empty = SparseVec {
+            pos: vec![],
+            neg: vec![],
+        };
         let non_empty = SparseVec::encode_data(b"test", &config, None);
-        
+
         assert_eq!(cosine_scalar(&empty, &empty), 0.0);
         assert_eq!(cosine_scalar(&empty, &non_empty), 0.0);
         assert_eq!(cosine_scalar(&non_empty, &empty), 0.0);
-        
+
         assert_eq!(cosine_simd(&empty, &empty), 0.0);
         assert_eq!(cosine_simd(&empty, &non_empty), 0.0);
         assert_eq!(cosine_simd(&non_empty, &empty), 0.0);
@@ -287,17 +298,28 @@ mod tests {
         let config = ReversibleVSAConfig::default();
         let a = SparseVec::encode_data(b"alpha", &config, None);
         let b = SparseVec::encode_data(b"beta", &config, None);
-        
+
         // Symmetry: cosine(a, b) == cosine(b, a)
         let sim_ab = cosine_simd(&a, &b);
         let sim_ba = cosine_simd(&b, &a);
-        assert!((sim_ab - sim_ba).abs() < 1e-10, "Cosine should be symmetric");
-        
+        assert!(
+            (sim_ab - sim_ba).abs() < 1e-10,
+            "Cosine should be symmetric"
+        );
+
         // Self-similarity: cosine(a, a) should be ~1.0
         let sim_aa = cosine_simd(&a, &a);
-        assert!(sim_aa > 0.99, "Self-similarity should be close to 1.0, got {}", sim_aa);
-        
+        assert!(
+            sim_aa > 0.99,
+            "Self-similarity should be close to 1.0, got {}",
+            sim_aa
+        );
+
         // Range: cosine should be in [-1, 1]
-        assert!(sim_ab >= -1.0 && sim_ab <= 1.0, "Cosine should be in [-1, 1], got {}", sim_ab);
+        assert!(
+            (-1.0..=1.0).contains(&sim_ab),
+            "Cosine should be in [-1, 1], got {}",
+            sim_ab
+        );
     }
 }

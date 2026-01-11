@@ -127,31 +127,37 @@ pub mod vsa;
 pub mod testing;
 
 // Re-export main types for convenience
-pub use codebook::{Codebook, BalancedTernaryWord, ProjectionResult, SemanticOutlier, WordMetadata};
-pub use correction::{CorrectionStore, CorrectionStats, ChunkCorrection, CorrectionType, ReconstructionVerifier};
+pub use bitsliced::{
+    has_avx2, has_avx512, simd_features_string, BitslicedTritVec, CarrySaveBundle,
+};
+pub use block_sparse::{Block, BlockError, BlockSparseTritVec};
+pub use codebook::{
+    BalancedTernaryWord, Codebook, ProjectionResult, SemanticOutlier, WordMetadata,
+};
+pub use correction::{
+    ChunkCorrection, CorrectionStats, CorrectionStore, CorrectionType, ReconstructionVerifier,
+};
 pub use dimensional::{
-    Trit as DimTrit, Tryte, DimensionalConfig, TritDepthConfig,
-    HyperVec, DifferentialEncoder, DifferentialEncoding,
+    DifferentialEncoder, DifferentialEncoding, DimensionalConfig, HyperVec, Trit as DimTrit,
+    TritDepthConfig, Tryte,
 };
-pub use envelope::{BinaryWriteOptions, CompressionCodec, PayloadKind};
-pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
 pub use embrfs::{
+    load_hierarchical_manifest, query_hierarchical_codebook,
+    query_hierarchical_codebook_with_store, save_hierarchical_manifest, save_sub_engrams_dir,
     DirectorySubEngramStore, HierarchicalChunkHit, HierarchicalManifest, HierarchicalQueryBounds,
-    SubEngram, SubEngramStore, UnifiedManifest, load_hierarchical_manifest,
-    query_hierarchical_codebook, query_hierarchical_codebook_with_store, save_hierarchical_manifest,
-    save_sub_engrams_dir,
+    SubEngram, SubEngramStore, UnifiedManifest,
 };
+pub use embrfs::{EmbrFS, Engram, FileEntry, Manifest, DEFAULT_CHUNK_SIZE};
+pub use envelope::{BinaryWriteOptions, CompressionCodec, PayloadKind};
 pub use fuse_shim::{EngramFS, EngramFSBuilder, FileAttr, FileKind};
+pub use hybrid::{HybridTritVec, DENSITY_THRESHOLD, MIN_BITSLICED_DIM};
 pub use kernel_interop::{
-    CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore, VsaBackend,
-    rerank_top_k_by_cosine,
+    rerank_top_k_by_cosine, CandidateGenerator, KernelInteropError, SparseVecBackend, VectorStore,
+    VsaBackend,
 };
 pub use resonator::Resonator;
 pub use retrieval::{RerankedResult, SearchResult, TernaryInvertedIndex};
-pub use ternary::{Trit, Tryte3, Word6, ParityTrit, CorrectionEntry};
-pub use ternary_vec::PackedTritVec;
-pub use bitsliced::{BitslicedTritVec, CarrySaveBundle, has_avx512, has_avx2, simd_features_string};
-pub use block_sparse::{Block, BlockSparseTritVec, BlockError};
-pub use hybrid::{HybridTritVec, DENSITY_THRESHOLD, MIN_BITSLICED_DIM};
 pub use soft_ternary::SoftTernaryVec;
-pub use vsa::{SparseVec, ReversibleVSAConfig, DIM};
+pub use ternary::{CorrectionEntry, ParityTrit, Trit, Tryte3, Word6};
+pub use ternary_vec::PackedTritVec;
+pub use vsa::{ReversibleVSAConfig, SparseVec, DIM};

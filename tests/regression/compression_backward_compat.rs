@@ -1,4 +1,6 @@
-use embeddenator::{DirectorySubEngramStore, EmbrFS, ReversibleVSAConfig, SparseVec, SubEngram, SubEngramStore};
+use embeddenator::{
+    DirectorySubEngramStore, EmbrFS, ReversibleVSAConfig, SparseVec, SubEngram, SubEngramStore,
+};
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -191,8 +193,7 @@ fn bundle_hier_compressed_subengrams_and_query_text() {
     let input_dir = td.path().join("in");
     fs::create_dir_all(&input_dir).expect("mkdir");
 
-    write_file(input_dir.join("note.txt"), b"alpha beta gamma delta")
-        .expect("write input");
+    write_file(input_dir.join("note.txt"), b"alpha beta gamma delta").expect("write input");
 
     let engram = td.path().join("root.engram");
     let manifest = td.path().join("manifest.json");

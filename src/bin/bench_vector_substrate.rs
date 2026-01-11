@@ -88,13 +88,16 @@ fn main() -> io::Result<()> {
     }
 
     let k = args.k.max(1).min(chunks);
-    let candidate_k = (k.saturating_mul(args.candidate_factor)).max(50).min(chunks);
+    let candidate_k = (k.saturating_mul(args.candidate_factor))
+        .max(50)
+        .min(chunks);
 
     let queries = args.queries.unwrap_or_else(|| chunks.min(200));
     let queries = queries.max(1).min(chunks);
 
     // Use the first N chunk vectors as queries for determinism.
-    let query_vecs: Vec<(usize, embeddenator::SparseVec)> = codebook.iter().take(queries).cloned().collect();
+    let query_vecs: Vec<(usize, embeddenator::SparseVec)> =
+        codebook.iter().take(queries).cloned().collect();
 
     let mut latencies_ms: Vec<f64> = Vec::with_capacity(queries);
     let mut total_recall_hits: usize = 0;
@@ -102,7 +105,8 @@ fn main() -> io::Result<()> {
     for (qid, qv) in &query_vecs {
         // Approx path (index -> rerank)
         let start = Instant::now();
-        let approx: Vec<RerankedResult> = engram.query_codebook_with_index(&index, qv, candidate_k, k);
+        let approx: Vec<RerankedResult> =
+            engram.query_codebook_with_index(&index, qv, candidate_k, k);
         let elapsed = start.elapsed();
         latencies_ms.push(elapsed.as_secs_f64() * 1000.0);
 
@@ -115,8 +119,10 @@ fn main() -> io::Result<()> {
         exact.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
         exact.truncate(k);
 
-        let exact_ids: std::collections::HashSet<usize> = exact.into_iter().map(|(id, _)| id).collect();
-        let approx_ids: std::collections::HashSet<usize> = approx.into_iter().map(|r| r.id).collect();
+        let exact_ids: std::collections::HashSet<usize> =
+            exact.into_iter().map(|(id, _)| id).collect();
+        let approx_ids: std::collections::HashSet<usize> =
+            approx.into_iter().map(|r| r.id).collect();
 
         let hits = approx_ids.intersection(&exact_ids).count();
         total_recall_hits += hits;
@@ -131,7 +137,11 @@ fn main() -> io::Result<()> {
     let mean_ms = latencies_ms.iter().sum::<f64>() / (latencies_ms.len().max(1) as f64);
 
     let total_time_s = latencies_ms.iter().sum::<f64>() / 1000.0;
-    let qps = if total_time_s <= 0.0 { 0.0 } else { (queries as f64) / total_time_s };
+    let qps = if total_time_s <= 0.0 {
+        0.0
+    } else {
+        (queries as f64) / total_time_s
+    };
 
     let recall = (total_recall_hits as f64) / ((queries * k) as f64);
 

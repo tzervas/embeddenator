@@ -40,14 +40,15 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Single balanced ternary digit: the atomic unit
-/// 
+///
 /// This is THE foundational type. All math builds on this.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[repr(i8)]
 pub enum Trit {
     /// Negative: -1
     N = -1,
     /// Zero: 0
+    #[default]
     Z = 0,
     /// Positive: +1
     P = 1,
@@ -70,12 +71,6 @@ impl fmt::Display for Trit {
             Trit::Z => write!(f, "0"),
             Trit::P => write!(f, "+"),
         }
-    }
-}
-
-impl Default for Trit {
-    fn default() -> Self {
-        Trit::Z
     }
 }
 
@@ -112,6 +107,7 @@ impl Trit {
 
     /// Negate: -N = P, -Z = Z, -P = N
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub const fn neg(self) -> Trit {
         match self {
             Trit::N => Trit::P,
@@ -149,7 +145,7 @@ impl Trit {
     }
 
     /// Trit multiplication (bind operation)
-    /// 
+    ///
     /// Truth table:
     /// ```text
     ///   × | N  Z  P
@@ -158,9 +154,10 @@ impl Trit {
     ///   Z | Z  Z  Z
     ///   P | N  Z  P
     /// ```
-    /// 
+    ///
     /// Key property: a × a = P for a ∈ {N, P} (self-inverse)
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub const fn mul(self, other: Trit) -> Trit {
         match (self, other) {
             (Trit::Z, _) | (_, Trit::Z) => Trit::Z,
@@ -170,9 +167,9 @@ impl Trit {
     }
 
     /// Trit addition with carry (for multi-trit arithmetic)
-    /// 
+    ///
     /// Returns (sum, carry) where both are trits
-    /// 
+    ///
     /// In balanced ternary:
     /// - Sum of 3 trits ranges from -3 to +3
     /// - We express this as (sum_trit, carry_trit) where result = sum + 3*carry
@@ -180,13 +177,13 @@ impl Trit {
     pub const fn add_with_carry(self, other: Trit, carry_in: Trit) -> (Trit, Trit) {
         let sum = self.to_i8() + other.to_i8() + carry_in.to_i8();
         match sum {
-            -3 => (Trit::Z, Trit::N),  // -3 = 0 + 3×(-1)
-            -2 => (Trit::P, Trit::N),  // -2 = 1 + 3×(-1)
-            -1 => (Trit::N, Trit::Z),  // -1 = -1 + 3×0
-            0 => (Trit::Z, Trit::Z),   // 0 = 0 + 3×0
-            1 => (Trit::P, Trit::Z),   // 1 = 1 + 3×0
-            2 => (Trit::N, Trit::P),   // 2 = -1 + 3×1
-            3 => (Trit::Z, Trit::P),   // 3 = 0 + 3×1
+            -3 => (Trit::Z, Trit::N), // -3 = 0 + 3×(-1)
+            -2 => (Trit::P, Trit::N), // -2 = 1 + 3×(-1)
+            -1 => (Trit::N, Trit::Z), // -1 = -1 + 3×0
+            0 => (Trit::Z, Trit::Z),  // 0 = 0 + 3×0
+            1 => (Trit::P, Trit::Z),  // 1 = 1 + 3×0
+            2 => (Trit::N, Trit::P),  // 2 = -1 + 3×1
+            3 => (Trit::Z, Trit::P),  // 3 = 0 + 3×1
             _ => unreachable!(),
         }
     }
@@ -254,9 +251,9 @@ impl std::ops::MulAssign for Trit {
 }
 
 /// A tryte: exactly 3 trits = 27 states
-/// 
+///
 /// Range: -13 to +13 in balanced ternary
-/// 
+///
 /// Layout: [trit0 (LST), trit1, trit2 (MST)]
 /// Value = trit0 + 3×trit1 + 9×trit2
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -267,9 +264,14 @@ pub struct Tryte3 {
 
 impl fmt::Debug for Tryte3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Tryte3[{}{}{} = {}]", 
-            self.trits[2], self.trits[1], self.trits[0],
-            self.to_i8())
+        write!(
+            f,
+            "Tryte3[{}{}{} = {}]",
+            self.trits[2],
+            self.trits[1],
+            self.trits[0],
+            self.to_i8()
+        )
     }
 }
 
@@ -281,17 +283,23 @@ impl fmt::Display for Tryte3 {
 
 impl Tryte3 {
     /// Zero tryte
-    pub const ZERO: Tryte3 = Tryte3 { trits: [Trit::Z, Trit::Z, Trit::Z] };
-    
+    pub const ZERO: Tryte3 = Tryte3 {
+        trits: [Trit::Z, Trit::Z, Trit::Z],
+    };
+
     /// Maximum value: +++ = 13
-    pub const MAX: Tryte3 = Tryte3 { trits: [Trit::P, Trit::P, Trit::P] };
-    
+    pub const MAX: Tryte3 = Tryte3 {
+        trits: [Trit::P, Trit::P, Trit::P],
+    };
+
     /// Minimum value: --- = -13
-    pub const MIN: Tryte3 = Tryte3 { trits: [Trit::N, Trit::N, Trit::N] };
+    pub const MIN: Tryte3 = Tryte3 {
+        trits: [Trit::N, Trit::N, Trit::N],
+    };
 
     /// Maximum representable value
     pub const MAX_VALUE: i8 = 13;
-    
+
     /// Minimum representable value
     pub const MIN_VALUE: i8 = -13;
 
@@ -301,7 +309,9 @@ impl Tryte3 {
     /// Create from three trits [LST, middle, MST]
     #[inline]
     pub const fn new(t0: Trit, t1: Trit, t2: Trit) -> Self {
-        Tryte3 { trits: [t0, t1, t2] }
+        Tryte3 {
+            trits: [t0, t1, t2],
+        }
     }
 
     /// Create from integer value (-13 to 13)
@@ -346,32 +356,32 @@ impl Tryte3 {
     /// Convert to integer value
     #[inline]
     pub const fn to_i8(self) -> i8 {
-        self.trits[0].to_i8() + 
-        3 * self.trits[1].to_i8() + 
-        9 * self.trits[2].to_i8()
+        self.trits[0].to_i8() + 3 * self.trits[1].to_i8() + 9 * self.trits[2].to_i8()
     }
 
     /// Negate all trits
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub const fn neg(self) -> Self {
         Tryte3 {
             trits: [
                 self.trits[0].neg(),
                 self.trits[1].neg(),
                 self.trits[2].neg(),
-            ]
+            ],
         }
     }
 
     /// Trit-wise multiplication (bind)
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub const fn mul(self, other: Tryte3) -> Tryte3 {
         Tryte3 {
             trits: [
                 self.trits[0].mul(other.trits[0]),
                 self.trits[1].mul(other.trits[1]),
                 self.trits[2].mul(other.trits[2]),
-            ]
+            ],
         }
     }
 
@@ -383,7 +393,7 @@ impl Tryte3 {
                 self.trits[0].add_saturating(other.trits[0]),
                 self.trits[1].add_saturating(other.trits[1]),
                 self.trits[2].add_saturating(other.trits[2]),
-            ]
+            ],
         }
     }
 
@@ -392,24 +402,29 @@ impl Tryte3 {
         let (t0, c0) = self.trits[0].add_with_carry(other.trits[0], carry_in);
         let (t1, c1) = self.trits[1].add_with_carry(other.trits[1], c0);
         let (t2, c2) = self.trits[2].add_with_carry(other.trits[2], c1);
-        
-        (Tryte3 { trits: [t0, t1, t2] }, c2)
+
+        (
+            Tryte3 {
+                trits: [t0, t1, t2],
+            },
+            c2,
+        )
     }
 
     /// Dot product (for similarity)
     #[inline]
     pub const fn dot(self, other: Tryte3) -> i8 {
-        self.trits[0].to_i8() * other.trits[0].to_i8() +
-        self.trits[1].to_i8() * other.trits[1].to_i8() +
-        self.trits[2].to_i8() * other.trits[2].to_i8()
+        self.trits[0].to_i8() * other.trits[0].to_i8()
+            + self.trits[1].to_i8() * other.trits[1].to_i8()
+            + self.trits[2].to_i8() * other.trits[2].to_i8()
     }
 
     /// Count non-zero trits
     #[inline]
     pub const fn nnz(self) -> u8 {
-        self.trits[0].is_nonzero() as u8 +
-        self.trits[1].is_nonzero() as u8 +
-        self.trits[2].is_nonzero() as u8
+        self.trits[0].is_nonzero() as u8
+            + self.trits[1].is_nonzero() as u8
+            + self.trits[2].is_nonzero() as u8
     }
 
     /// Pack into a single byte (5 bits needed for 27 states)
@@ -429,17 +444,17 @@ impl Tryte3 {
         if byte >= 27 {
             return None;
         }
-        
+
         let t0 = (byte % 3) as i8 - 1;
         let t1 = ((byte / 3) % 3) as i8 - 1;
         let t2 = (byte / 9) as i8 - 1;
-        
+
         Some(Tryte3 {
             trits: [
                 Trit::from_i8_clamped(t0),
                 Trit::from_i8_clamped(t1),
                 Trit::from_i8_clamped(t2),
-            ]
+            ],
         })
     }
 }
@@ -459,9 +474,9 @@ impl std::ops::Mul for Tryte3 {
 }
 
 /// A word: 6 trits = 729 states ≈ 9.51 bits
-/// 
+///
 /// Range: -364 to +364 in balanced ternary
-/// 
+///
 /// This fits nicely in operations and provides good precision
 /// for coefficients and residuals.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -479,11 +494,14 @@ impl fmt::Debug for Word6 {
 
 impl Word6 {
     /// Zero word
-    pub const ZERO: Word6 = Word6 { low: Tryte3::ZERO, high: Tryte3::ZERO };
-    
+    pub const ZERO: Word6 = Word6 {
+        low: Tryte3::ZERO,
+        high: Tryte3::ZERO,
+    };
+
     /// Maximum value: ++++++ = 364
     pub const MAX_VALUE: i16 = 364;
-    
+
     /// Minimum value: ------ = -364
     pub const MIN_VALUE: i16 = -364;
 
@@ -492,14 +510,14 @@ impl Word6 {
 
     /// Create from integer value
     pub fn from_i16(value: i16) -> Option<Self> {
-        if value < Self::MIN_VALUE || value > Self::MAX_VALUE {
+        if !(Self::MIN_VALUE..=Self::MAX_VALUE).contains(&value) {
             return None;
         }
 
         // Split into low and high trytes
         // low = value mod 27 (in balanced ternary sense)
         // high = value / 27
-        
+
         let mut v = value;
         let negative = v < 0;
         if negative {
@@ -523,6 +541,7 @@ impl Word6 {
     }
 
     /// Trit-wise multiplication (bind)
+    #[allow(clippy::should_implement_trait)]
     pub fn mul(self, other: Word6) -> Word6 {
         Word6 {
             low: self.low.mul(other.low),
@@ -573,7 +592,7 @@ const fn balanced_div(value: i16, n: i16) -> i8 {
 }
 
 /// Reconstruction correction entry
-/// 
+///
 /// This is the key to 100% reconstruction guarantee.
 /// When VSA operations produce approximation errors,
 /// we store exact corrections here.
@@ -588,7 +607,7 @@ pub struct CorrectionEntry {
 }
 
 /// Parity trit for error detection
-/// 
+///
 /// Computed as: sum of all trits mod 3, balanced
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParityTrit(pub Trit);
@@ -597,7 +616,7 @@ impl ParityTrit {
     /// Compute parity for a slice of trits
     pub fn compute(trits: &[Trit]) -> Self {
         let sum: i32 = trits.iter().map(|t| t.to_i8() as i32).sum();
-        let parity = ((sum % 3) + 3) % 3; // Ensure positive
+        let parity = sum.rem_euclid(3); // Ensure positive
         ParityTrit(match parity {
             0 => Trit::Z,
             1 => Trit::P,
@@ -653,8 +672,14 @@ mod tests {
         for &a in &Trit::ALL {
             for &b in &Trit::ALL {
                 for &c in &Trit::ALL {
-                    assert_eq!((a * b) * c, a * (b * c), 
-                        "Associativity: ({:?} × {:?}) × {:?}", a, b, c);
+                    assert_eq!(
+                        (a * b) * c,
+                        a * (b * c),
+                        "Associativity: ({:?} × {:?}) × {:?}",
+                        a,
+                        b,
+                        c
+                    );
                 }
             }
         }
@@ -665,7 +690,7 @@ mod tests {
         assert_eq!(-Trit::N, Trit::P);
         assert_eq!(-Trit::Z, Trit::Z);
         assert_eq!(-Trit::P, Trit::N);
-        
+
         // Double negation is identity
         for &t in &Trit::ALL {
             assert_eq!(-(-t), t, "Double negation of {:?}", t);
@@ -675,43 +700,50 @@ mod tests {
     #[test]
     fn test_trit_add_with_carry_complete() {
         // Verify all 27 combinations
+        #[allow(clippy::type_complexity)]
         let expected: [((Trit, Trit, Trit), (Trit, Trit)); 27] = [
             // carry_in = N
-            ((Trit::N, Trit::N, Trit::N), (Trit::Z, Trit::N)),  // -3
-            ((Trit::N, Trit::Z, Trit::N), (Trit::P, Trit::N)),  // -2
-            ((Trit::N, Trit::P, Trit::N), (Trit::N, Trit::Z)),  // -1
-            ((Trit::Z, Trit::N, Trit::N), (Trit::P, Trit::N)),  // -2
-            ((Trit::Z, Trit::Z, Trit::N), (Trit::N, Trit::Z)),  // -1
-            ((Trit::Z, Trit::P, Trit::N), (Trit::Z, Trit::Z)),  // 0
-            ((Trit::P, Trit::N, Trit::N), (Trit::N, Trit::Z)),  // -1
-            ((Trit::P, Trit::Z, Trit::N), (Trit::Z, Trit::Z)),  // 0
-            ((Trit::P, Trit::P, Trit::N), (Trit::P, Trit::Z)),  // 1
+            ((Trit::N, Trit::N, Trit::N), (Trit::Z, Trit::N)), // -3
+            ((Trit::N, Trit::Z, Trit::N), (Trit::P, Trit::N)), // -2
+            ((Trit::N, Trit::P, Trit::N), (Trit::N, Trit::Z)), // -1
+            ((Trit::Z, Trit::N, Trit::N), (Trit::P, Trit::N)), // -2
+            ((Trit::Z, Trit::Z, Trit::N), (Trit::N, Trit::Z)), // -1
+            ((Trit::Z, Trit::P, Trit::N), (Trit::Z, Trit::Z)), // 0
+            ((Trit::P, Trit::N, Trit::N), (Trit::N, Trit::Z)), // -1
+            ((Trit::P, Trit::Z, Trit::N), (Trit::Z, Trit::Z)), // 0
+            ((Trit::P, Trit::P, Trit::N), (Trit::P, Trit::Z)), // 1
             // carry_in = Z
-            ((Trit::N, Trit::N, Trit::Z), (Trit::P, Trit::N)),  // -2
-            ((Trit::N, Trit::Z, Trit::Z), (Trit::N, Trit::Z)),  // -1
-            ((Trit::N, Trit::P, Trit::Z), (Trit::Z, Trit::Z)),  // 0
-            ((Trit::Z, Trit::N, Trit::Z), (Trit::N, Trit::Z)),  // -1
-            ((Trit::Z, Trit::Z, Trit::Z), (Trit::Z, Trit::Z)),  // 0
-            ((Trit::Z, Trit::P, Trit::Z), (Trit::P, Trit::Z)),  // 1
-            ((Trit::P, Trit::N, Trit::Z), (Trit::Z, Trit::Z)),  // 0
-            ((Trit::P, Trit::Z, Trit::Z), (Trit::P, Trit::Z)),  // 1
-            ((Trit::P, Trit::P, Trit::Z), (Trit::N, Trit::P)),  // 2
+            ((Trit::N, Trit::N, Trit::Z), (Trit::P, Trit::N)), // -2
+            ((Trit::N, Trit::Z, Trit::Z), (Trit::N, Trit::Z)), // -1
+            ((Trit::N, Trit::P, Trit::Z), (Trit::Z, Trit::Z)), // 0
+            ((Trit::Z, Trit::N, Trit::Z), (Trit::N, Trit::Z)), // -1
+            ((Trit::Z, Trit::Z, Trit::Z), (Trit::Z, Trit::Z)), // 0
+            ((Trit::Z, Trit::P, Trit::Z), (Trit::P, Trit::Z)), // 1
+            ((Trit::P, Trit::N, Trit::Z), (Trit::Z, Trit::Z)), // 0
+            ((Trit::P, Trit::Z, Trit::Z), (Trit::P, Trit::Z)), // 1
+            ((Trit::P, Trit::P, Trit::Z), (Trit::N, Trit::P)), // 2
             // carry_in = P
-            ((Trit::N, Trit::N, Trit::P), (Trit::N, Trit::Z)),  // -1
-            ((Trit::N, Trit::Z, Trit::P), (Trit::Z, Trit::Z)),  // 0
-            ((Trit::N, Trit::P, Trit::P), (Trit::P, Trit::Z)),  // 1
-            ((Trit::Z, Trit::N, Trit::P), (Trit::Z, Trit::Z)),  // 0
-            ((Trit::Z, Trit::Z, Trit::P), (Trit::P, Trit::Z)),  // 1
-            ((Trit::Z, Trit::P, Trit::P), (Trit::N, Trit::P)),  // 2
-            ((Trit::P, Trit::N, Trit::P), (Trit::P, Trit::Z)),  // 1
-            ((Trit::P, Trit::Z, Trit::P), (Trit::N, Trit::P)),  // 2
-            ((Trit::P, Trit::P, Trit::P), (Trit::Z, Trit::P)),  // 3
+            ((Trit::N, Trit::N, Trit::P), (Trit::N, Trit::Z)), // -1
+            ((Trit::N, Trit::Z, Trit::P), (Trit::Z, Trit::Z)), // 0
+            ((Trit::N, Trit::P, Trit::P), (Trit::P, Trit::Z)), // 1
+            ((Trit::Z, Trit::N, Trit::P), (Trit::Z, Trit::Z)), // 0
+            ((Trit::Z, Trit::Z, Trit::P), (Trit::P, Trit::Z)), // 1
+            ((Trit::Z, Trit::P, Trit::P), (Trit::N, Trit::P)), // 2
+            ((Trit::P, Trit::N, Trit::P), (Trit::P, Trit::Z)), // 1
+            ((Trit::P, Trit::Z, Trit::P), (Trit::N, Trit::P)), // 2
+            ((Trit::P, Trit::P, Trit::P), (Trit::Z, Trit::P)), // 3
         ];
 
         for ((a, b, c), (expected_sum, expected_carry)) in expected {
             let (sum, carry) = a.add_with_carry(b, c);
-            assert_eq!((sum, carry), (expected_sum, expected_carry),
-                "add_with_carry({:?}, {:?}, {:?})", a, b, c);
+            assert_eq!(
+                (sum, carry),
+                (expected_sum, expected_carry),
+                "add_with_carry({:?}, {:?}, {:?})",
+                a,
+                b,
+                c
+            );
         }
     }
 
@@ -720,7 +752,8 @@ mod tests {
     #[test]
     fn test_tryte3_roundtrip() {
         for v in Tryte3::MIN_VALUE..=Tryte3::MAX_VALUE {
-            let tryte = Tryte3::from_i8(v).expect(&format!("Should create tryte for {}", v));
+            let tryte =
+                Tryte3::from_i8(v).unwrap_or_else(|| panic!("Should create tryte for {}", v));
             let decoded = tryte.to_i8();
             assert_eq!(v, decoded, "Roundtrip failed for {}", v);
         }
@@ -740,12 +773,17 @@ mod tests {
         for v in Tryte3::MIN_VALUE..=Tryte3::MAX_VALUE {
             let tryte = Tryte3::from_i8(v).unwrap();
             let bound = tryte * tryte;
-            
+
             // Self-bind should produce all P (or Z for zero trits)
             for i in 0..3 {
                 if tryte.trits[i].is_nonzero() {
-                    assert_eq!(bound.trits[i], Trit::P, 
-                        "Self-bind trit {} should be P for value {}", i, v);
+                    assert_eq!(
+                        bound.trits[i],
+                        Trit::P,
+                        "Self-bind trit {} should be P for value {}",
+                        i,
+                        v
+                    );
                 }
             }
         }
@@ -757,7 +795,7 @@ mod tests {
     fn test_word6_roundtrip() {
         let test_values = [0, 1, -1, 13, -13, 100, -100, 364, -364];
         for &v in &test_values {
-            let word = Word6::from_i16(v).expect(&format!("Should create word for {}", v));
+            let word = Word6::from_i16(v).unwrap_or_else(|| panic!("Should create word for {}", v));
             let decoded = word.to_i16();
             assert_eq!(v, decoded, "Roundtrip failed for {}", v);
         }
@@ -765,7 +803,8 @@ mod tests {
 
     #[test]
     fn test_word6_pack_unpack() {
-        for packed in (0..729u16).step_by(7) { // Sample every 7th value
+        for packed in (0..729u16).step_by(7) {
+            // Sample every 7th value
             let word = Word6::unpack(packed).expect("Should unpack");
             let repacked = word.pack();
             assert_eq!(packed, repacked, "Pack/unpack failed for {}", packed);
@@ -779,10 +818,13 @@ mod tests {
         let trits = vec![Trit::P, Trit::N, Trit::P, Trit::Z, Trit::N];
         let parity = ParityTrit::compute(&trits);
         assert!(parity.verify(&trits), "Parity should verify");
-        
+
         // Flip one trit and verify parity fails
         let mut corrupted = trits.clone();
         corrupted[0] = Trit::N;
-        assert!(!parity.verify(&corrupted), "Parity should fail on corrupted data");
+        assert!(
+            !parity.verify(&corrupted),
+            "Parity should fail on corrupted data"
+        );
     }
 }

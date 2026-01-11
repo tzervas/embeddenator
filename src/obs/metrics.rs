@@ -62,6 +62,12 @@ pub struct Metrics {
     hier_query_ns_max: AtomicU64,
 }
 
+impl Default for Metrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Metrics {
     pub const fn new() -> Self {
         Self {
