@@ -1,5 +1,17 @@
 name: Build and Push Docker Image
 
+# ARM64 BUILDS DISABLED - No self-hosted ARM64 runners available
+# 
+# This workflow only builds AMD64 images. ARM64 builds must be done locally
+# and pushed manually to the registry.
+#
+# To build ARM64 locally:
+# 1. Ensure you have ARM64 hardware or QEMU setup
+# 2. Run: docker buildx build --platform linux/arm64 -t <image> .
+# 3. Push: docker push <image>
+#
+# See ARM64_RUNNER_SETUP.md for detailed setup instructions.
+
 on:
   push:
     tags:
@@ -20,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        arch: [amd64]  # ARM64 disabled - no self-hosted runners available
     
     permissions:
       contents: read
