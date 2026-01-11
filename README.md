@@ -35,7 +35,7 @@ Embeddenator has been refactored into a **modular component architecture** with 
 - **SIMD Support**: Optional AVX2/NEON optimizations (experimental, 2-4x speedup on supported hardware)
 - **CLI Tool**: Command-line interface for ingest, extract, and query operations
 - **Component Architecture**: Modular design with 6 independent library crates
-- **Test Coverage**: 160+ integration tests covering core functionality (98.5% pass rate)
+- **Test Coverage**: 160+ integration tests covering core functionality (97.6% pass rate)
 
 ### Experimental/In Development
 - **FUSE Filesystem**: EmbrFS integration (partial implementation)
@@ -44,7 +44,7 @@ Embeddenator has been refactored into a **modular component architecture** with 
 - **Large-Scale Testing**: TB-scale validation (planned)
 - **OS Container Encoding**: Full system encoding (proof-of-concept only)
 
-## What's New in v0.3.0
+## What's New in v0.20.0-alpha
 
 - 🎯 **Deterministic hierarchical artifacts** - Stable manifest/sub-engram generation with sorted iteration
 - 📊 **Optional node sharding** - `--max-chunks-per-node` cap for bounded per-node indexing cost
@@ -340,7 +340,7 @@ docker run -v $(pwd)/workspace:/workspace -v $(pwd)/output:/output \
 Embeddenator has comprehensive test coverage:
 
 - **160+ integration tests** across 23 test suites
-- **98.5% pass rate** (166/170 tests passing)
+- **97.6% pass rate** (166/170 tests passing)
 - **Test categories**: Balanced ternary, codebook operations, VSA properties, error recovery, hierarchical operations, CLI integration
 - **Continuous testing**: All core functionality verified with each build
 

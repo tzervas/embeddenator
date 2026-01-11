@@ -4,7 +4,7 @@ This document describes the testing infrastructure and guidelines for Embeddenat
 
 ## Overview
 
-Embeddenator has comprehensive test coverage with 160+ integration tests organized into 23 test suites, achieving a 98.5% pass rate (166/170 tests passing). The 4 failing tests are due to infrastructure issues (disk space), not code defects.
+Embeddenator has comprehensive test coverage with 160+ integration tests organized into 23 test suites, achieving a 97.6% pass rate (166/170 tests passing). The 4 failing tests are due to infrastructure issues (disk space), not code defects.
 
 ## Running Tests
 

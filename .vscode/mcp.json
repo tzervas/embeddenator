@@ -1,0 +1,24 @@
+{
+  "servers": {
+    "webpuppet": {
+      "command": "webpuppet-mcp",
+      "args": ["--stdio"],
+      "env": {}
+    },
+    "security-mcp": {
+      "type": "stdio",
+      "command": "security-mcp",
+      "args": ["--stdio"]
+    },
+    "context-mcp": {
+      "type": "stdio",
+      "command": "/home/<username>/.local/bin/context-mcp",
+      "args": [
+        "--stdio",
+        "--cache-size", "10000",
+        "--threads", "6",
+        "--persist"
+      ]
+    }
+  }
+}

@@ -3,7 +3,7 @@
 //! Unit tests for BalancedTernaryWord encoding/decoding, metadata,
 //! and parity computation.
 //!
-//! Run with: cargo test --test balanced_ternary
+//! Run with: cargo test --test codebook
 
 use embeddenator::{BalancedTernaryWord, WordMetadata};
 
