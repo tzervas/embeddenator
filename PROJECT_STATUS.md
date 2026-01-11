@@ -64,7 +64,7 @@ This project is in active development. APIs are unstable and subject to change. 
 
 ### Infrastructure ✅
 - **Component architecture** - 6 modular library crates
-- **Comprehensive testing** - 160+ tests, 98.5% pass rate
+- **Comprehensive testing** - 160+ tests, 97.6% pass rate
 - **Documentation** - Rustdoc comments, examples
 - **CI foundation** - Test automation framework
 
@@ -191,7 +191,7 @@ Contributions welcome! Before contributing:
 
 ### Overall Coverage
 - **Total tests**: 170+ individual tests
-- **Pass rate**: 98.5% (166/170)
+- **Pass rate**: 97.6% (166/170)
 - **Test suites**: 23 integration test suites
 - **Coverage areas**: All core functionality covered
 

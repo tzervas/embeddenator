@@ -2,7 +2,7 @@
 //!
 //! Tests for codebook initialization and data projection operations.
 //!
-//! Run with: cargo test --test projection
+//! Run with: cargo test --test codebook
 
 use embeddenator::Codebook;
 
