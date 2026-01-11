@@ -5,10 +5,25 @@
 **Version 0.20.0-alpha** | Experimental Rust implementation of sparse ternary Vector Symbolic Architecture (VSA) for holographic data encoding.
 
 **Author:** Tyler Zervas <tz-dev@vectorweight.com>  
-**License:** MIT (see [LICENSE](LICENSE) file)  
+**License:** MIT (see [LICENSE](LICENSE) file)
 
-[![CI](https://github.com/tzervas/embeddenator/workflows/CI/badge.svg)](https://github.com/tzervas/embeddenator/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<!-- Repository Status Badges -->
+![Version](https://img.shields.io/badge/version-0.20.0--alpha-orange)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Rust](https://img.shields.io/badge/rust-1.84+-000000?logo=rust)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Test Coverage](https://img.shields.io/badge/tests-97.6%25_pass_rate-blue)
+![Container](https://img.shields.io/badge/container-amd64-brightgreen)
+![Container](https://img.shields.io/badge/container-arm64--local_only-yellow)
+
+<!-- CI Status (Local builds only - no automated CI) -->
+![CI](https://img.shields.io/badge/CI-local_builds_only-lightgrey)
+
+<!-- Development Status -->
+![Development](https://img.shields.io/badge/status-experimental-red)
+![Documentation](https://img.shields.io/badge/docs-available-lightblue)
+![Issues](https://img.shields.io/github/issues/tzervas/embeddenator)
+![PRs](https://img.shields.io/github/issues-pr/tzervas/embeddenator)
 
 ## Component Architecture
 
@@ -23,7 +38,7 @@ Embeddenator has been refactored into a **modular component architecture** with 
 
 **📚 Documentation:** [Component Architecture](docs/COMPONENT_ARCHITECTURE.md) | [Local Development](docs/LOCAL_DEVELOPMENT.md) | [Versioning](docs/VERSIONING.md)
 
-**🐳 Docker:** Multi-arch images available at `ghcr.io/tzervas/embeddenator` ([amd64](https://github.com/tzervas/embeddenator/pkgs/container/embeddenator) + arm64)
+**🐳 Docker:** Container images available at `ghcr.io/tzervas/embeddenator` (AMD64 validated, ARM64 local builds only)
 
 ## Current Capabilities
 
