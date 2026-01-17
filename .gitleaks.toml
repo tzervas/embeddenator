@@ -14,16 +14,8 @@ paths = [
     '''go\.sum$''',
     '''package-lock\.json$''',
     '''Cargo\.lock$''',
+    # Ignore test fixtures with fake credentials
+    '''(test|tests|fixtures|testdata)/.*''',
+    # Allow example/placeholder values in documentation
+    '''(README|CONTRIBUTING|docs/).*\.(md|rst|txt)$''',
 ]
-
-# Ignore test fixtures with fake credentials
-[[rules]]
-id = "test-fixture-allowlist"
-description = "Ignore test fixtures"
-path = '''(test|tests|fixtures|testdata)/.*'''
-
-# Allow example/placeholder values in documentation
-[[rules]]
-id = "docs-allowlist"
-description = "Ignore example values in docs"
-path = '''(README|CONTRIBUTING|docs/).*\.(md|rst|txt)$'''
