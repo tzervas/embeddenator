@@ -30,7 +30,7 @@ fn create_hierarchical_structure(
         }
 
         // Create files at this level (reduced to avoid storage issues)
-        let files_at_level = width.min(5);  // Limit files per level
+        let files_at_level = width.min(5); // Limit files per level
         for file_idx in 0..files_at_level {
             let file_path = path.join(format!("file_{:04}.txt", file_idx));
             let mut file = fs::File::create(&file_path).unwrap();
@@ -39,14 +39,14 @@ fn create_hierarchical_structure(
                 "Depth {} File {} Content: {}\n",
                 current_depth,
                 file_idx,
-                "Sample data. ".repeat(file_size / 20)  // Smaller content
+                "Sample data. ".repeat(file_size / 20) // Smaller content
             );
             file.write_all(content.as_bytes()).unwrap();
             *total_files += 1;
         }
 
         // Create subdirectories and recurse (limit branching)
-        let subdirs = width.min(3);  // Further limit directory branching
+        let subdirs = width.min(3); // Further limit directory branching
         for dir_idx in 0..subdirs {
             let subdir = path.join(format!("dir_{:04}", dir_idx));
             fs::create_dir_all(&subdir).unwrap();
@@ -86,11 +86,10 @@ fn bench_hierarchical_query_depth(c: &mut Criterion) {
                 let temp_dir = TempDir::new().unwrap();
                 let _total_files = create_hierarchical_structure(&temp_dir, depth, width, 1024);
                 let mut fs = EmbrFS::new();
-                fs.ingest_directory(temp_dir.path(), false, &config).unwrap();
-
-                let hierarchical = fs
-                    .bundle_hierarchically(500, false, &config)
+                fs.ingest_directory(temp_dir.path(), false, &config)
                     .unwrap();
+
+                let hierarchical = fs.bundle_hierarchically(500, false, &config).unwrap();
 
                 // Extract codebook
                 let codebook: HashMap<usize, SparseVec> = fs
@@ -150,11 +149,10 @@ fn bench_hierarchical_query_width(c: &mut Criterion) {
                 let temp_dir = TempDir::new().unwrap();
                 let _total_files = create_hierarchical_structure(&temp_dir, depth, width, 512);
                 let mut fs = EmbrFS::new();
-                fs.ingest_directory(temp_dir.path(), false, &config).unwrap();
-
-                let hierarchical = fs
-                    .bundle_hierarchically(500, false, &config)
+                fs.ingest_directory(temp_dir.path(), false, &config)
                     .unwrap();
+
+                let hierarchical = fs.bundle_hierarchically(500, false, &config).unwrap();
 
                 let codebook: HashMap<usize, SparseVec> = fs
                     .engram
@@ -201,11 +199,10 @@ fn bench_flat_vs_hierarchical(c: &mut Criterion) {
     let temp_dir = TempDir::new().unwrap();
     let _total_files = create_hierarchical_structure(&temp_dir, 3, 5, 512);
     let mut fs = EmbrFS::new();
-    fs.ingest_directory(temp_dir.path(), false, &config).unwrap();
-
-    let hierarchical = fs
-        .bundle_hierarchically(500, false, &config)
+    fs.ingest_directory(temp_dir.path(), false, &config)
         .unwrap();
+
+    let hierarchical = fs.bundle_hierarchically(500, false, &config).unwrap();
 
     let codebook: HashMap<usize, SparseVec> = fs
         .engram
@@ -267,11 +264,10 @@ fn bench_beam_width_scaling(c: &mut Criterion) {
     let temp_dir = TempDir::new().unwrap();
     let _total_files = create_hierarchical_structure(&temp_dir, 3, 5, 512);
     let mut fs = EmbrFS::new();
-    fs.ingest_directory(temp_dir.path(), false, &config).unwrap();
-
-    let hierarchical = fs
-        .bundle_hierarchically(500, false, &config)
+    fs.ingest_directory(temp_dir.path(), false, &config)
         .unwrap();
+
+    let hierarchical = fs.bundle_hierarchically(500, false, &config).unwrap();
 
     let codebook: HashMap<usize, SparseVec> = fs
         .engram

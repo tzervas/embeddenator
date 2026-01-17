@@ -1,0 +1,175 @@
+# Embeddenator Core Development Context
+
+**Repo**: embeddenator (main)  
+**Version**: 0.20.0-alpha  
+**Focus**: Core VSA operations, CLI, hierarchical encoding, performance tuning  
+**Last Updated**: 2026-01-16
+
+---
+
+## Active Technologies
+
+- **Rust** 1.84+ (stable, nightly for SIMD features)
+- **embeddenator-vsa** 0.20.0-alpha.1: Sparse ternary VSA primitives
+- **embeddenator-fs** 0.20.0-alpha.1: FUSE filesystem integration
+- **embeddenator-retrieval** 0.20.0-alpha.1: Query engine
+- **embeddenator-io** 0.20.0-alpha.1: I/O operations
+- **rayon**: Data parallelism (Phase 1 perf tuning)
+- **num_cpus**: CPU detection for thread pool sizing
+- **parking_lot**: Fast locks
+- **smallvec**: Stack-allocated vectors
+- **clap**: CLI argument parsing
+- **serde/serde_json**: Serialization
+
+---
+
+## Project Structure
+
+```
+embeddenator/
+├── specs/                     # Feature specifications (SDD)
+├── src/
+│   ├── main.rs               # CLI entry point
+│   ├── lib.rs                # Library exports
+│   ├── cli.rs                # Command implementations (ingest, extract, query, etc.)
+│   ├── perf.rs               # Performance tuning module (NEW: Phase 1)
+│   └── embrfs.rs             # EmbrFS operations
+├── benches/                  # Criterion benchmarks
+├── tests/                    # Integration tests
+├── Cargo.toml                # Dependencies + release profiles
+├── VERSION_ROADMAP.md        # Release plan (internal v1.0.0 → public v0.20.0-alpha.1)
+├── PROJECT_STATUS.md         # Feature status, test coverage
+├── PERFORMANCE_TUNING_STRATEGY.md  # Phase 1-3 optimization roadmap
+└── .github/agents/           # Specialized agents
+```
+
+---
+
+## Commands
+
+### Build
+```bash
+# Standard release
+cargo build --release
+
+# Performance-optimized (Phase 1 profile)
+cargo build --profile release-perf --features 'bt-phase-2,simd'
+
+# Development
+cargo build
+```
+
+### Test
+```bash
+# All tests
+cargo test --workspace
+
+# Specific test suite
+cargo test --test integration_tests
+
+# With verbose output
+cargo test -- --nocapture
+```
+
+### CLI Usage
+```bash
+# Ingest directory → engram
+cargo run --release -- ingest -i ./data -e out.engram -m manifest.json -v
+
+# Extract engram → directory
+cargo run --release -- extract -e out.engram -m manifest.json -o ./restored -v
+
+# Query similarity
+cargo run --release -- query -e out.engram -q ./test.txt -v
+
+# Hierarchical bundling
+cargo run --release -- bundle-hier -e root.engram -m manifest.json --max-chunks-per-node 10000
+```
+
+### Performance Validation
+```bash
+./perf_validate.sh              # 100MB/500MB/1GB benchmarks
+./profile_cpu_perf.sh           # CPU profiling with perf
+./profile_memory.sh             # Memory profiling with massif
+./profile_flamegraph.sh         # Flamegraph generation
+```
+
+---
+
+## Code Conventions
+
+### Style
+- Follow Rust API Guidelines
+- Zero clippy warnings (exceptions documented in code)
+- Run `cargo fmt` before commit
+
+### Error Handling
+- Use `Result<T, io::Error>` for I/O operations
+- Use `anyhow::Result` for CLI commands
+- Planned: Custom `VsaError` type (see embeddenator-vsa refactoring)
+
+### Performance
+- Thread pools from `perf::config()` (ingest/extract/query)
+- Batch sizes tuned to L3 cache (~8MB = 262,144 vectors)
+- SIMD features behind `simd` feature flag
+
+### Testing
+- Unit tests in module (`#[cfg(test)]`)
+- Integration tests in `tests/` directory
+- Benchmarks in `benches/` with Criterion
+- E2E tests verify bit-perfect reconstruction
+
+---
+
+## Current Focus (2026-01-16)
+
+### Phase 1 Performance Tuning ✅
+- `src/perf.rs`: Runtime CPU/core detection, thread pool config
+- Targets: 30+ MB/s ingest (from 16.6), 65+ MB/s extract (from 40.8)
+- Status: Implemented, validation pending
+
+### Phase 2 Memory Optimization (Next)
+- Sparse vector packing (40 trits per 64-bit word)
+- zstd compression integration
+- Memory-mapped I/O for large files
+- Target: 30% memory reduction
+
+### Active Specs
+- See `specs/` directory for feature-specific documentation
+- Reference specs in PR descriptions and commit messages
+
+---
+
+## Recent Changes
+
+### 2026-01-16: Spec-Kit Integration
+- Added `.copilot` with repo context
+- Created `specs/` directory structure
+- Updated agents to reference specifications
+
+### 2026-01-11: Performance Phase 1
+- Added `src/perf.rs` module
+- Updated Cargo.toml with perf dependencies
+- Created `release-perf` profile
+- Integrated perf config display in CLI verbose mode
+
+### 2026-01-10: QA Documentation Update
+- Branch: `docs/qa-documentation-update-2026-01-10`
+- Updated README, VERSION_ROADMAP, PROJECT_STATUS
+- Established test coverage metrics (97.6% pass rate)
+
+---
+
+## Agents
+
+Specialized agents in `.github/agents/`:
+- `embeddenator.agent.md`: General VSA + engram assistance
+- `performance-tuner.agent.md`: Optimization and benchmarking
+- `rust-implementer.agent.md`: Idiomatic Rust patterns
+- `qa-tester.agent.md`: Test coverage and validation
+- `documentation-writer.agent.md`: Rustdoc and guides
+
+---
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

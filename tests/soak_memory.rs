@@ -17,7 +17,10 @@ use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
 fn enabled() -> bool {
-    matches!(std::env::var("EMBEDDENATOR_RUN_SOAK").as_deref(), Ok("1") | Ok("true") | Ok("TRUE"))
+    matches!(
+        std::env::var("EMBEDDENATOR_RUN_SOAK").as_deref(),
+        Ok("1") | Ok("true") | Ok("TRUE")
+    )
 }
 
 fn env_u64(key: &str) -> Option<u64> {
@@ -104,7 +107,10 @@ fn soak_memory_ingest_extract() {
     let max_duration = Duration::from_secs(max_seconds);
 
     // Safety: refuse to start if the machine looks too small, unless forced.
-    let force = matches!(std::env::var("EMBEDDENATOR_FORCE").as_deref(), Ok("1") | Ok("true") | Ok("TRUE"));
+    let force = matches!(
+        std::env::var("EMBEDDENATOR_FORCE").as_deref(),
+        Ok("1") | Ok("true") | Ok("TRUE")
+    );
     if !force {
         if let Some(avail_kb) = read_mem_available_kb() {
             // Heuristic: require at least ~2x dataset size in available memory.
@@ -138,27 +144,43 @@ fn soak_memory_ingest_extract() {
     let ingest_dur = start.elapsed();
 
     if start_all.elapsed() > max_duration {
-        panic!("soak test exceeded max duration during ingest: {:?}", max_duration);
+        panic!(
+            "soak test exceeded max duration during ingest: {:?}",
+            max_duration
+        );
     }
 
     let extract_dir = tmp.path().join("extract");
     fs::create_dir_all(&extract_dir).unwrap();
 
     let start = Instant::now();
-    EmbrFS::extract(&fsys.engram, &fsys.manifest, &extract_dir, false, &config)
-        .expect("extract");
+    EmbrFS::extract(&fsys.engram, &fsys.manifest, &extract_dir, false, &config).expect("extract");
     let extract_dur = start.elapsed();
 
     if start_all.elapsed() > max_duration {
-        panic!("soak test exceeded max duration during extract: {:?}", max_duration);
+        panic!(
+            "soak test exceeded max duration during extract: {:?}",
+            max_duration
+        );
     }
 
     let rss_after = read_proc_status_kb("VmRSS:");
     let hwm_after = read_proc_status_kb("VmHWM:");
 
-    println!("soak_memory_ingest_extract: total={}MB file={}MB", total_mb, file_mb);
-    println!("  ingest:  {:?} ({:.3} MB/s)", ingest_dur, (total_mb as f64) / ingest_dur.as_secs_f64());
-    println!("  extract: {:?} ({:.3} MB/s)", extract_dur, (total_mb as f64) / extract_dur.as_secs_f64());
+    println!(
+        "soak_memory_ingest_extract: total={}MB file={}MB",
+        total_mb, file_mb
+    );
+    println!(
+        "  ingest:  {:?} ({:.3} MB/s)",
+        ingest_dur,
+        (total_mb as f64) / ingest_dur.as_secs_f64()
+    );
+    println!(
+        "  extract: {:?} ({:.3} MB/s)",
+        extract_dur,
+        (total_mb as f64) / extract_dur.as_secs_f64()
+    );
     println!("  rss_kb:  before={:?} after={:?}", rss_before, rss_after);
     println!("  hwm_kb:  before={:?} after={:?}", hwm_before, hwm_after);
 }

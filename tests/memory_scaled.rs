@@ -14,11 +14,16 @@ use std::time::Instant;
 use tempfile::TempDir;
 
 fn env_usize(key: &str) -> Option<usize> {
-    std::env::var(key).ok().and_then(|v| v.parse::<usize>().ok())
+    std::env::var(key)
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
 }
 
 fn is_enabled() -> bool {
-    matches!(std::env::var("EMBEDDENATOR_RUN_QA_MEMORY").as_deref(), Ok("1") | Ok("true") | Ok("TRUE"))
+    matches!(
+        std::env::var("EMBEDDENATOR_RUN_QA_MEMORY").as_deref(),
+        Ok("1") | Ok("true") | Ok("TRUE")
+    )
 }
 
 fn write_file_of_size(path: &Path, size_bytes: usize) -> io::Result<()> {
@@ -81,9 +86,7 @@ fn read_proc_status_kb(field: &str) -> Option<u64> {
 #[ignore]
 fn scaled_memory_ingest_extract() {
     if !is_enabled() {
-        eprintln!(
-            "skipping scaled memory test; set EMBEDDENATOR_RUN_QA_MEMORY=1 to enable"
-        );
+        eprintln!("skipping scaled memory test; set EMBEDDENATOR_RUN_QA_MEMORY=1 to enable");
         return;
     }
 
@@ -109,16 +112,26 @@ fn scaled_memory_ingest_extract() {
     fs::create_dir_all(&extract_dir).unwrap();
 
     let start = Instant::now();
-    EmbrFS::extract(&fsys.engram, &fsys.manifest, &extract_dir, false, &config)
-        .expect("extract");
+    EmbrFS::extract(&fsys.engram, &fsys.manifest, &extract_dir, false, &config).expect("extract");
     let extract_dur = start.elapsed();
 
     let rss_after = read_proc_status_kb("VmRSS:");
     let hwm_after = read_proc_status_kb("VmHWM:");
 
-    println!("scaled_memory_ingest_extract: total={}MB file={}MB", total_mb, file_mb);
-    println!("  ingest:  {:?} ({:.3} MB/s)", ingest_dur, (total_mb as f64) / ingest_dur.as_secs_f64());
-    println!("  extract: {:?} ({:.3} MB/s)", extract_dur, (total_mb as f64) / extract_dur.as_secs_f64());
+    println!(
+        "scaled_memory_ingest_extract: total={}MB file={}MB",
+        total_mb, file_mb
+    );
+    println!(
+        "  ingest:  {:?} ({:.3} MB/s)",
+        ingest_dur,
+        (total_mb as f64) / ingest_dur.as_secs_f64()
+    );
+    println!(
+        "  extract: {:?} ({:.3} MB/s)",
+        extract_dur,
+        (total_mb as f64) / extract_dur.as_secs_f64()
+    );
     println!("  rss_kb:  before={:?} after={:?}", rss_before, rss_after);
     println!("  hwm_kb:  before={:?} after={:?}", hwm_before, hwm_after);
 }

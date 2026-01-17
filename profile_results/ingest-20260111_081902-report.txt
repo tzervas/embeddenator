@@ -1,0 +1,50 @@
+=== TOP 20 HOTSPOTS ===
+     2.43%  embeddenator  embeddenator       [.] 0x00000000000d5742
+     2.11%  embeddenator  embeddenator       [.] 0x00000000000d7379
+     1.74%  embeddenator  embeddenator       [.] 0x00000000000d7338
+     1.74%  embeddenator  embeddenator       [.] 0x00000000000d737d
+     1.73%  embeddenator  embeddenator       [.] 0x00000000000d7330
+     1.73%  embeddenator  embeddenator       [.] 0x00000000000d733e
+     1.71%  embeddenator  embeddenator       [.] 0x00000000000d574c
+     1.39%  embeddenator  embeddenator       [.] 0x00000000000d7373
+     1.39%  embeddenator  embeddenator       [.] 0x00000000000d7340
+     1.39%  embeddenator  embeddenator       [.] 0x00000000000d7370
+     1.39%  embeddenator  embeddenator       [.] 0x00000000000d56cd
+     1.38%  embeddenator  embeddenator       [.] 0x00000000000d7376
+     1.05%  embeddenator  embeddenator       [.] 0x00000000000d6f89
+     1.05%  embeddenator  embeddenator       [.] 0x00000000000d7540
+     1.05%  embeddenator  embeddenator       [.] 0x00000000000d7343
+     1.05%  embeddenator  embeddenator       [.] 0x00000000000d750b
+     1.05%  embeddenator  embeddenator       [.] 0x00000000000d5678
+     1.05%  embeddenator  embeddenator       [.] 0x00000000000d6f69
+     1.04%  embeddenator  embeddenator       [.] 0x00000000000d5706
+     1.04%  embeddenator  embeddenator       [.] 0x00000000000d7519
+     1.04%  embeddenator  embeddenator       [.] 0x00000000000d7334
+--
+#
+# (Tip: To filter subset of samples with report or script add --time X-Y or --cpu A,B,C or --socket-filter ...)
+#
+
+=== CACHE STATS ===
+
+ Performance counter stats for './target/release/embeddenator ingest -i test_data_50mb.bin -e out.engram.1 -m out.json.1':
+
+    12,228,803,703      cpu_atom/cycles/                                                        (0.14%)
+    15,928,701,007      cpu_core/cycles/                                                        (99.86%)
+     2,345,954,335      cpu_atom/instructions/           #    0.19  insn per cycle              (0.14%)
+    30,428,647,101      cpu_core/instructions/           #    1.91  insn per cycle              (99.86%)
+       317,171,231      cpu_atom/cache-references/                                              (0.14%)
+        27,281,687      cpu_core/cache-references/                                              (99.86%)
+       271,561,625      cpu_atom/cache-misses/           #   85.62% of all cache refs           (0.14%)
+        16,017,153      cpu_core/cache-misses/           #   58.71% of all cache refs           (99.86%)
+       478,626,418      cpu_atom/branches/                                                      (0.14%)
+     5,245,752,417      cpu_core/branches/                                                      (99.86%)
+         9,295,350      cpu_atom/branch-misses/          #    1.94% of all branches             (0.14%)
+       223,041,314      cpu_core/branch-misses/          #    4.25% of all branches             (99.86%)
+
+       2.876386474 seconds time elapsed
+
+       2.752023000 seconds user
+       0.124001000 seconds sys
+
+

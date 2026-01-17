@@ -1,0 +1,14 @@
+{
+  "files": [
+    {
+      "path": "test_small.txt",
+      "is_text": false,
+      "size": 5,
+      "chunks": [
+        0
+      ],
+      "deleted": false
+    }
+  ],
+  "total_chunks": 1
+}

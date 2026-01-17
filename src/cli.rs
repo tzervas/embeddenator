@@ -7,18 +7,18 @@
 //! - Mounting engrams as FUSE filesystems (requires `fuse` feature)
 
 use crate::embrfs::{
-    DirectorySubEngramStore, EmbrFS, HierarchicalQueryBounds, load_hierarchical_manifest,
-    query_hierarchical_codebook_with_store,
-    save_hierarchical_manifest, save_sub_engrams_dir,
+    load_hierarchical_manifest, query_hierarchical_codebook_with_store, save_hierarchical_manifest,
+    save_sub_engrams_dir, DirectorySubEngramStore, EmbrFS, HierarchicalQueryBounds,
 };
-use embeddenator_vsa::{SparseVec, ReversibleVSAConfig};
+use crate::perf;
 use clap::{Parser, Subcommand};
+use embeddenator_vsa::{ReversibleVSAConfig, SparseVec};
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 use std::path::PathBuf;
-use std::collections::HashMap;
 
 fn path_to_forward_slash_string(path: &Path) -> String {
     path.components()
@@ -188,11 +188,9 @@ pub enum Commands {
     },
 
     /// Query similarity using a literal text string (basic inference-to-vector)
-    #[command(
-        long_about = "Query cosine similarity using a literal text string\n\n\
+    #[command(long_about = "Query cosine similarity using a literal text string\n\n\
         This is a convenience wrapper that encodes the provided text as bytes into a VSA query vector\n\
-        and runs the same retrieval path as `query`."
-    )]
+        and runs the same retrieval path as `query`.")]
     QueryText {
         /// Engram file to query
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
@@ -261,8 +259,7 @@ pub enum Commands {
 
     /// Mount an engram as a FUSE filesystem (requires --features fuse)
     #[cfg(feature = "fuse")]
-    #[command(
-        long_about = "Mount an engram as a FUSE filesystem\n\n\
+    #[command(long_about = "Mount an engram as a FUSE filesystem\n\n\
         This command mounts an engram at the specified mountpoint, making all files\n\
         accessible through the standard filesystem interface. Files are decoded\n\
         on-demand from the holographic representation.\n\n\
@@ -274,8 +271,7 @@ pub enum Commands {
           fusermount -u /path/to/mountpoint\n\n\
         Example:\n\
           embeddenator mount -e project.engram -m project.json /mnt/engram\n\
-          embeddenator mount --engram backup.engram --mountpoint ~/mnt --allow-other"
-    )]
+          embeddenator mount --engram backup.engram --mountpoint ~/mnt --allow-other")]
     Mount {
         /// Engram file to mount
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
@@ -303,8 +299,7 @@ pub enum Commands {
     },
 
     /// Incremental update operations (add/remove/modify files)
-    #[command(
-        long_about = "Perform incremental updates to an existing engram\n\n\
+    #[command(long_about = "Perform incremental updates to an existing engram\n\n\
         This command enables efficient updates to engrams without full re-ingestion.\n\
         Use subcommands to add, remove, or modify files, or to compact the engram.\n\n\
         Subcommands:\n\
@@ -316,8 +311,7 @@ pub enum Commands {
           embeddenator update add -e data.engram -m data.json -f new.txt\n\
           embeddenator update remove -e data.engram -m data.json -p old.txt\n\
           embeddenator update modify -e data.engram -m data.json -f changed.txt\n\
-          embeddenator update compact -e data.engram -m data.json"
-    )]
+          embeddenator update compact -e data.engram -m data.json")]
     #[command(subcommand)]
     Update(UpdateCommands),
 }
@@ -355,13 +349,11 @@ pub enum UpdateCommands {
     },
 
     /// Remove a file from the engram (mark as deleted)
-    #[command(
-        long_about = "Mark a file as deleted in the engram manifest\n\n\
+    #[command(long_about = "Mark a file as deleted in the engram manifest\n\n\
         This operation marks the file as deleted without modifying the root vector,\n\
         since VSA bundling has no clean inverse. Use 'compact' to truly remove chunks.\n\n\
         Example:\n\
-          embeddenator update remove -e data.engram -m data.json -p old_file.txt"
-    )]
+          embeddenator update remove -e data.engram -m data.json -p old_file.txt")]
     Remove {
         /// Engram file to update
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
@@ -381,13 +373,11 @@ pub enum UpdateCommands {
     },
 
     /// Modify an existing file in the engram
-    #[command(
-        long_about = "Update an existing file's content in the engram\n\n\
+    #[command(long_about = "Update an existing file's content in the engram\n\n\
         This operation marks the old version as deleted and adds the new version.\n\
         Use 'compact' periodically to clean up old chunks.\n\n\
         Example:\n\
-          embeddenator update modify -e data.engram -m data.json -f updated.txt"
-    )]
+          embeddenator update modify -e data.engram -m data.json -f updated.txt")]
     Modify {
         /// Engram file to update
         #[arg(short, long, default_value = "root.engram", value_name = "FILE")]
@@ -449,6 +439,13 @@ pub fn run() -> io::Result<()> {
                     env!("CARGO_PKG_VERSION")
                 );
                 println!("=====================================");
+                let perf_cfg = perf::config();
+                println!("Performance Configuration:");
+                println!("  CPU Cores: {}", perf_cfg.cpu_cores);
+                println!("  Ingest Threads: {}", perf_cfg.ingest_threads);
+                println!("  Batch Size: {} vectors", perf_cfg.batch_size);
+                println!("  Target: 30+ MB/s ingestion");
+                println!();
             }
 
             let mut fs = EmbrFS::new();
@@ -521,6 +518,16 @@ pub fn run() -> io::Result<()> {
                     env!("CARGO_PKG_VERSION")
                 );
                 println!("======================================");
+                let perf_cfg = perf::config();
+                println!("Performance Configuration:");
+                println!("  CPU Cores: {}", perf_cfg.cpu_cores);
+                println!(
+                    "  Extract Threads: {} (max parallelism)",
+                    perf_cfg.extract_threads
+                );
+                println!("  Batch Size: {} vectors", perf_cfg.batch_size);
+                println!("  Target: 65+ MB/s extraction");
+                println!();
             }
 
             let engram_data = EmbrFS::load_engram(&engram)?;
@@ -577,7 +584,9 @@ pub fn run() -> io::Result<()> {
             // Optionally merge hierarchical hits too.
             let mut merged_hier: HashMap<(String, usize), (f64, i32)> = HashMap::new();
 
-            let hierarchical_loaded = if let (Some(hier_path), Some(_)) = (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref()) {
+            let hierarchical_loaded = if let (Some(hier_path), Some(_)) =
+                (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref())
+            {
                 Some(load_hierarchical_manifest(hier_path)?)
             } else {
                 None
@@ -622,7 +631,9 @@ pub fn run() -> io::Result<()> {
 
             // Hierarchical query can be expensive (sub-engram loads + per-node indexing).
             // Run it once using the best shift from the sweep.
-            if let (Some(hierarchical), Some(sub_dir)) = (hierarchical_loaded.as_ref(), sub_engrams_dir.as_ref()) {
+            if let (Some(hierarchical), Some(sub_dir)) =
+                (hierarchical_loaded.as_ref(), sub_engrams_dir.as_ref())
+            {
                 let store = DirectorySubEngramStore::new(sub_dir);
                 let bounds = HierarchicalQueryBounds {
                     k,
@@ -665,7 +676,10 @@ pub fn run() -> io::Result<()> {
             if !top_matches.is_empty() {
                 println!("Top codebook matches:");
                 for (id, cosine, approx) in top_matches {
-                    println!("  chunk {}  cosine {:.4}  approx_dot {}", id, cosine, approx);
+                    println!(
+                        "  chunk {}  cosine {:.4}  approx_dot {}",
+                        id, cosine, approx
+                    );
                 }
             } else if verbose {
                 println!("Top codebook matches: (none)");
@@ -681,7 +695,10 @@ pub fn run() -> io::Result<()> {
             if !top_hier.is_empty() {
                 println!("Top hierarchical matches:");
                 for (sub_id, chunk_id, cosine, approx) in top_hier {
-                    println!("  sub {}  chunk {}  cosine {:.4}  approx_dot {}", sub_id, chunk_id, cosine, approx);
+                    println!(
+                        "  sub {}  chunk {}  cosine {:.4}  approx_dot {}",
+                        sub_id, chunk_id, cosine, approx
+                    );
                 }
             } else if verbose && hierarchical_manifest.is_some() {
                 println!("Top hierarchical matches: (none)");
@@ -728,7 +745,9 @@ pub fn run() -> io::Result<()> {
             let mut merged: HashMap<usize, (f64, i32)> = HashMap::new();
             let mut merged_hier: HashMap<(String, usize), (f64, i32)> = HashMap::new();
 
-            let hierarchical_loaded = if let (Some(hier_path), Some(_)) = (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref()) {
+            let hierarchical_loaded = if let (Some(hier_path), Some(_)) =
+                (hierarchical_manifest.as_ref(), sub_engrams_dir.as_ref())
+            {
                 Some(load_hierarchical_manifest(hier_path)?)
             } else {
                 None
@@ -770,7 +789,9 @@ pub fn run() -> io::Result<()> {
                 }
             }
 
-            if let (Some(hierarchical), Some(sub_dir)) = (hierarchical_loaded.as_ref(), sub_engrams_dir.as_ref()) {
+            if let (Some(hierarchical), Some(sub_dir)) =
+                (hierarchical_loaded.as_ref(), sub_engrams_dir.as_ref())
+            {
                 let store = DirectorySubEngramStore::new(sub_dir);
                 let bounds = HierarchicalQueryBounds {
                     k,
@@ -813,7 +834,10 @@ pub fn run() -> io::Result<()> {
             if !top_matches.is_empty() {
                 println!("Top codebook matches:");
                 for (id, cosine, approx) in top_matches {
-                    println!("  chunk {}  cosine {:.4}  approx_dot {}", id, cosine, approx);
+                    println!(
+                        "  chunk {}  cosine {:.4}  approx_dot {}",
+                        id, cosine, approx
+                    );
                 }
             } else if verbose {
                 println!("Top codebook matches: (none)");
@@ -829,7 +853,10 @@ pub fn run() -> io::Result<()> {
             if !top_hier.is_empty() {
                 println!("Top hierarchical matches:");
                 for (sub_id, chunk_id, cosine, approx) in top_hier {
-                    println!("  sub {}  chunk {}  cosine {:.4}  approx_dot {}", sub_id, chunk_id, cosine, approx);
+                    println!(
+                        "  sub {}  chunk {}  cosine {:.4}  approx_dot {}",
+                        sub_id, chunk_id, cosine, approx
+                    );
                 }
             } else if verbose && hierarchical_manifest.is_some() {
                 println!("Top hierarchical matches: (none)");
@@ -881,7 +908,10 @@ pub fn run() -> io::Result<()> {
             save_hierarchical_manifest(&hierarchical, &out_hierarchical_manifest)?;
 
             if verbose {
-                println!("Wrote hierarchical manifest: {}", out_hierarchical_manifest.display());
+                println!(
+                    "Wrote hierarchical manifest: {}",
+                    out_hierarchical_manifest.display()
+                );
                 println!("Wrote sub-engrams dir: {}", out_sub_engrams_dir.display());
             }
 
@@ -897,14 +927,11 @@ pub fn run() -> io::Result<()> {
             foreground: _foreground,
             verbose,
         } => {
-            use crate::fuse_shim::{EngramFS, MountOptions, mount};
             use crate::embrfs::DEFAULT_CHUNK_SIZE;
-            
+            use crate::fuse_shim::{mount, EngramFS, MountOptions};
+
             if verbose {
-                println!(
-                    "Embeddenator v{} - FUSE Mount",
-                    env!("CARGO_PKG_VERSION")
-                );
+                println!("Embeddenator v{} - FUSE Mount", env!("CARGO_PKG_VERSION"));
                 println!("============================");
             }
 
@@ -920,32 +947,38 @@ pub fn run() -> io::Result<()> {
 
             // Create FUSE filesystem and populate with decoded files
             let fuse_fs = EngramFS::new(true);
-            
+
             for file_entry in &manifest_data.files {
                 // Decode file data using the same approach as EmbrFS::extract
                 let mut reconstructed = Vec::new();
-                
+
                 for &chunk_id in &file_entry.chunks {
                     if let Some(chunk_vec) = engram_data.codebook.get(&chunk_id) {
                         // Decode the sparse vector to bytes
                         // IMPORTANT: Use the same path as during encoding for correct shift calculation
-                        let decoded = chunk_vec.decode_data(&config, Some(&file_entry.path), DEFAULT_CHUNK_SIZE);
-                        
+                        let decoded = chunk_vec.decode_data(
+                            &config,
+                            Some(&file_entry.path),
+                            DEFAULT_CHUNK_SIZE,
+                        );
+
                         // Apply correction to guarantee bit-perfect reconstruction
-                        let chunk_data = if let Some(corrected) = engram_data.corrections.apply(chunk_id as u64, &decoded) {
+                        let chunk_data = if let Some(corrected) =
+                            engram_data.corrections.apply(chunk_id as u64, &decoded)
+                        {
                             corrected
                         } else {
                             // No correction found - use decoded directly
                             decoded
                         };
-                        
+
                         reconstructed.extend_from_slice(&chunk_data);
                     }
                 }
 
                 // Truncate to exact file size
                 reconstructed.truncate(file_entry.size);
-                
+
                 // Add to FUSE filesystem
                 if let Err(e) = fuse_fs.add_file(&file_entry.path, reconstructed) {
                     if verbose {
@@ -955,7 +988,10 @@ pub fn run() -> io::Result<()> {
             }
 
             if verbose {
-                println!("Populated {} files into FUSE filesystem", fuse_fs.file_count());
+                println!(
+                    "Populated {} files into FUSE filesystem",
+                    fuse_fs.file_count()
+                );
                 println!("Total size: {} bytes", fuse_fs.total_size());
                 println!("Mounting at: {}", mountpoint.display());
                 println!();
@@ -965,7 +1001,7 @@ pub fn run() -> io::Result<()> {
             if !mountpoint.exists() {
                 return Err(io::Error::new(
                     io::ErrorKind::NotFound,
-                    format!("Mountpoint does not exist: {}", mountpoint.display())
+                    format!("Mountpoint does not exist: {}", mountpoint.display()),
                 ));
             }
 
@@ -980,7 +1016,7 @@ pub fn run() -> io::Result<()> {
             // Mount the filesystem (blocks until unmounted)
             println!("EngramFS mounted at {}", mountpoint.display());
             println!("Use 'fusermount -u {}' to unmount", mountpoint.display());
-            
+
             mount(fuse_fs, &mountpoint, options)?;
 
             if verbose {

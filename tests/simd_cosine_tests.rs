@@ -6,7 +6,7 @@
 use embeddenator::{ReversibleVSAConfig, SparseVec};
 
 #[cfg(feature = "simd")]
-use embeddenator::simd_cosine::{cosine_simd, cosine_scalar};
+use embeddenator::simd_cosine::{cosine_scalar, cosine_simd};
 
 #[test]
 fn test_cosine_scalar_basic() {
@@ -122,8 +122,14 @@ fn test_simd_matches_scalar_encoded() {
     let test_cases = vec![
         (b"test data 1".as_slice(), b"test data 1".as_slice()),
         (b"test data 1".as_slice(), b"test data 2".as_slice()),
-        (b"alpha beta gamma".as_slice(), b"delta epsilon zeta".as_slice()),
-        (b"the quick brown fox".as_slice(), b"the lazy dog".as_slice()),
+        (
+            b"alpha beta gamma".as_slice(),
+            b"delta epsilon zeta".as_slice(),
+        ),
+        (
+            b"the quick brown fox".as_slice(),
+            b"the lazy dog".as_slice(),
+        ),
     ];
 
     for (data_a, data_b) in test_cases {
@@ -202,10 +208,7 @@ fn test_simd_empty_vectors() {
     assert_eq!(cosine_simd(&non_empty, &empty), 0.0);
 
     // Verify matches scalar
-    assert_eq!(
-        cosine_simd(&empty, &empty),
-        cosine_scalar(&empty, &empty)
-    );
+    assert_eq!(cosine_simd(&empty, &empty), cosine_scalar(&empty, &empty));
     assert_eq!(
         cosine_simd(&empty, &non_empty),
         cosine_scalar(&empty, &non_empty)
@@ -315,7 +318,7 @@ fn test_simd_property_based() {
 
         // Results should match within floating point tolerance
         prop_assert!((scalar - simd).abs() < 1e-9);
-        
+
         // Should be in valid range
         prop_assert!(scalar >= -1.0 && scalar <= 1.0);
         prop_assert!(simd >= -1.0 && simd <= 1.0);
@@ -358,7 +361,7 @@ fn test_integration_with_retrieval() {
 
     // Should get valid results
     assert!(!results.is_empty());
-    
+
     // Cosine scores should be in valid range
     for result in results {
         assert!(result.cosine >= -1.0 && result.cosine <= 1.0);

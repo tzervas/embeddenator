@@ -32,10 +32,26 @@ fn packed_dot_matches_sparse_intersections() {
     let packed_b = PackedTritVec::from_sparsevec(&b, DIM);
     let dot_packed = packed_a.dot(&packed_b);
 
-    let pp = a.pos.iter().filter(|x| b.pos.binary_search(x).is_ok()).count() as i32;
-    let nn = a.neg.iter().filter(|x| b.neg.binary_search(x).is_ok()).count() as i32;
-    let pn = a.pos.iter().filter(|x| b.neg.binary_search(x).is_ok()).count() as i32;
-    let np = a.neg.iter().filter(|x| b.pos.binary_search(x).is_ok()).count() as i32;
+    let pp = a
+        .pos
+        .iter()
+        .filter(|x| b.pos.binary_search(x).is_ok())
+        .count() as i32;
+    let nn = a
+        .neg
+        .iter()
+        .filter(|x| b.neg.binary_search(x).is_ok())
+        .count() as i32;
+    let pn = a
+        .pos
+        .iter()
+        .filter(|x| b.neg.binary_search(x).is_ok())
+        .count() as i32;
+    let np = a
+        .neg
+        .iter()
+        .filter(|x| b.pos.binary_search(x).is_ok())
+        .count() as i32;
 
     let dot_sparse = (pp + nn) - (pn + np);
     assert_eq!(dot_packed, dot_sparse);

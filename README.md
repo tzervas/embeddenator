@@ -1,5 +1,18 @@
 # Embeddenator — Holographic Computing Substrate
 
+> **⚠️ DEPRECATED REPOSITORY:** This monolithic repository is deprecated as of v0.20.0-alpha. The project has migrated to a **component-based architecture** with independent repositories. See the [Migration Guide](../MIGRATION_GUIDE.md) for details.
+>
+> **For new projects, use the component repositories:**
+> - **VSA Operations:** [embeddenator-vsa](https://github.com/tzervas/embeddenator-vsa)
+> - **Filesystem:** [embeddenator-fs](https://github.com/tzervas/embeddenator-fs)
+> - **Retrieval:** [embeddenator-retrieval](https://github.com/tzervas/embeddenator-retrieval)
+> - **I/O:** [embeddenator-io](https://github.com/tzervas/embeddenator-io)
+> - **Observability:** [embeddenator-obs](https://github.com/tzervas/embeddenator-obs)
+> - **Interop:** [embeddenator-interop](https://github.com/tzervas/embeddenator-interop)
+> - **CLI:** [embeddenator-cli](https://github.com/tzervas/embeddenator-cli)
+>
+> **Workspace:** [embeddenator workspace](https://github.com/tzervas/embeddenator) (root)
+
 > **⚠️ EARLY DEVELOPMENT:** This project is in active development (v0.20.0-alpha). APIs are unstable and subject to change. Not recommended for production use.
 
 **Version 0.20.0-alpha** | Experimental Rust implementation of sparse ternary Vector Symbolic Architecture (VSA) for holographic data encoding.
@@ -16,8 +29,12 @@
 ![Container](https://img.shields.io/badge/container-amd64-brightgreen)
 ![Container](https://img.shields.io/badge/container-arm64--local_only-yellow)
 
-<!-- CI Status (Local builds only - no automated CI) -->
-![CI](https://img.shields.io/badge/CI-local_builds_only-lightgrey)
+<!-- CI/CD Status -->
+[![CI](https://github.com/tzervas/embeddenator/workflows/Workspace%20CI/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/ci-workspace.yml)
+[![Benchmarks](https://github.com/tzervas/embeddenator/workflows/Benchmark%20Regression%20Check/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/bench-workspace.yml)
+[![Health](https://github.com/tzervas/embeddenator/workflows/Workspace%20Health/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/health-workspace.yml)
+[![Docs](https://github.com/tzervas/embeddenator/workflows/Documentation/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/docs-workspace.yml)
+[![Security](https://github.com/tzervas/embeddenator/workflows/Security%20Scan/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/security-workspace.yml)
 
 <!-- Development Status -->
 ![Development](https://img.shields.io/badge/status-experimental-red)
@@ -27,18 +44,31 @@
 
 ## Component Architecture
 
-Embeddenator has been refactored into a **modular component architecture** with 6 independent library crates:
+> **📦 MIGRATION COMPLETE:** Embeddenator has been refactored into a **modular component architecture** with 10 independent library crates.
 
-- **[embeddenator-vsa](https://github.com/tzervas/embeddenator-vsa)** - Sparse ternary VSA primitives
-- **[embeddenator-io](https://github.com/tzervas/embeddenator-io)** - Codebook, manifest, engram I/O
+**Component Repositories (Production-Ready):**
+
+- **[embeddenator-vsa](https://github.com/tzervas/embeddenator-vsa)** - Sparse ternary VSA primitives and operations
+- **[embeddenator-io](https://github.com/tzervas/embeddenator-io)** - Codebook, manifest, engram I/O and serialization
 - **[embeddenator-retrieval](https://github.com/tzervas/embeddenator-retrieval)** - Query engine with shift-sweep search
-- **[embeddenator-fs](https://github.com/tzervas/embeddenator-fs)** - FUSE filesystem integration
-- **[embeddenator-interop](https://github.com/tzervas/embeddenator-interop)** - Python/FFI bindings
-- **[embeddenator-obs](https://github.com/tzervas/embeddenator-obs)** - Observability and metrics
+- **[embeddenator-fs](https://github.com/tzervas/embeddenator-fs)** - FUSE filesystem integration (EmbrFS)
+- **[embeddenator-interop](https://github.com/tzervas/embeddenator-interop)** - Python/FFI bindings and language interop
+- **[embeddenator-obs](https://github.com/tzervas/embeddenator-obs)** - Observability, metrics, and telemetry
+- **[embeddenator-cli](https://github.com/tzervas/embeddenator-cli)** - Command-line interface
+- **[embeddenator-testkit](https://github.com/tzervas/embeddenator-testkit)** - Testing utilities and fixtures
+- **[embeddenator-workspace](https://github.com/tzervas/embeddenator-workspace)** - Workspace management tools
+- **[embeddenator-contract-bench](https://github.com/tzervas/embeddenator-contract-bench)** - Contract testing and benchmarks
 
-**📚 Documentation:** [Component Architecture](docs/COMPONENT_ARCHITECTURE.md) | [Local Development](docs/LOCAL_DEVELOPMENT.md) | [Versioning](docs/VERSIONING.md)
+**📚 Documentation:** 
+- [Migration Guide](../MIGRATION_GUIDE.md) - How to migrate from monolithic to component architecture
+- [Component Architecture](docs/COMPONENT_ARCHITECTURE.md) - Technical architecture details
+- [Local Development](docs/LOCAL_DEVELOPMENT.md) - Development workflow
+- [Versioning](docs/VERSIONING.md) - Version management
+- [ADR-016](docs/adr/ADR-016-component-decomposition.md) - Design rationale
 
 **🐳 Docker:** Container images available at `ghcr.io/tzervas/embeddenator` (AMD64 validated, ARM64 local builds only)
+
+**⚠️ This monolithic repository will be archived in v0.21.0. Please migrate to the component architecture.**
 
 ## Current Capabilities
 
@@ -117,7 +147,21 @@ See [ADR-007](docs/adr/ADR-007-codebook-security.md) for details on the encoding
 
 ## Quick Start
 
-### Installation
+> **⚠️ For new projects, use the component repositories instead of this monolithic repo.**
+
+### Installation (Component Architecture - Recommended)
+
+```toml
+# In your Cargo.toml, add only the components you need:
+[dependencies]
+embeddenator-vsa = { git = "https://github.com/tzervas/embeddenator-vsa", tag = "v0.20.0" }
+embeddenator-fs = { git = "https://github.com/tzervas/embeddenator-fs", tag = "v0.20.0" }
+embeddenator-retrieval = { git = "https://github.com/tzervas/embeddenator-retrieval", tag = "v0.20.0" }
+```
+
+See the [Migration Guide](../MIGRATION_GUIDE.md) for complete examples.
+
+### Installation (Legacy Monolithic - Deprecated)
 
 ```bash
 # Clone the repository

@@ -44,11 +44,29 @@ impl QATestHarness {
     }
 
     /// Record performance metric
-    pub fn record_metric(&self, operation: &str, duration: Duration, memory_kb: usize, throughput: f64) {
+    pub fn record_metric(
+        &self,
+        operation: &str,
+        duration: Duration,
+        memory_kb: usize,
+        throughput: f64,
+    ) {
         let mut metrics = self.metrics.lock().unwrap();
-        metrics.operation_times.entry(operation.to_string()).or_default().push(duration);
-        metrics.memory_usage.entry(operation.to_string()).or_default().push(memory_kb);
-        metrics.throughput.entry(operation.to_string()).or_default().push(throughput);
+        metrics
+            .operation_times
+            .entry(operation.to_string())
+            .or_default()
+            .push(duration);
+        metrics
+            .memory_usage
+            .entry(operation.to_string())
+            .or_default()
+            .push(memory_kb);
+        metrics
+            .throughput
+            .entry(operation.to_string())
+            .or_default()
+            .push(throughput);
     }
 
     /// Get temporary directory for test data
@@ -63,8 +81,16 @@ impl QATestHarness {
 
         // Create files of various types and sizes
         let patterns: Vec<(&str, &str, Vec<u8>)> = vec![
-            ("text", "txt", b"This is a text file with some content.\n".to_vec()),
-            ("json", "json", br#"{"key": "value", "number": 42}"#.to_vec()),
+            (
+                "text",
+                "txt",
+                b"This is a text file with some content.\n".to_vec(),
+            ),
+            (
+                "json",
+                "json",
+                br#"{"key": "value", "number": 42}"#.to_vec(),
+            ),
             ("binary", "bin", (0..=255).collect::<Vec<u8>>()),
         ];
 
@@ -106,7 +132,13 @@ mod qa_tests {
 
         // Test with maximum possible vectors
         let max_vectors: Vec<SparseVec> = (0..1000)
-            .map(|i| SparseVec::encode_data(format!("test_data_{}", i).as_bytes(), &ReversibleVSAConfig::default(), None))
+            .map(|i| {
+                SparseVec::encode_data(
+                    format!("test_data_{}", i).as_bytes(),
+                    &ReversibleVSAConfig::default(),
+                    None,
+                )
+            })
             .collect();
 
         let start = Instant::now();
@@ -124,19 +156,28 @@ mod qa_tests {
         }
 
         let similarity = result.cosine(&reversed_result);
-        assert!(similarity > 0.95, "Bundle commutativity failed: similarity = {}", similarity);
+        assert!(
+            similarity > 0.95,
+            "Bundle commutativity failed: similarity = {}",
+            similarity
+        );
 
         // Test bind self-inverse property
-        let original = SparseVec::encode_data(
-            b"test_bind_inverse",
-            &ReversibleVSAConfig::default(),
-            None,
-        );
+        let original =
+            SparseVec::encode_data(b"test_bind_inverse", &ReversibleVSAConfig::default(), None);
         let bound = original.bind(&original);
-        assert!(!bound.pos.is_empty() || !bound.neg.is_empty(), "Bind self-inverse should produce non-zero result");
+        assert!(
+            !bound.pos.is_empty() || !bound.neg.is_empty(),
+            "Bind self-inverse should produce non-zero result"
+        );
 
         let duration = start.elapsed();
-        harness.record_metric("vsa_extreme_invariants", duration, 0, max_vectors.len() as f64 / duration.as_secs_f64());
+        harness.record_metric(
+            "vsa_extreme_invariants",
+            duration,
+            0,
+            max_vectors.len() as f64 / duration.as_secs_f64(),
+        );
 
         println!("✓ VSA extreme invariants test passed in {:?}", duration);
     }
@@ -166,7 +207,11 @@ mod qa_tests {
             for b in -1..=1 {
                 let forward = add_results[&(a, b)];
                 let reverse = add_results[&(b, a)];
-                assert_eq!(forward, reverse, "Addition not commutative for {} + {}", a, b);
+                assert_eq!(
+                    forward, reverse,
+                    "Addition not commutative for {} + {}",
+                    a, b
+                );
             }
         }
 
@@ -183,7 +228,10 @@ mod qa_tests {
 
                 // Test that bind self-inverse produces all-positive result
                 let self_bound = t1.mul(t1);
-                assert!(self_bound.to_i8() >= 0, "Mul self-inverse should be non-negative");
+                assert!(
+                    self_bound.to_i8() >= 0,
+                    "Mul self-inverse should be non-negative"
+                );
             }
         }
 
@@ -200,9 +248,17 @@ mod qa_tests {
         }
 
         let duration = start.elapsed();
-        harness.record_metric("ternary_exhaustive", duration, 0, 27.0 * 27.0 / duration.as_secs_f64());
+        harness.record_metric(
+            "ternary_exhaustive",
+            duration,
+            0,
+            27.0 * 27.0 / duration.as_secs_f64(),
+        );
 
-        println!("✓ Balanced ternary exhaustive arithmetic test passed in {:?}", duration);
+        println!(
+            "✓ Balanced ternary exhaustive arithmetic test passed in {:?}",
+            duration
+        );
     }
 
     /// Test EmbrFS reconstruction guarantee with adversarial inputs
@@ -216,10 +272,18 @@ mod qa_tests {
             ("single_byte", vec![0]),
             ("all_zeros", vec![0; 1000]),
             ("all_ones", vec![255; 1000]),
-            ("alternating", (0..1000).map(|i| if i % 2 == 0 { 0 } else { 255 }).collect()),
+            (
+                "alternating",
+                (0..1000)
+                    .map(|i| if i % 2 == 0 { 0 } else { 255 })
+                    .collect(),
+            ),
             ("random", (0..1000).map(|_| rand::random::<u8>()).collect()),
             ("repeated_pattern", b"ABCDEFGH".repeat(125)),
-            ("high_entropy", (0..1000).map(|i| (i * 7 + 13) as u8).collect()),
+            (
+                "high_entropy",
+                (0..1000).map(|i| (i * 7 + 13) as u8).collect(),
+            ),
         ];
 
         for (name, data) in test_cases {
@@ -235,7 +299,8 @@ mod qa_tests {
 
             // Ingest the file - use just the filename as logical_path for proper extraction
             let filename = format!("adversarial_{}.bin", name);
-            fs.ingest_file(&test_path, filename, false, &config).unwrap();
+            fs.ingest_file(&test_path, filename, false, &config)
+                .unwrap();
 
             // Extract to temporary location
             let extract_dir = harness.temp_dir().join(format!("extract_{}", name));
@@ -251,9 +316,19 @@ mod qa_tests {
             assert_eq!(data, extracted_data, "Reconstruction failed for {}", name);
 
             let duration = start.elapsed();
-            harness.record_metric(&format!("reconstruction_{}", name), duration, data.len() / 1024, data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0);
+            harness.record_metric(
+                &format!("reconstruction_{}", name),
+                duration,
+                data.len() / 1024,
+                data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0,
+            );
 
-            println!("✓ Reconstruction test '{}' passed in {:?} ({} MB/s)", name, duration, data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0);
+            println!(
+                "✓ Reconstruction test '{}' passed in {:?} ({} MB/s)",
+                name,
+                duration,
+                data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0
+            );
         }
     }
 
@@ -294,7 +369,14 @@ mod qa_tests {
 
                 for i in start_idx..end_idx {
                     // Ingest file
-                    local_fs.ingest_file(&files[i], files[i].to_string_lossy().to_string(), false, &config_clone).unwrap();
+                    local_fs
+                        .ingest_file(
+                            &files[i],
+                            files[i].to_string_lossy().to_string(),
+                            false,
+                            &config_clone,
+                        )
+                        .unwrap();
                 }
             });
 
@@ -310,11 +392,24 @@ mod qa_tests {
 
         // Verify all files were ingested
         let fs_locked = fs.lock().unwrap();
-        assert_eq!(fs_locked.manifest.files.len(), test_files.len(), "Not all files ingested");
+        assert_eq!(
+            fs_locked.manifest.files.len(),
+            test_files.len(),
+            "Not all files ingested"
+        );
 
-        harness.record_metric("concurrent_ingest", duration, 0, test_files.len() as f64 / duration.as_secs_f64());
+        harness.record_metric(
+            "concurrent_ingest",
+            duration,
+            0,
+            test_files.len() as f64 / duration.as_secs_f64(),
+        );
 
-        println!("✓ Concurrent access test passed in {:?} ({} files/sec)", duration, test_files.len() as f64 / duration.as_secs_f64());
+        println!(
+            "✓ Concurrent access test passed in {:?} ({} files/sec)",
+            duration,
+            test_files.len() as f64 / duration.as_secs_f64()
+        );
     }
 
     /// Test memory usage patterns and leaks
@@ -345,12 +440,21 @@ mod qa_tests {
             let duration = start.elapsed();
 
             // Estimate memory usage (rough approximation)
-            let estimated_memory_kb = (fs.engram.codebook.len() * std::mem::size_of::<SparseVec>() +
-                                     fs.manifest.files.len() * std::mem::size_of::<FileEntry>()) / 1024;
+            let estimated_memory_kb = (fs.engram.codebook.len() * std::mem::size_of::<SparseVec>()
+                + fs.manifest.files.len() * std::mem::size_of::<FileEntry>())
+                / 1024;
 
-            harness.record_metric(&format!("memory_test_{}mb", size_mb), duration, estimated_memory_kb, size_mb as f64 / duration.as_secs_f64());
+            harness.record_metric(
+                &format!("memory_test_{}mb", size_mb),
+                duration,
+                estimated_memory_kb,
+                size_mb as f64 / duration.as_secs_f64(),
+            );
 
-            println!("✓ Memory test {}MB passed in {:?} (est. {}KB memory)", size_mb, duration, estimated_memory_kb);
+            println!(
+                "✓ Memory test {}MB passed in {:?} (est. {}KB memory)",
+                size_mb, duration, estimated_memory_kb
+            );
         }
     }
 
@@ -372,35 +476,81 @@ mod qa_tests {
         // Test ingest
         let start = Instant::now();
         let ingest_result = Command::new(bin_path)
-            .args(&["ingest", "-i", &input_dir.to_string_lossy(), "-e", &engram_path.to_string_lossy(), "-m", &manifest_path.to_string_lossy(), "-v"])
+            .args(&[
+                "ingest",
+                "-i",
+                &input_dir.to_string_lossy(),
+                "-e",
+                &engram_path.to_string_lossy(),
+                "-m",
+                &manifest_path.to_string_lossy(),
+                "-v",
+            ])
             .output()
             .expect("Ingest command failed");
 
-        assert!(ingest_result.status.success(), "Ingest failed: {}", String::from_utf8_lossy(&ingest_result.stderr));
+        assert!(
+            ingest_result.status.success(),
+            "Ingest failed: {}",
+            String::from_utf8_lossy(&ingest_result.stderr)
+        );
         let ingest_duration = start.elapsed();
 
         // Test extract
         let start = Instant::now();
         let extract_result = Command::new(bin_path)
-            .args(&["extract", "-e", &engram_path.to_string_lossy(), "-m", &manifest_path.to_string_lossy(), "-o", &output_dir.to_string_lossy(), "-v"])
+            .args(&[
+                "extract",
+                "-e",
+                &engram_path.to_string_lossy(),
+                "-m",
+                &manifest_path.to_string_lossy(),
+                "-o",
+                &output_dir.to_string_lossy(),
+                "-v",
+            ])
             .output()
             .expect("Extract command failed");
 
-        assert!(extract_result.status.success(), "Extract failed: {}", String::from_utf8_lossy(&extract_result.stderr));
+        assert!(
+            extract_result.status.success(),
+            "Extract failed: {}",
+            String::from_utf8_lossy(&extract_result.stderr)
+        );
         let extract_duration = start.elapsed();
 
         // Verify reconstruction
         let verify_result = Command::new("diff")
-            .args(&["-r", &input_dir.to_string_lossy(), &output_dir.to_string_lossy()])
+            .args(&[
+                "-r",
+                &input_dir.to_string_lossy(),
+                &output_dir.to_string_lossy(),
+            ])
             .output()
             .unwrap();
 
-        assert!(verify_result.status.success(), "Reconstruction verification failed");
+        assert!(
+            verify_result.status.success(),
+            "Reconstruction verification failed"
+        );
 
-        harness.record_metric("cli_ingest", ingest_duration, 0, 1.0 / ingest_duration.as_secs_f64());
-        harness.record_metric("cli_extract", extract_duration, 0, 1.0 / extract_duration.as_secs_f64());
+        harness.record_metric(
+            "cli_ingest",
+            ingest_duration,
+            0,
+            1.0 / ingest_duration.as_secs_f64(),
+        );
+        harness.record_metric(
+            "cli_extract",
+            extract_duration,
+            0,
+            1.0 / extract_duration.as_secs_f64(),
+        );
 
-        println!("✓ CLI comprehensive test passed (ingest: {:?}, extract: {:?})", ingest_duration, extract_duration);
+        println!(
+            "✓ CLI comprehensive test passed (ingest: {:?}, extract: {:?})",
+            ingest_duration, extract_duration
+        );
     }
 
     /// Test performance regression detection
@@ -425,10 +575,20 @@ mod qa_tests {
         fs.ingest_directory(&dataset_dir, false, &config).unwrap();
         let ingest_time = start.elapsed();
 
-        assert!(ingest_time < max_ingest_time, "Ingest too slow: {:?} > {:?}", ingest_time, max_ingest_time);
+        assert!(
+            ingest_time < max_ingest_time,
+            "Ingest too slow: {:?} > {:?}",
+            ingest_time,
+            max_ingest_time
+        );
 
         let ingest_mbps = 1.0 / ingest_time.as_secs_f64();
-        assert!(ingest_mbps >= expected_ingest_mbps, "Ingest throughput too low: {:.2} MB/s < {:.2} MB/s", ingest_mbps, expected_ingest_mbps);
+        assert!(
+            ingest_mbps >= expected_ingest_mbps,
+            "Ingest throughput too low: {:.2} MB/s < {:.2} MB/s",
+            ingest_mbps,
+            expected_ingest_mbps
+        );
 
         // Measure extract performance
         let extract_dir = harness.temp_dir().join("perf_extract");
@@ -438,15 +598,28 @@ mod qa_tests {
         EmbrFS::extract(&fs.engram, &fs.manifest, &extract_dir, false, &config).unwrap();
         let extract_time = start.elapsed();
 
-        assert!(extract_time < max_extract_time, "Extract too slow: {:?} > {:?}", extract_time, max_extract_time);
+        assert!(
+            extract_time < max_extract_time,
+            "Extract too slow: {:?} > {:?}",
+            extract_time,
+            max_extract_time
+        );
 
         let extract_mbps = 1.0 / extract_time.as_secs_f64();
-        assert!(extract_mbps >= expected_extract_mbps, "Extract throughput too low: {:.2} MB/s < {:.2} MB/s", extract_mbps, expected_extract_mbps);
+        assert!(
+            extract_mbps >= expected_extract_mbps,
+            "Extract throughput too low: {:.2} MB/s < {:.2} MB/s",
+            extract_mbps,
+            expected_extract_mbps
+        );
 
         harness.record_metric("performance_ingest", ingest_time, 0, ingest_mbps);
         harness.record_metric("performance_extract", extract_time, 0, extract_mbps);
 
-        println!("✓ Performance regression test passed (ingest: {:.2} MB/s, extract: {:.2} MB/s)", ingest_mbps, extract_mbps);
+        println!(
+            "✓ Performance regression test passed (ingest: {:.2} MB/s, extract: {:.2} MB/s)",
+            ingest_mbps, extract_mbps
+        );
     }
 
     /// Test edge cases and boundary conditions
@@ -468,7 +641,10 @@ mod qa_tests {
                 data
             }),
             ("highly_compressible", vec![b'A'; 1000]),
-            ("random_data", (0..1000).map(|_| rand::random::<u8>()).collect()),
+            (
+                "random_data",
+                (0..1000).map(|_| rand::random::<u8>()).collect(),
+            ),
         ];
 
         for (name, data) in edge_cases {
@@ -497,22 +673,41 @@ mod qa_tests {
 
             if data != extracted_data {
                 eprintln!("Edge case '{}' mismatch:", name);
-                eprintln!("  Original length: {}, Extracted length: {}", data.len(), extracted_data.len());
+                eprintln!(
+                    "  Original length: {}, Extracted length: {}",
+                    data.len(),
+                    extracted_data.len()
+                );
                 if data.len() != extracted_data.len() {
                     eprintln!("  LENGTH MISMATCH!");
                 } else {
-                    let diffs: Vec<_> = data.iter().zip(extracted_data.iter())
+                    let diffs: Vec<_> = data
+                        .iter()
+                        .zip(extracted_data.iter())
                         .enumerate()
                         .filter(|(_, (a, b))| a != b)
                         .map(|(i, (a, b))| (i, *a, *b))
                         .collect();
-                    eprintln!("  {} byte differences at positions: {:?}", diffs.len(), &diffs[..diffs.len().min(10)]);
+                    eprintln!(
+                        "  {} byte differences at positions: {:?}",
+                        diffs.len(),
+                        &diffs[..diffs.len().min(10)]
+                    );
                 }
             }
-            assert_eq!(data, extracted_data, "Edge case '{}' reconstruction failed", name);
+            assert_eq!(
+                data, extracted_data,
+                "Edge case '{}' reconstruction failed",
+                name
+            );
 
             let duration = start.elapsed();
-            harness.record_metric(&format!("edge_case_{}", name), duration, data.len() / 1024, data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0);
+            harness.record_metric(
+                &format!("edge_case_{}", name),
+                duration,
+                data.len() / 1024,
+                data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0,
+            );
 
             println!("✓ Edge case '{}' test passed in {:?}", name, duration);
         }
@@ -555,7 +750,11 @@ mod qa_tests {
         // Verify directory structure is preserved
         assert!(extract_dir.join("root.txt").exists());
         assert!(extract_dir.join("level1").join("level1.txt").exists());
-        assert!(extract_dir.join("level1").join("level2").join("level2.txt").exists());
+        assert!(extract_dir
+            .join("level1")
+            .join("level2")
+            .join("level2.txt")
+            .exists());
 
         // Verify content
         let root_content = fs::read(extract_dir.join("root.txt")).unwrap();
@@ -564,11 +763,17 @@ mod qa_tests {
         let level1_content = fs::read(extract_dir.join("level1").join("level1.txt")).unwrap();
         assert_eq!(level1_content, b"Level 1 file");
 
-        let level2_content = fs::read(extract_dir.join("level1").join("level2").join("level2.txt")).unwrap();
+        let level2_content =
+            fs::read(extract_dir.join("level1").join("level2").join("level2.txt")).unwrap();
         assert_eq!(level2_content, b"Level 2 file");
 
         let duration = start.elapsed();
-        harness.record_metric("hierarchical_operations", duration, 0, 3.0 / duration.as_secs_f64());
+        harness.record_metric(
+            "hierarchical_operations",
+            duration,
+            0,
+            3.0 / duration.as_secs_f64(),
+        );
 
         println!("✓ Hierarchical operations test passed in {:?}", duration);
     }
@@ -588,7 +793,13 @@ mod qa_tests {
         // Ingest file
         let mut fs = EmbrFS::new();
         let config = ReversibleVSAConfig::default();
-        fs.ingest_file(&filepath, filepath.to_string_lossy().to_string(), false, &config).unwrap();
+        fs.ingest_file(
+            &filepath,
+            filepath.to_string_lossy().to_string(),
+            false,
+            &config,
+        )
+        .unwrap();
 
         // Test resonator creation and basic functionality
         let resonator = Resonator::new();
@@ -599,7 +810,11 @@ mod qa_tests {
 
         // Projection should be similar to original
         let similarity = query_vec.cosine(&projection);
-        assert!(similarity > 0.5, "Resonator projection too dissimilar: {}", similarity);
+        assert!(
+            similarity > 0.5,
+            "Resonator projection too dissimilar: {}",
+            similarity
+        );
 
         // Test factorization - note: factorize may return empty if no codebook patterns match
         let factors = resonator.factorize(&query_vec, 5);
@@ -607,9 +822,17 @@ mod qa_tests {
         println!("  Factorization returned {} factors", factors.factors.len());
 
         let duration = start.elapsed();
-        harness.record_metric("resonator_recovery", duration, 0, 1.0 / duration.as_secs_f64());
+        harness.record_metric(
+            "resonator_recovery",
+            duration,
+            0,
+            1.0 / duration.as_secs_f64(),
+        );
 
-        println!("✓ Resonator recovery test passed in {:?} (similarity: {:.3})", duration, similarity);
+        println!(
+            "✓ Resonator recovery test passed in {:?} (similarity: {:.3})",
+            duration, similarity
+        );
     }
 
     /// Test correction store functionality comprehensively
@@ -654,9 +877,17 @@ mod qa_tests {
         assert!(stats.perfect_ratio >= 0.0 && stats.perfect_ratio <= 1.0);
 
         let duration = start.elapsed();
-        harness.record_metric("correction_store", duration, 0, 4.0 / duration.as_secs_f64());
+        harness.record_metric(
+            "correction_store",
+            duration,
+            0,
+            4.0 / duration.as_secs_f64(),
+        );
 
-        println!("✓ Correction store comprehensive test passed in {:?}", duration);
+        println!(
+            "✓ Correction store comprehensive test passed in {:?}",
+            duration
+        );
     }
 
     /// Test VSA configuration presets and their effects
@@ -677,7 +908,7 @@ mod qa_tests {
             // Test encoding/decoding roundtrip with correction store guarantee
             let encoded = SparseVec::encode_data(test_data, &config, None);
             let decoded_raw = encoded.decode_data(&config, None, test_data.len());
-            
+
             // Use CorrectionStore to guarantee perfect reconstruction
             let mut corrections = CorrectionStore::new();
             corrections.add(0, test_data, &decoded_raw);
@@ -686,7 +917,12 @@ mod qa_tests {
             assert_eq!(decoded, test_data, "Config '{}' roundtrip failed", name);
 
             let duration = start.elapsed();
-            harness.record_metric(&format!("vsa_config_{}", name), duration, 0, test_data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0);
+            harness.record_metric(
+                &format!("vsa_config_{}", name),
+                duration,
+                0,
+                test_data.len() as f64 / duration.as_secs_f64() / 1024.0 / 1024.0,
+            );
 
             println!("✓ VSA config '{}' test passed in {:?}", name, duration);
         }
@@ -705,7 +941,10 @@ mod qa_tests {
         let metrics = harness.metrics.lock().unwrap();
 
         println!("\n=== COMPREHENSIVE QA TEST REPORT ===");
-        println!("Total operations measured: {}", metrics.operation_times.len());
+        println!(
+            "Total operations measured: {}",
+            metrics.operation_times.len()
+        );
 
         for (operation, times) in &metrics.operation_times {
             let avg_time = times.iter().sum::<Duration>() / times.len() as u32;
@@ -743,7 +982,10 @@ mod property_tests {
 
     fn sparse_vec_strategy(max_nonzeros: usize) -> impl Strategy<Value = SparseVec> {
         prop::collection::vec(
-            (0usize..embeddenator::DIM, prop_oneof![Just(1i8), Just(-1i8)]),
+            (
+                0usize..embeddenator::DIM,
+                prop_oneof![Just(1i8), Just(-1i8)],
+            ),
             1..max_nonzeros,
         )
         .prop_map(|pairs| {
@@ -857,13 +1099,34 @@ mod benchmark_tests {
         }
         let cosine_time = start.elapsed();
 
-        harness.record_metric("benchmark_bundle", bundle_time, 0, 1000.0 / bundle_time.as_secs_f64());
-        harness.record_metric("benchmark_bind", bind_time, 0, 1000.0 / bind_time.as_secs_f64());
-        harness.record_metric("benchmark_cosine", cosine_time, 0, 1000.0 / cosine_time.as_secs_f64());
+        harness.record_metric(
+            "benchmark_bundle",
+            bundle_time,
+            0,
+            1000.0 / bundle_time.as_secs_f64(),
+        );
+        harness.record_metric(
+            "benchmark_bind",
+            bind_time,
+            0,
+            1000.0 / bind_time.as_secs_f64(),
+        );
+        harness.record_metric(
+            "benchmark_cosine",
+            cosine_time,
+            0,
+            1000.0 / cosine_time.as_secs_f64(),
+        );
 
         println!("✓ VSA benchmarks completed:");
-        println!("  Bundle: {:.2} ops/sec", 1000.0 / bundle_time.as_secs_f64());
+        println!(
+            "  Bundle: {:.2} ops/sec",
+            1000.0 / bundle_time.as_secs_f64()
+        );
         println!("  Bind: {:.2} ops/sec", 1000.0 / bind_time.as_secs_f64());
-        println!("  Cosine: {:.2} ops/sec", 1000.0 / cosine_time.as_secs_f64());
+        println!(
+            "  Cosine: {:.2} ops/sec",
+            1000.0 / cosine_time.as_secs_f64()
+        );
     }
 }

@@ -59,7 +59,15 @@ fn ref_bundle(a: &SparseVec, b: &SparseVec) -> SparseVec {
     for i in 0..DIM {
         let av = da[i];
         let bv = db[i];
-        out[i] = if av == 0 { bv } else if bv == 0 { av } else if av == bv { av } else { 0 };
+        out[i] = if av == 0 {
+            bv
+        } else if bv == 0 {
+            av
+        } else if av == bv {
+            av
+        } else {
+            0
+        };
     }
 
     dense_sign_to_sparse(&out)

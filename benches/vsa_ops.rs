@@ -64,18 +64,30 @@ fn bench_reversible_encode_decode(c: &mut Criterion) {
 
         group.bench_with_input(BenchmarkId::new("encode", size), &data, |bencher, data| {
             bencher.iter(|| {
-                let v = SparseVec::encode_data(black_box(data), black_box(&config), Some("/bench/path"));
+                let v = SparseVec::encode_data(
+                    black_box(data),
+                    black_box(&config),
+                    Some("/bench/path"),
+                );
                 black_box(v)
             })
         });
 
         let encoded = SparseVec::encode_data(&data, &config, Some("/bench/path"));
-        group.bench_with_input(BenchmarkId::new("decode", size), &encoded, |bencher, encoded| {
-            bencher.iter(|| {
-                let out = black_box(encoded).decode_data(black_box(&config), Some("/bench/path"), size);
-                black_box(out)
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("decode", size),
+            &encoded,
+            |bencher, encoded| {
+                bencher.iter(|| {
+                    let out = black_box(encoded).decode_data(
+                        black_box(&config),
+                        Some("/bench/path"),
+                        size,
+                    );
+                    black_box(out)
+                })
+            },
+        );
     }
 
     group.finish();
@@ -132,7 +144,8 @@ fn bench_bundle_modes(c: &mut Criterion) {
 
     group.bench_function("hybrid_sparse", |bch| {
         bch.iter(|| {
-            let acc = SparseVec::bundle_hybrid_many([black_box(&sa), black_box(&sb), black_box(&sc)]);
+            let acc =
+                SparseVec::bundle_hybrid_many([black_box(&sa), black_box(&sb), black_box(&sc)]);
             black_box(acc)
         })
     });
@@ -153,7 +166,8 @@ fn bench_bundle_modes(c: &mut Criterion) {
 
     group.bench_function("hybrid_dense", |bch| {
         bch.iter(|| {
-            let acc = SparseVec::bundle_hybrid_many([black_box(&da), black_box(&db), black_box(&dc)]);
+            let acc =
+                SparseVec::bundle_hybrid_many([black_box(&da), black_box(&db), black_box(&dc)]);
             black_box(acc)
         })
     });
@@ -169,14 +183,22 @@ fn bench_bundle_modes(c: &mut Criterion) {
 
     group.bench_function("sum_many_mid_lo", |bch| {
         bch.iter(|| {
-            let acc = SparseVec::bundle_sum_many([black_box(&ma_lo), black_box(&mb_lo), black_box(&mc_lo)]);
+            let acc = SparseVec::bundle_sum_many([
+                black_box(&ma_lo),
+                black_box(&mb_lo),
+                black_box(&mc_lo),
+            ]);
             black_box(acc)
         })
     });
 
     group.bench_function("hybrid_mid_lo", |bch| {
         bch.iter(|| {
-            let acc = SparseVec::bundle_hybrid_many([black_box(&ma_lo), black_box(&mb_lo), black_box(&mc_lo)]);
+            let acc = SparseVec::bundle_hybrid_many([
+                black_box(&ma_lo),
+                black_box(&mb_lo),
+                black_box(&mc_lo),
+            ]);
             black_box(acc)
         })
     });
@@ -192,14 +214,22 @@ fn bench_bundle_modes(c: &mut Criterion) {
 
     group.bench_function("sum_many_mid_hi", |bch| {
         bch.iter(|| {
-            let acc = SparseVec::bundle_sum_many([black_box(&ma_hi), black_box(&mb_hi), black_box(&mc_hi)]);
+            let acc = SparseVec::bundle_sum_many([
+                black_box(&ma_hi),
+                black_box(&mb_hi),
+                black_box(&mc_hi),
+            ]);
             black_box(acc)
         })
     });
 
     group.bench_function("hybrid_mid_hi", |bch| {
         bch.iter(|| {
-            let acc = SparseVec::bundle_hybrid_many([black_box(&ma_hi), black_box(&mb_hi), black_box(&mc_hi)]);
+            let acc = SparseVec::bundle_hybrid_many([
+                black_box(&ma_hi),
+                black_box(&mb_hi),
+                black_box(&mc_hi),
+            ]);
             black_box(acc)
         })
     });

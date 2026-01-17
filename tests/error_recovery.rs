@@ -85,8 +85,8 @@ fn truncate_file(path: &Path, new_size: usize) -> std::io::Result<()> {
 #[test]
 fn test_corrupted_engram_recovery() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let (engram_path, _) = create_valid_engram_and_manifest(&temp_dir)
-        .expect("Failed to create valid engram");
+    let (engram_path, _) =
+        create_valid_engram_and_manifest(&temp_dir).expect("Failed to create valid engram");
 
     // Corrupt the engram file significantly (corrupt 50% of the file)
     // bincode is resilient to small amounts of corruption
@@ -107,10 +107,7 @@ fn test_corrupted_engram_recovery() {
         Err(error) => {
             let error_msg = error.to_string();
             // bincode errors typically mention deserialization or I/O issues
-            assert!(
-                !error_msg.is_empty(),
-                "Error message should not be empty"
-            );
+            assert!(!error_msg.is_empty(), "Error message should not be empty");
             // Most deserialization errors will be I/O errors wrapping bincode errors
         }
         Ok(_) => panic!("Expected error but got Ok"),
@@ -120,8 +117,8 @@ fn test_corrupted_engram_recovery() {
 #[test]
 fn test_truncated_engram_file() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let (engram_path, _) = create_valid_engram_and_manifest(&temp_dir)
-        .expect("Failed to create valid engram");
+    let (engram_path, _) =
+        create_valid_engram_and_manifest(&temp_dir).expect("Failed to create valid engram");
 
     // Get original size and truncate to 25%
     let original_size = fs::metadata(&engram_path)
@@ -143,10 +140,7 @@ fn test_truncated_engram_file() {
     match result {
         Err(error) => {
             let error_msg = error.to_string();
-            assert!(
-                !error_msg.is_empty(),
-                "Error message should not be empty"
-            );
+            assert!(!error_msg.is_empty(), "Error message should not be empty");
             // Truncated files will produce I/O or deserialization errors
         }
         Ok(_) => panic!("Expected error but got Ok"),
@@ -213,10 +207,7 @@ fn test_malformed_json_manifest() {
         Err(error) => {
             let error_msg = error.to_string();
             // JSON parsing errors should have meaningful messages
-            assert!(
-                !error_msg.is_empty(),
-                "Error message should not be empty"
-            );
+            assert!(!error_msg.is_empty(), "Error message should not be empty");
         }
         Ok(_) => panic!("Expected error but got Ok"),
     }
@@ -242,10 +233,7 @@ fn test_manifest_missing_required_fields() {
         Err(error) => {
             let error_msg = error.to_string();
             // Should have meaningful error about missing fields
-            assert!(
-                !error_msg.is_empty(),
-                "Error message should not be empty"
-            );
+            assert!(!error_msg.is_empty(), "Error message should not be empty");
         }
         Ok(_) => panic!("Expected error but got Ok"),
     }
@@ -295,10 +283,7 @@ fn test_hierarchical_manifest_version_mismatch() {
     // This test documents that behavior and can be updated when version validation is added
     if result.is_ok() {
         let manifest = result.unwrap();
-        assert_eq!(
-            manifest.version, 999,
-            "Future version should be preserved"
-        );
+        assert_eq!(manifest.version, 999, "Future version should be preserved");
         // Note: Production code should add version validation
         eprintln!("Warning: No version validation currently implemented");
     }
@@ -307,8 +292,8 @@ fn test_hierarchical_manifest_version_mismatch() {
 #[test]
 fn test_manifest_with_invalid_paths() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let (_, manifest_path) = create_valid_engram_and_manifest(&temp_dir)
-        .expect("Failed to create valid manifest");
+    let (_, manifest_path) =
+        create_valid_engram_and_manifest(&temp_dir).expect("Failed to create valid manifest");
 
     // Read and modify the manifest to include invalid paths
     let mut manifest: Manifest = serde_json::from_reader(File::open(&manifest_path).unwrap())
@@ -451,8 +436,8 @@ fn test_very_deep_directory_structure() {
 #[test]
 fn test_concurrent_read_safety() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let (engram_path, manifest_path) = create_valid_engram_and_manifest(&temp_dir)
-        .expect("Failed to create valid engram");
+    let (engram_path, manifest_path) =
+        create_valid_engram_and_manifest(&temp_dir).expect("Failed to create valid engram");
 
     // Share paths across threads
     let engram_path = Arc::new(engram_path);
@@ -484,16 +469,8 @@ fn test_concurrent_read_safety() {
     // Collect results
     for handle in handles {
         let (thread_id, engram_ok, manifest_ok) = handle.join().expect("Thread panicked");
-        assert!(
-            engram_ok,
-            "Thread {} failed to load engram",
-            thread_id
-        );
-        assert!(
-            manifest_ok,
-            "Thread {} failed to load manifest",
-            thread_id
-        );
+        assert!(engram_ok, "Thread {} failed to load engram", thread_id);
+        assert!(manifest_ok, "Thread {} failed to load manifest", thread_id);
     }
 }
 
@@ -527,7 +504,8 @@ fn test_concurrent_write_to_different_files() {
             let engram_path = base_path.join(format!("thread_{}.engram", thread_id));
             let manifest_path = base_path.join(format!("thread_{}.manifest.json", thread_id));
 
-            fsys.save_engram(&engram_path).expect("Failed to save engram");
+            fsys.save_engram(&engram_path)
+                .expect("Failed to save engram");
             fsys.save_manifest(&manifest_path)
                 .expect("Failed to save manifest");
 
@@ -540,11 +518,11 @@ fn test_concurrent_write_to_different_files() {
     // All threads should complete successfully
     for handle in handles {
         let thread_id = handle.join().expect("Thread panicked");
-        
+
         // Verify files were created
         let engram_path = base_path.join(format!("thread_{}.engram", thread_id));
         let manifest_path = base_path.join(format!("thread_{}.manifest.json", thread_id));
-        
+
         assert!(
             engram_path.exists(),
             "Thread {} engram not created",
@@ -561,8 +539,8 @@ fn test_concurrent_write_to_different_files() {
 #[test]
 fn test_read_during_corruption_detection() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let (engram_path, _) = create_valid_engram_and_manifest(&temp_dir)
-        .expect("Failed to create valid engram");
+    let (engram_path, _) =
+        create_valid_engram_and_manifest(&temp_dir).expect("Failed to create valid engram");
 
     // First, verify the engram loads correctly
     let original_load = EmbrFS::load_engram(&engram_path);
@@ -584,10 +562,7 @@ fn test_read_during_corruption_detection() {
     match corrupted_load {
         Err(error) => {
             let error_msg = error.to_string();
-            assert!(
-                !error_msg.is_empty(),
-                "Error message should not be empty"
-            );
+            assert!(!error_msg.is_empty(), "Error message should not be empty");
         }
         Ok(_) => panic!("Expected error but got Ok"),
     }
@@ -611,10 +586,7 @@ fn test_error_messages_contain_context() {
         Err(error) => {
             let error_msg = error.to_string();
             // Error should mention file operation or "not found"
-            assert!(
-                !error_msg.is_empty(),
-                "Error message should not be empty"
-            );
+            assert!(!error_msg.is_empty(), "Error message should not be empty");
             // File not found errors are typically std::io::Error with NotFound kind
         }
         Ok(_) => panic!("Expected error but got Ok"),
@@ -652,8 +624,8 @@ fn test_no_silent_failures_on_invalid_data() {
 #[test]
 fn test_manifest_load_preserves_all_data() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let (_, manifest_path) = create_valid_engram_and_manifest(&temp_dir)
-        .expect("Failed to create valid manifest");
+    let (_, manifest_path) =
+        create_valid_engram_and_manifest(&temp_dir).expect("Failed to create valid manifest");
 
     // Load the manifest
     let manifest = EmbrFS::load_manifest(&manifest_path).expect("Failed to load manifest");

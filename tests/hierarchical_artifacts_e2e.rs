@@ -24,7 +24,8 @@ fn bundle_hier_and_store_backed_query_can_find_expected_chunks() {
     // Ingest.
     let config = ReversibleVSAConfig::default();
     let mut fsys = EmbrFS::new();
-    fsys.ingest_directory(root, false, &config).expect("ingest_directory");
+    fsys.ingest_directory(root, false, &config)
+        .expect("ingest_directory");
 
     // Identify which chunks correspond to the needle file.
     let needle_logical = "a/needle.txt";
@@ -52,7 +53,8 @@ fn bundle_hier_and_store_backed_query_can_find_expected_chunks() {
     store_only.sub_engrams.clear();
     embeddenator::save_hierarchical_manifest(&store_only, &hier_path)
         .expect("save_hierarchical_manifest");
-    let loaded = embeddenator::load_hierarchical_manifest(&hier_path).expect("load_hierarchical_manifest");
+    let loaded =
+        embeddenator::load_hierarchical_manifest(&hier_path).expect("load_hierarchical_manifest");
 
     let store = DirectorySubEngramStore::new(&sub_dir);
 
@@ -67,7 +69,13 @@ fn bundle_hier_and_store_backed_query_can_find_expected_chunks() {
     for depth in 0..config.max_path_depth.max(1) {
         let shift = depth * config.base_shift;
         let q = base_query.permute(shift);
-        let hits = query_hierarchical_codebook_with_store(&loaded, &store, &fsys.engram.codebook, &q, &bounds);
+        let hits = query_hierarchical_codebook_with_store(
+            &loaded,
+            &store,
+            &fsys.engram.codebook,
+            &q,
+            &bounds,
+        );
         if hits
             .iter()
             .any(|h| needle_chunks.iter().any(|cid| *cid == h.chunk_id))
@@ -77,5 +85,8 @@ fn bundle_hier_and_store_backed_query_can_find_expected_chunks() {
         }
     }
 
-    assert!(found, "did not recover any needle chunk via hierarchical query");
+    assert!(
+        found,
+        "did not recover any needle chunk via hierarchical query"
+    );
 }

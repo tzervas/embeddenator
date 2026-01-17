@@ -86,5 +86,9 @@ fn bundle_hier_is_deterministic_and_sharding_stable() {
     save_sub_engrams_dir(&h1.sub_engrams, &d1).expect("save 1");
     save_sub_engrams_dir(&h2.sub_engrams, &d2).expect("save 2");
 
-    assert_eq!(list_filenames(&d1), list_filenames(&d2), "sub-engram filenames drifted");
+    assert_eq!(
+        list_filenames(&d1),
+        list_filenames(&d2),
+        "sub-engram filenames drifted"
+    );
 }

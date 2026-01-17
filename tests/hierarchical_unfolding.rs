@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
-use embeddenator::{query_hierarchical_codebook, HierarchicalManifest, HierarchicalQueryBounds, SparseVec, SubEngram};
 use embeddenator::embrfs::{ManifestItem, ManifestLevel};
 use embeddenator::{
-    DirectorySubEngramStore, query_hierarchical_codebook_with_store, save_hierarchical_manifest,
-    save_sub_engrams_dir,
+    query_hierarchical_codebook, HierarchicalManifest, HierarchicalQueryBounds, SparseVec,
+    SubEngram,
+};
+use embeddenator::{
+    query_hierarchical_codebook_with_store, save_hierarchical_manifest, save_sub_engrams_dir,
+    DirectorySubEngramStore,
 };
 
 fn sv(pos: &[usize], neg: &[usize]) -> SparseVec {
@@ -208,7 +211,8 @@ fn hierarchical_unfolding_can_load_sub_engrams_from_directory_store() {
     // Also ensure save/load of the manifest works with empty sub_engrams.
     let hier_path = tmp.path().join("hier.json");
     save_hierarchical_manifest(&hierarchical, &hier_path).expect("save_hierarchical_manifest");
-    let loaded_hier = embeddenator::load_hierarchical_manifest(&hier_path).expect("load_hierarchical_manifest");
+    let loaded_hier =
+        embeddenator::load_hierarchical_manifest(&hier_path).expect("load_hierarchical_manifest");
 
     let store = DirectorySubEngramStore::new(&sub_dir);
     let bounds = HierarchicalQueryBounds {
@@ -221,7 +225,8 @@ fn hierarchical_unfolding_can_load_sub_engrams_from_directory_store() {
         max_open_engrams: 2,
     };
 
-    let results = query_hierarchical_codebook_with_store(&loaded_hier, &store, &codebook, &query, &bounds);
+    let results =
+        query_hierarchical_codebook_with_store(&loaded_hier, &store, &codebook, &query, &bounds);
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].chunk_id, 0);
     assert_eq!(results[0].sub_engram_id, "child");

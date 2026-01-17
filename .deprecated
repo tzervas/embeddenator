@@ -1,0 +1,7 @@
+DEPRECATED: v0.20.0-alpha.1
+Date: 2026-01-16
+Reason: Migrated to component-based architecture
+Archive Date: 2026-06-01 (v0.21.0)
+Removal Date: 2026-09-01 (v1.0.0)
+Migration Guide: DEPRECATED.md
+Archive Plan: ARCHIVE_PLAN.md

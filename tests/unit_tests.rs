@@ -1,8 +1,8 @@
 //! Unit tests for Vector Symbolic Architecture (VSA)
 
-use embeddenator::vsa::SparseVec;
-use embeddenator::vsa::ReversibleVSAConfig;
 use embeddenator::resonator::Resonator;
+use embeddenator::vsa::ReversibleVSAConfig;
+use embeddenator::vsa::SparseVec;
 use std::collections::HashSet;
 
 fn enc(data: &[u8]) -> SparseVec {
@@ -140,7 +140,11 @@ fn test_bundle_conflict_cancel_non_associative_minimal() {
     let left = a.bundle(&b).bundle(&c); // ((+1)+(+1)) then +(-1) -> 0
     let right = a.bundle(&b.bundle(&c)); // (+1)+(0) -> +1
 
-    assert_eq!(left.pos.len() + left.neg.len(), 0, "left should cancel to 0");
+    assert_eq!(
+        left.pos.len() + left.neg.len(),
+        0,
+        "left should cancel to 0"
+    );
     assert_eq!(right.pos, vec![0], "right should keep +1");
 }
 
@@ -354,7 +358,7 @@ fn test_is_text_file() {
 #[test]
 fn test_reversible_vsaconfig_default() {
     use embeddenator::vsa::ReversibleVSAConfig;
-    
+
     let config = ReversibleVSAConfig::default();
     assert_eq!(config.block_size, 256);
     assert_eq!(config.max_path_depth, 10);
@@ -365,11 +369,11 @@ fn test_reversible_vsaconfig_default() {
 #[test]
 fn test_reversible_vsaconfig_presets() {
     use embeddenator::vsa::ReversibleVSAConfig;
-    
+
     let small = ReversibleVSAConfig::small_blocks();
     assert_eq!(small.block_size, 64);
     assert_eq!(small.target_sparsity, 100);
-    
+
     let default = ReversibleVSAConfig::default();
     assert_eq!(default.block_size, 256);
     assert_eq!(default.target_sparsity, 200);
@@ -378,7 +382,7 @@ fn test_reversible_vsaconfig_presets() {
 #[test]
 fn test_reversible_vsaconfig_serialization() {
     use embeddenator::vsa::ReversibleVSAConfig;
-    
+
     let config = ReversibleVSAConfig::default();
     let serialized = serde_json::to_string(&config).unwrap();
     let deserialized: ReversibleVSAConfig = serde_json::from_str(&serialized).unwrap();
@@ -392,7 +396,7 @@ fn test_reversible_vsaconfig_serialization() {
 fn test_permute_identity() {
     let vec = enc(b"test data");
     let permuted = vec.permute(0);
-    
+
     // permute(0) should be identical
     assert_eq!(vec.pos, permuted.pos);
     assert_eq!(vec.neg, permuted.neg);
@@ -402,7 +406,7 @@ fn test_permute_identity() {
 fn test_permute_cycle() {
     let vec = enc(b"test data");
     let permuted = vec.permute(embeddenator::vsa::DIM);
-    
+
     // permute(DIM) should complete cycle and be identical
     assert_eq!(vec.pos, permuted.pos);
     assert_eq!(vec.neg, permuted.neg);
@@ -412,14 +416,14 @@ fn test_permute_cycle() {
 fn test_permute_changes_indices() {
     let vec = enc(b"test data");
     let permuted = vec.permute(100);
-    
+
     // Non-zero shift should change indices (unless all indices happen to map to same positions)
     let pos_changed = vec.pos != permuted.pos;
     let neg_changed = vec.neg != permuted.neg;
-    
+
     // At least one array should be different (very unlikely both remain identical)
     assert!(pos_changed || neg_changed);
-    
+
     // But structure should be preserved
     assert_eq!(vec.pos.len(), permuted.pos.len());
     assert_eq!(vec.neg.len(), permuted.neg.len());
@@ -429,10 +433,10 @@ fn test_permute_changes_indices() {
 fn test_permute_round_trip() {
     let vec = enc(b"test data");
     let shift = 123;
-    
+
     let permuted = vec.permute(shift);
     let recovered = permuted.inverse_permute(shift);
-    
+
     // Round-trip should recover original vector exactly
     assert_eq!(vec.pos, recovered.pos);
     assert_eq!(vec.neg, recovered.neg);
@@ -441,15 +445,20 @@ fn test_permute_round_trip() {
 #[test]
 fn test_permute_orthogonality() {
     let vec = enc(b"test data");
-    
+
     // Test multiple shifts to ensure orthogonality
     for shift in [100, 500, 1000, 2500] {
         let permuted = vec.permute(shift);
         let similarity = vec.cosine(&permuted);
-        
+
         // Permuted vectors should be nearly orthogonal to original
         // With DIM=10000 and ~200 non-zero elements, expect very low similarity
-        assert!(similarity < 0.1, "Shift {} gave similarity {}", shift, similarity);
+        assert!(
+            similarity < 0.1,
+            "Shift {} gave similarity {}",
+            shift,
+            similarity
+        );
     }
 }
 
@@ -461,13 +470,21 @@ fn test_thin_reduces_density() {
         test_vec.pos.push(i);
         test_vec.neg.push(i + 1);
     }
-    
+
     let thinned = test_vec.thin(200);
     let total_elements = thinned.pos.len() + thinned.neg.len();
-    
+
     // Should reduce to approximately 200 elements
-    assert!(total_elements <= 200, "Expected <= 200 elements, got {}", total_elements);
-    assert!(total_elements > 180, "Expected > 180 elements, got {}", total_elements);
+    assert!(
+        total_elements <= 200,
+        "Expected <= 200 elements, got {}",
+        total_elements
+    );
+    assert!(
+        total_elements > 180,
+        "Expected > 180 elements, got {}",
+        total_elements
+    );
 }
 
 #[test]
@@ -478,9 +495,9 @@ fn test_thin_no_change_when_smaller() {
         test_vec.pos.push(i);
         test_vec.neg.push(i + 1);
     }
-    
+
     let thinned = test_vec.thin(500); // Target larger than current
-    
+
     // Should return unchanged
     assert_eq!(test_vec.pos, thinned.pos);
     assert_eq!(test_vec.neg, thinned.neg);
@@ -489,9 +506,9 @@ fn test_thin_no_change_when_smaller() {
 #[test]
 fn test_bundle_with_config_thinning() {
     use embeddenator::vsa::ReversibleVSAConfig;
-    
+
     let config = ReversibleVSAConfig::default(); // target_sparsity = 200
-    
+
     // Create 10 vectors that will bundle to more than 200 non-zeros
     // This test relies on the historical `from_data` density characteristics to
     // ensure bundling exceeds `target_sparsity` and triggers thinning.
@@ -499,18 +516,26 @@ fn test_bundle_with_config_thinning() {
     let vectors: Vec<SparseVec> = (0..10)
         .map(|i| SparseVec::from_data(format!("test data {}", i).as_bytes()))
         .collect();
-    
+
     // Bundle them all with config
     let mut result = vectors[0].clone();
     for vec in &vectors[1..] {
         result = result.bundle_with_config(vec, Some(&config));
     }
-    
+
     let total_elements = result.pos.len() + result.neg.len();
-    
+
     // Should be thinned to approximately 200 elements
-    assert!(total_elements <= 220, "Expected <= 220 elements, got {}", total_elements);
-    assert!(total_elements >= 180, "Expected >= 180 elements, got {}", total_elements);
+    assert!(
+        total_elements <= 220,
+        "Expected <= 220 elements, got {}",
+        total_elements
+    );
+    assert!(
+        total_elements >= 180,
+        "Expected >= 180 elements, got {}",
+        total_elements
+    );
 }
 
 #[test]
@@ -628,7 +653,7 @@ fn test_resonator_sign_threshold_high_threshold() {
 #[test]
 fn test_embrfs_resonator_integration() {
     use embeddenator::embrfs::EmbrFS;
-    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
+    use embeddenator::vsa::{ReversibleVSAConfig, SparseVec};
     use tempfile::tempdir;
 
     let mut embrfs = EmbrFS::new();
@@ -664,7 +689,7 @@ fn test_embrfs_resonator_integration() {
 #[test]
 fn test_embrfs_without_resonator_fallback() {
     use embeddenator::embrfs::EmbrFS;
-    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
+    use embeddenator::vsa::{ReversibleVSAConfig, SparseVec};
     use tempfile::tempdir;
 
     let mut embrfs = EmbrFS::new(); // No resonator set
@@ -698,7 +723,7 @@ fn test_embrfs_without_resonator_fallback() {
 #[test]
 fn test_hierarchical_bundling() {
     use embeddenator::embrfs::EmbrFS;
-    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
+    use embeddenator::vsa::{ReversibleVSAConfig, SparseVec};
 
     let mut fs = EmbrFS::new();
     let config = ReversibleVSAConfig::default();
@@ -722,7 +747,9 @@ fn test_hierarchical_bundling() {
         fs.manifest.files.push(file_entry);
         // Create a SparseVec from the content for the codebook
         let chunk_vec = SparseVec::encode_data(&content[..], &config, Some(path));
-        fs.engram.codebook.insert(fs.manifest.total_chunks, chunk_vec);
+        fs.engram
+            .codebook
+            .insert(fs.manifest.total_chunks, chunk_vec);
         fs.manifest.total_chunks += 1;
     }
 
@@ -749,7 +776,7 @@ fn test_hierarchical_bundling() {
 #[test]
 fn test_hierarchical_extraction() {
     use embeddenator::embrfs::EmbrFS;
-    use embeddenator::vsa::{SparseVec, ReversibleVSAConfig};
+    use embeddenator::vsa::{ReversibleVSAConfig, SparseVec};
     use tempfile::tempdir;
 
     let mut fs = EmbrFS::new();
@@ -774,7 +801,9 @@ fn test_hierarchical_extraction() {
         fs.manifest.files.push(file_entry);
         // Create a SparseVec from the content for the codebook
         let chunk_vec = SparseVec::encode_data(&content[..], &config, Some(*path));
-        fs.engram.codebook.insert(fs.manifest.total_chunks, chunk_vec);
+        fs.engram
+            .codebook
+            .insert(fs.manifest.total_chunks, chunk_vec);
         fs.manifest.total_chunks += 1;
     }
 

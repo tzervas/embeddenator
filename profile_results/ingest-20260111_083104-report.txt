@@ -1,0 +1,26 @@
+=== TOP 20 HOTSPOTS ===
+     1.72%  embeddenator  [kernel.kallsyms]  [k] do_anonymous_page
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000a5ffe
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d60d1
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d5742
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d573a
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d569c
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d7340
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d6de8
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d56ff
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d573e
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d67e1
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d5689
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d733b
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000847b0
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d69ae
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d750b
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d5d18
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d7379
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d5fd9
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d60ba
+     1.72%  embeddenator  embeddenator       [.] 0x00000000000d5764
+--
+#
+# (Tip: To measure approximate function latency with Processor Trace use perf record -e intel_pt// ... ; perf script --call-ret-trace)
+#

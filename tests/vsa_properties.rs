@@ -245,11 +245,11 @@ proptest! {
         prop_assume!(nnz(&data) > 20 && nnz(&key1) > 10 && nnz(&key2) > 10);
 
         // Require keys to be completely disjoint (no shared indices)
-        let key1_indices: std::collections::HashSet<_> = 
+        let key1_indices: std::collections::HashSet<_> =
             key1.pos.iter().chain(key1.neg.iter()).copied().collect();
-        let key2_indices: std::collections::HashSet<_> = 
+        let key2_indices: std::collections::HashSet<_> =
             key2.pos.iter().chain(key2.neg.iter()).copied().collect();
-        
+
         // Completely disjoint - no overlap allowed
         prop_assume!(key1_indices.is_disjoint(&key2_indices));
 
@@ -613,7 +613,8 @@ mod stress_tests {
         let encoded = SparseVec::encode_data(&data, &config, None);
         let decoded = encoded.decode_data(&config, None, data.len());
 
-        let matching = data.iter()
+        let matching = data
+            .iter()
             .zip(decoded.iter())
             .filter(|(a, b)| a == b)
             .count();
@@ -642,7 +643,11 @@ mod stress_tests {
         }
         let fidelity = matching as f64 / samples as f64;
 
-        assert!(fidelity > 0.85, "Very large file sampled fidelity: {}", fidelity);
+        assert!(
+            fidelity > 0.85,
+            "Very large file sampled fidelity: {}",
+            fidelity
+        );
     }
 
     #[test]
@@ -696,7 +701,12 @@ mod stress_tests {
         // Result should still be similar to all components
         for (i, v) in vectors.iter().enumerate() {
             let sim = v.cosine(&result);
-            assert!(sim > 0.0, "Bundle of many lost similarity to vector {}: {}", i, sim);
+            assert!(
+                sim > 0.0,
+                "Bundle of many lost similarity to vector {}: {}",
+                i,
+                sim
+            );
         }
     }
 }
