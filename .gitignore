@@ -90,3 +90,6 @@ bench_results/
 
 # vscode settings
 .vscode/
+*.engram
+*.engram.*
+out.json*
