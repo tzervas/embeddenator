@@ -1,0 +1,254 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    # Run weekly security scans on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Audit dependencies for known vulnerabilities
+  cargo-audit:
+    name: Cargo Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      
+      - name: Run cargo audit
+        id: audit
+        continue-on-error: true
+        run: |
+          repos=(
+            embeddenator
+            embeddenator-cli
+            embeddenator-contract-bench
+            embeddenator-fs
+            embeddenator-interop
+            embeddenator-io
+            embeddenator-obs
+            embeddenator-retrieval
+            embeddenator-testkit
+            embeddenator-vsa
+            embeddenator-workspace
+          )
+          
+          failed=()
+          
+          for repo in "${repos[@]}"; do
+            echo "🔍 Auditing $repo..."
+            if ! cargo audit --manifest-path "$repo/Cargo.toml" --json > "$repo-audit.json"; then
+              echo "⚠️ Vulnerabilities found in $repo"
+              failed+=("$repo")
+            else
+              echo "✅ $repo is clean"
+            fi
+          done
+          
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "audit_failed=true" >> $GITHUB_OUTPUT
+            echo "failed_repos=${failed[*]}" >> $GITHUB_OUTPUT
+          else
+            echo "audit_failed=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-results
+          path: "*-audit.json"
+          retention-days: 90
+      
+      - name: Create security issue
+        if: steps.audit.outputs.audit_failed == 'true' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failedRepos = '${{ steps.audit.outputs.failed_repos }}';
+            
+            const title = `🔒 Security Vulnerabilities Detected - ${new Date().toISOString().split('T')[0]}`;
+            const body = `## Security Audit Failed
+            
+            Cargo audit has detected vulnerabilities in the following packages:
+            
+            ${failedRepos.split(' ').map(r => `- \`${r}\``).join('\n')}
+            
+            **Action Required:**
+            1. Review the audit results artifact
+            2. Update vulnerable dependencies
+            3. Test affected packages
+            4. Re-run security scan
+            
+            **Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            ---
+            *This issue was automatically created by the security scan workflow.*`;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['security', 'automated', 'dependencies']
+            });
+
+  # Check for outdated dependencies
+  cargo-outdated:
+    name: Check Outdated Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-outdated
+        run: cargo install cargo-outdated
+      
+      - name: Check for outdated dependencies
+        run: |
+          echo "# Outdated Dependencies Report" > outdated-report.md
+          echo "" >> outdated-report.md
+          echo "Generated: $(date -u +%Y-%m-%d)" >> outdated-report.md
+          echo "" >> outdated-report.md
+          
+          repos=(
+            embeddenator
+            embeddenator-cli
+            embeddenator-contract-bench
+            embeddenator-fs
+            embeddenator-interop
+            embeddenator-io
+            embeddenator-obs
+            embeddenator-retrieval
+            embeddenator-testkit
+            embeddenator-vsa
+            embeddenator-workspace
+          )
+          
+          for repo in "${repos[@]}"; do
+            echo "## $repo" >> outdated-report.md
+            echo '```' >> outdated-report.md
+            cargo outdated --manifest-path "$repo/Cargo.toml" --root-deps-only >> outdated-report.md || echo "No outdated dependencies" >> outdated-report.md
+            echo '```' >> outdated-report.md
+            echo "" >> outdated-report.md
+          done
+      
+      - name: Upload outdated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: outdated-dependencies
+          path: outdated-report.md
+          retention-days: 30
+
+  # Clippy with security lints
+  clippy-security:
+    name: Clippy Security Lints
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: security-clippy
+      
+      - name: Run Clippy with security lints
+        run: |
+          repos=(
+            embeddenator
+            embeddenator-cli
+            embeddenator-contract-bench
+            embeddenator-fs
+            embeddenator-interop
+            embeddenator-io
+            embeddenator-obs
+            embeddenator-retrieval
+            embeddenator-testkit
+            embeddenator-vsa
+            embeddenator-workspace
+          )
+          
+          for repo in "${repos[@]}"; do
+            echo "🔒 Running security lints for $repo..."
+            cargo clippy --manifest-path "$repo/Cargo.toml" --all-targets --all-features \
+              -- -W clippy::suspicious \
+                 -W clippy::panic \
+                 -W clippy::unwrap_used \
+                 -W clippy::expect_used \
+                 -W clippy::indexing_slicing
+          done
+
+  # Check license compliance
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-license
+        run: cargo install cargo-license
+      
+      - name: Check licenses
+        run: |
+          echo "# License Report" > license-report.md
+          echo "" >> license-report.md
+          
+          repos=(
+            embeddenator
+            embeddenator-cli
+            embeddenator-contract-bench
+            embeddenator-fs
+            embeddenator-interop
+            embeddenator-io
+            embeddenator-obs
+            embeddenator-retrieval
+            embeddenator-testkit
+            embeddenator-vsa
+            embeddenator-workspace
+          )
+          
+          for repo in "${repos[@]}"; do
+            echo "## $repo" >> license-report.md
+            echo '```' >> license-report.md
+            cargo license --manifest-path "$repo/Cargo.toml" >> license-report.md
+            echo '```' >> license-report.md
+            echo "" >> license-report.md
+          done
+      
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: license-report.md
+          retention-days: 90

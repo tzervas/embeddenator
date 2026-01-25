@@ -1,0 +1,243 @@
+name: Workspace Health
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      checks:
+        description: 'Comma-separated list of checks (git,version,tests,docs,specs)'
+        required: false
+        default: 'git,version,tests,docs,specs'
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  health-check:
+    name: Run Health Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for git checks
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace-health
+      
+      - name: Build embeddenator-workspace
+        run: |
+          cd embeddenator-workspace
+          cargo build --release
+      
+      - name: Run comprehensive health check
+        id: health
+        continue-on-error: true
+        run: |
+          CHECKS="${{ github.event.inputs.checks || 'git,version,tests,docs,specs' }}"
+          
+          ./embeddenator-workspace/target/release/embeddenator-workspace health \
+            --workspace-root . \
+            --check "$CHECKS" \
+            --verbose \
+            --output health-report.md \
+            --json > health-report.json
+          
+          # Capture exit code
+          exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          
+          # Extract status from JSON
+          if [ -f health-report.json ]; then
+            status=$(jq -r '.overall_status' health-report.json 2>/dev/null || echo "unknown")
+            echo "status=$status" >> $GITHUB_OUTPUT
+          fi
+          
+          exit $exit_code
+      
+      - name: Upload health reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-reports
+          path: |
+            health-report.md
+            health-report.json
+          retention-days: 90
+      
+      - name: Parse health report
+        if: always()
+        id: parse
+        run: |
+          if [ -f health-report.json ]; then
+            # Extract key metrics
+            echo "## 🏥 Workspace Health Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Add markdown report to summary
+            if [ -f health-report.md ]; then
+              cat health-report.md >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+      
+      - name: Create issue on failure
+        if: steps.health.outputs.exit_code != '0' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report = '';
+            
+            if (fs.existsSync('health-report.md')) {
+              report = fs.readFileSync('health-report.md', 'utf8');
+            }
+            
+            const title = `🚨 Workspace Health Check Failed - ${new Date().toISOString().split('T')[0]}`;
+            const body = `## Workspace Health Check Failed
+            
+            The automated health check has detected issues in the workspace.
+            
+            **Status:** ${{ steps.health.outputs.status }}
+            **Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            ${report}
+            
+            ---
+            *This issue was automatically created by the workspace health check workflow.*`;
+            
+            // Check if there's already an open issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['workspace-health', 'automated'],
+              per_page: 1
+            });
+            
+            if (issues.data.length === 0) {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['workspace-health', 'automated', 'bug']
+              });
+            } else {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: `## New Health Check Failure\n\n${body}`
+              });
+            }
+      
+      - name: Close health issue on success
+        if: steps.health.outputs.exit_code == '0' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Find open health check issues
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['workspace-health', 'automated']
+            });
+            
+            // Close all open health check issues
+            for (const issue of issues.data) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '✅ Health check is now passing. Closing this issue.\n\n**Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+              });
+            }
+
+  # Git status check
+  git-status:
+    name: Git Repository Status
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for uncommitted changes
+        run: |
+          echo "Checking for uncommitted changes in all repositories..."
+          
+          ./update_all.sh || true
+          
+          # Check if update_all.sh found any issues
+          if git status --porcelain | grep -q '^'; then
+            echo "⚠️ Found uncommitted changes after running update_all.sh"
+            git status
+            exit 1
+          else
+            echo "✅ All repositories are clean"
+          fi
+      
+      - name: Check branch synchronization
+        run: |
+          echo "Checking branch synchronization..."
+          
+          repos=(
+            embeddenator
+            embeddenator-cli
+            embeddenator-contract-bench
+            embeddenator-fs
+            embeddenator-interop
+            embeddenator-io
+            embeddenator-obs
+            embeddenator-retrieval
+            embeddenator-testkit
+            embeddenator-vsa
+            embeddenator-workspace
+          )
+          
+          for repo in "${repos[@]}"; do
+            if [ -d "$repo" ]; then
+              cd "$repo"
+              
+              # Fetch latest
+              git fetch origin main 2>/dev/null || git fetch origin master 2>/dev/null || true
+              
+              # Check if behind
+              behind=$(git rev-list HEAD..@{u} 2>/dev/null | wc -l || echo 0)
+              ahead=$(git rev-list @{u}..HEAD 2>/dev/null | wc -l || echo 0)
+              
+              if [ "$behind" -gt 0 ]; then
+                echo "⚠️ $repo is $behind commits behind upstream"
+              fi
+              
+              if [ "$ahead" -gt 0 ]; then
+                echo "ℹ️ $repo is $ahead commits ahead of upstream"
+              fi
+              
+              cd ..
+            fi
+          done

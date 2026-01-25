@@ -1,0 +1,227 @@
+# Embeddenator Workspace Development Context
+
+**Version**: 0.20.0-alpha  
+**Architecture**: Multi-repo Rust VSA substrate  
+**Methodology**: Specification-Driven Development (SDD)  
+**Last Updated**: 2026-01-16
+
+---
+
+## Active Technologies
+
+### Core Languages
+- **Rust** (1.84+): Primary implementation language; stable toolchain with nightly for SIMD features
+- **Python** (3.10+): Orchestration scripts, FFI bindings (embeddenator-interop)
+- **Bash**: CI/CD automation, workspace utilities
+
+### VSA & Holographic Computing
+- **Sparse Ternary VSA**: {-1, 0, +1} vectors with ~1% sparsity, 10,000 dimensions
+- **Balanced Ternary**: 39-40 trits per 64-bit register encoding
+- **SIMD**: AVX2 (x86_64) and NEON (aarch64) optimizations (feature-gated)
+- **Holographic Engrams**: Compressed filesystem representations with bit-perfect reconstruction
+
+### Key Dependencies
+- `embeddenator-vsa`: Sparse ternary VSA primitives
+- `embeddenator-io`: Codebook, manifest, engram I/O
+- `embeddenator-retrieval`: Query engine with shift-sweep search
+- `embeddenator-fs`: FUSE filesystem integration
+- `serde`/`serde_json`: Serialization
+- `clap`: CLI argument parsing
+- `rayon`: Data parallelism
+- `criterion`: Benchmarking
+- `fuser`: FUSE userspace filesystem (Linux/macOS)
+
+### Build & Dev Tools
+- Cargo (release profiles: `release`, `release-perf`)
+- Docker (multi-arch: amd64 validated, arm64 local builds)
+- GitHub Actions (CI for amd64; ARM64 deferred pending infra)
+
+---
+
+## Project Structure
+
+```
+embdntr/
+├── specs/                           # Workspace-level specifications (SDD)
+│   └── 001-multi-repo-workspace/
+├── .copilot                         # This file (workspace context)
+├── WORKSPACE_TRACKER.md             # Repo snapshots, workstreams, next actions
+├── CODE_CHANGES_ANALYSIS.md         # Code alignment review
+├── SPEC_KIT_INTEGRATION.md          # SDD methodology guide
+├── update_all.sh                    # Git sync helper script
+│
+├── embeddenator/                    # Main VSA + CLI + hierarchical encoding
+│   ├── specs/                       # Feature specifications
+│   ├── .copilot                     # Repo-level context
+│   ├── src/{cli.rs, lib.rs, perf.rs, embrfs.rs}
+│   ├── Cargo.toml                   # rayon, num_cpus, parking_lot, smallvec
+│   └── .github/agents/              # Specialized agents
+│
+├── embeddenator-fs/                 # FUSE + engram filesystem
+│   ├── specs/
+│   ├── .copilot
+│   ├── src/{lib.rs, fs/, fuse_shim.rs}
+│   └── docs/{ARCHITECTURE.md, FUSE.md, CORRECTION.md}
+│
+├── embeddenator-vsa/                # VSA primitives (bundle, bind, cosine similarity)
+│   ├── specs/
+│   ├── .copilot
+│   ├── src/{vsa.rs, simd_cosine.rs, codebook.rs, ternary.rs}
+│   └── REFACTORING_ANALYSIS.md
+│
+├── embeddenator-retrieval/          # Query + resonator
+│   ├── specs/
+│   ├── .copilot
+│   └── src/
+│
+├── embeddenator-io/                 # I/O operations
+│   ├── specs/
+│   ├── .copilot
+│   └── src/
+│
+├── embeddenator-interop/            # Python/FFI bindings
+│   ├── specs/
+│   ├── .copilot
+│   └── src/
+│
+├── embeddenator-obs/                # Observability + tracing
+│   ├── specs/
+│   ├── .copilot
+│   └── src/
+│
+├── embeddenator-testkit/            # Evaluation framework
+│   ├── specs/
+│   ├── .copilot
+│   ├── evaluate.sh
+│   ├── INDEX.md, EVALUATION_RESULTS.md
+│   └── benches/
+│
+├── embeddenator-cli/                # CLI extraction (standalone)
+│   ├── specs/
+│   ├── .copilot
+│   └── src/
+│
+├── embeddenator-workspace/          # CI/CD utilities
+│   ├── specs/
+│   ├── .copilot
+│   └── src/
+│
+└── embeddenator-contract-bench/    # Deterministic benchmarks
+    ├── specs/
+    ├── .copilot
+    └── src/
+```
+
+---
+
+## Conventions & Standards
+
+### Code Style
+- **Rust API Guidelines**: Follow official Rust naming and idiomatic patterns
+- **Clippy**: Zero warnings policy (exceptions documented in code)
+- **Rustfmt**: Standard formatting (run `cargo fmt` before commit)
+- **Error Handling**: Use `Result<T, E>` with custom error types (planned: `VsaError`, `FsError`)
+- **Documentation**: Rustdoc comments for public APIs; include examples
+- **Testing**: Unit tests in module, integration tests in `tests/`, benchmarks in `benches/`
+
+### Git Workflow
+- **Branching**: Feature branches from `main` or `dev` (e.g., `002-simd-optimization`)
+- **Commits**: Semantic commits (e.g., `feat:`, `fix:`, `docs:`, `perf:`, `refactor:`)
+- **PRs**: Reference specs/ and include test coverage; amd64 CI must pass
+
+### Performance Targets
+- **Ingestion**: 30+ MB/s (baseline 16.6 MB/s; Phase 1 goal)
+- **Extraction**: 65+ MB/s (baseline 40.8 MB/s; Phase 1 goal)
+- **Memory**: <1GB for TB-scale data (Phase 2 goal)
+- **Operations**: Sub-100ms for typical ops (Phase 2 goal)
+
+---
+
+## Commands
+
+### Workspace Management
+```bash
+# Sync all repos with remotes
+./update_all.sh
+
+# Check overall status
+cat WORKSPACE_TRACKER.md
+```
+
+### Build & Test (Embeddenator Main)
+```bash
+cd embeddenator
+
+# Build with optimizations
+cargo build --release --features 'bt-phase-2,simd'
+cargo build --profile release-perf --features 'bt-phase-2,simd'
+
+# Run tests
+cargo test --workspace
+cargo test --release
+
+# Run benchmarks
+cargo bench --bench hierarchical_scaling
+cargo bench --bench simd_cosine
+
+# Performance validation
+./perf_validate.sh
+```
+
+### Evaluation (Testkit)
+```bash
+cd embeddenator-testkit
+./evaluate.sh                 # Fast loop (14 phases, ~22s)
+./evaluation_comprehensive.sh # Full eval with large datasets
+```
+
+### Profiling (Embeddenator Main)
+```bash
+cd embeddenator
+./profile_cpu_perf.sh
+./profile_memory.sh
+./profile_flamegraph.sh
+```
+
+---
+
+## Recent Changes
+
+### 2026-01-16: Spec-Kit Integration
+- Added SDD methodology across workspace
+- Created `.copilot` files for each repo
+- Updated agent configs to reference specs/
+- Integrated GitHub spec-kit templates
+
+### 2026-01-11: Performance Phase 1
+- Added `src/perf.rs` with runtime CPU detection and thread pool sizing
+- Updated Cargo.toml with rayon, num_cpus, parking_lot, smallvec
+- Created `release-perf` profile with aggressive optimizations
+
+### 2026-01-11: Evaluation Framework
+- Delivered `evaluate.sh` and comprehensive docs (INDEX.md, EVALUATION_RESULTS.md)
+- Established baselines: 16.6 MB/s ingest, 40.8 MB/s extract
+- 14/14 phases passing; ready for production
+
+---
+
+## Spec-Driven Development
+
+### Workflow
+1. **Specify** (`/speckit.specify`): Create `specs/00N-feature/spec.md`
+2. **Plan** (`/speckit.plan`): Generate `plan.md`, `data-model.md`, `contracts/`
+3. **Task** (`/speckit.tasks`): Derive `tasks.md` with executable work breakdown
+4. **Implement**: Execute tasks with AI assistance, referencing specs
+5. **Validate**: Run tests from acceptance criteria in spec
+6. **Evolve**: Update specs as requirements change; regenerate implementation
+
+### Active Specifications
+- See each repo's `specs/` directory for feature-specific documentation
+- Specs drive implementation; code serves specifications
+- Branching strategy: `00N-feature-name` (e.g., `003-read-write-engrams`)
+
+---
+
+<!-- MANUAL ADDITIONS START -->
+<!-- Add project-specific notes here -->
+<!-- MANUAL ADDITIONS END -->

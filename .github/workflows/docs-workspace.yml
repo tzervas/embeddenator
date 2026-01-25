@@ -1,0 +1,278 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+# Prevent concurrent deployments
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  # Build all documentation
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace-docs
+      
+      - name: Build all package docs
+        run: |
+          echo "Building documentation for all packages..."
+          
+          # Build with warnings as errors
+          export RUSTDOCFLAGS="-D warnings"
+          
+          repos=(
+            embeddenator
+            embeddenator-cli
+            embeddenator-contract-bench
+            embeddenator-fs
+            embeddenator-interop
+            embeddenator-io
+            embeddenator-obs
+            embeddenator-retrieval
+            embeddenator-testkit
+            embeddenator-vsa
+            embeddenator-workspace
+          )
+          
+          failed=()
+          
+          for repo in "${repos[@]}"; do
+            echo "📚 Building documentation for $repo..."
+            if ! cargo doc --manifest-path "$repo/Cargo.toml" --all-features --no-deps; then
+              echo "❌ Failed to build docs for $repo"
+              failed+=("$repo")
+            else
+              echo "✅ Documentation built for $repo"
+            fi
+          done
+          
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "Failed to build docs for: ${failed[*]}"
+            exit 1
+          fi
+      
+      - name: Build workspace documentation index
+        run: |
+          mkdir -p target/doc
+          
+          cat > target/doc/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Embeddenator Documentation</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 2rem;
+                background: #f5f5f5;
+              }
+              h1 {
+                color: #333;
+                border-bottom: 3px solid #0066cc;
+                padding-bottom: 0.5rem;
+              }
+              .container {
+                background: white;
+                border-radius: 8px;
+                padding: 2rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              }
+              .packages {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 1rem;
+                margin-top: 2rem;
+              }
+              .package {
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 1rem;
+                transition: transform 0.2s, box-shadow 0.2s;
+              }
+              .package:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+              }
+              .package h3 {
+                margin-top: 0;
+                color: #0066cc;
+              }
+              .package a {
+                text-decoration: none;
+                color: #0066cc;
+              }
+              .package a:hover {
+                text-decoration: underline;
+              }
+              .description {
+                color: #666;
+                font-size: 0.9rem;
+                margin-top: 0.5rem;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🚀 Embeddenator Documentation</h1>
+              <p>Welcome to the Embeddenator workspace documentation. Select a package below to view its API documentation.</p>
+              
+              <div class="packages">
+                <div class="package">
+                  <h3><a href="embeddenator/index.html">embeddenator</a></h3>
+                  <p class="description">Main application and CLI interface</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_vsa/index.html">embeddenator-vsa</a></h3>
+                  <p class="description">Vector Symbolic Architecture implementation</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_fs/index.html">embeddenator-fs</a></h3>
+                  <p class="description">Filesystem operations and indexing</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_io/index.html">embeddenator-io</a></h3>
+                  <p class="description">I/O operations and serialization</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_obs/index.html">embeddenator-obs</a></h3>
+                  <p class="description">Observable pattern implementation</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_retrieval/index.html">embeddenator-retrieval</a></h3>
+                  <p class="description">Information retrieval and search</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_interop/index.html">embeddenator-interop</a></h3>
+                  <p class="description">FFI and language interoperability</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_cli/index.html">embeddenator-cli</a></h3>
+                  <p class="description">Command-line interface</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_workspace/index.html">embeddenator-workspace</a></h3>
+                  <p class="description">Workspace management tools</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_testkit/index.html">embeddenator-testkit</a></h3>
+                  <p class="description">Testing utilities and fixtures</p>
+                </div>
+                
+                <div class="package">
+                  <h3><a href="embeddenator_contract_bench/index.html">embeddenator-contract-bench</a></h3>
+                  <p class="description">Contract testing and benchmarking</p>
+                </div>
+              </div>
+              
+              <hr style="margin: 2rem 0;">
+              
+              <p style="text-align: center; color: #666; font-size: 0.9rem;">
+                Generated: $DATE | 
+                <a href="https://github.com/tzervas/embeddenator">GitHub Repository</a>
+              </p>
+            </div>
+          </body>
+          </html>
+          EOF
+          
+          # Replace $DATE with actual date
+          sed -i "s/\$DATE/$(date -u +%Y-%m-%d)/g" target/doc/index.html
+      
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: target/doc
+          retention-days: 30
+      
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/doc
+
+  # Deploy to GitHub Pages (only on main branch)
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-docs
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Check documentation coverage
+  doc-coverage:
+    name: Documentation Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: doc-coverage
+      
+      - name: Check documentation coverage
+        run: |
+          echo "Checking documentation coverage..."
+          
+          export RUSTDOCFLAGS="-Z unstable-options --show-coverage"
+          
+          repos=(
+            embeddenator-vsa
+            embeddenator-workspace
+            embeddenator-testkit
+          )
+          
+          for repo in "${repos[@]}"; do
+            echo "📊 Checking doc coverage for $repo..."
+            cd "$repo"
+            cargo +nightly doc --all-features --no-deps 2>&1 | tee doc-coverage.txt
+            cd ..
+          done

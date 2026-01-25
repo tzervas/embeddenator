@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Pre-commit hook for Embeddenator workspace
+# Runs full QC with safe automatic fixes
+#
+# Install with: cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Or for all repos: for dir in embeddenator*; do [ -d "$dir/.git" ] && cp scripts/pre-commit "$dir/.git/hooks/pre-commit" && chmod +x "$dir/.git/hooks/pre-commit"; done
+
+set -e
+
+echo "🔍 Running pre-commit QC checks..."
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Track failures
+FAILURES=0
+
+# Step 1: Format code (with auto-fix)
+echo -e "${YELLOW}📝 Formatting code...${NC}"
+if cargo fmt 2>/dev/null; then
+    echo -e "${GREEN}✓ Code formatted${NC}"
+    # Stage any formatting changes
+    git add -u
+else
+    echo -e "${RED}✗ Formatting failed${NC}"
+    FAILURES=$((FAILURES + 1))
+fi
+
+# Step 2: Clippy with auto-fix for safe suggestions
+echo -e "${YELLOW}🔎 Running clippy with safe fixes...${NC}"
+if cargo clippy --fix --allow-dirty --allow-staged -- -D warnings 2>/dev/null; then
+    echo -e "${GREEN}✓ Clippy passed${NC}"
+    # Stage any clippy fixes
+    git add -u
+else
+    # Try without fix to see the errors
+    echo -e "${YELLOW}⚠ Clippy fix failed, checking errors...${NC}"
+    if cargo clippy -- -D warnings 2>&1 | head -50; then
+        :
+    fi
+    FAILURES=$((FAILURES + 1))
+fi
+
+# Step 3: Run tests (optional, can be slow)
+if [ "${EMBEDDENATOR_PRECOMMIT_SKIP_TESTS:-0}" != "1" ]; then
+    echo -e "${YELLOW}🧪 Running tests...${NC}"
+    if cargo test --lib --quiet 2>/dev/null; then
+        echo -e "${GREEN}✓ Tests passed${NC}"
+    else
+        echo -e "${RED}✗ Tests failed${NC}"
+        FAILURES=$((FAILURES + 1))
+    fi
+else
+    echo -e "${YELLOW}⏭ Skipping tests (EMBEDDENATOR_PRECOMMIT_SKIP_TESTS=1)${NC}"
+fi
+
+# Step 4: Check for secrets (if git-secrets is installed)
+if command -v git-secrets &> /dev/null; then
+    echo -e "${YELLOW}🔐 Checking for secrets...${NC}"
+    if git secrets --scan 2>/dev/null; then
+        echo -e "${GREEN}✓ No secrets found${NC}"
+    else
+        echo -e "${RED}✗ Potential secrets detected!${NC}"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+
+# Summary
+echo ""
+if [ $FAILURES -eq 0 ]; then
+    echo -e "${GREEN}✅ All pre-commit checks passed!${NC}"
+    exit 0
+else
+    echo -e "${RED}❌ Pre-commit checks failed ($FAILURES failures)${NC}"
+    echo -e "${YELLOW}Fix the issues above and try again.${NC}"
+    exit 1
+fi

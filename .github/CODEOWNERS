@@ -1,0 +1,75 @@
+# CODEOWNERS - Defines code ownership for the Embeddenator workspace
+#
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+# Order matters; the last matching pattern has the most precedence.
+#
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repository
+* @tzervas
+
+# Workspace-level configuration
+/.github/ @tzervas
+/update_all.sh @tzervas
+/WORKSPACE_TRACKER.md @tzervas
+
+# Core VSA implementation
+/embeddenator-vsa/ @tzervas
+/embeddenator-vsa/src/simd/ @tzervas
+/embeddenator-vsa/src/encoding/ @tzervas
+
+# Filesystem and indexing
+/embeddenator-fs/ @tzervas
+/embeddenator-fs/src/ingest/ @tzervas
+/embeddenator-fs/src/query/ @tzervas
+
+# I/O and serialization
+/embeddenator-io/ @tzervas
+/embeddenator-io/src/formats/ @tzervas
+
+# Retrieval and search
+/embeddenator-retrieval/ @tzervas
+/embeddenator-retrieval/src/index/ @tzervas
+/embeddenator-retrieval/src/search/ @tzervas
+
+# Observable pattern implementation
+/embeddenator-obs/ @tzervas
+
+# Interoperability (C/C++ FFI)
+/embeddenator-interop/ @tzervas
+/embeddenator-interop/include/ @tzervas
+/embeddenator-interop/cbindgen.toml @tzervas
+
+# CLI tools
+/embeddenator-cli/ @tzervas
+/embeddenator-cli/src/commands/ @tzervas
+
+# Workspace management
+/embeddenator-workspace/ @tzervas
+/embeddenator-workspace/src/health/ @tzervas
+/embeddenator-workspace/src/version/ @tzervas
+
+# Testing infrastructure
+/embeddenator-testkit/ @tzervas
+/embeddenator-integration-tests/ @tzervas
+
+# Benchmarking and performance
+/embeddenator-contract-bench/ @tzervas
+/**/benches/ @tzervas
+
+# Main application
+/embeddenator/ @tzervas
+/embeddenator/src/main.rs @tzervas
+
+# Documentation and specs
+/**/*.md @tzervas
+/specs/ @tzervas
+/**/specs/ @tzervas
+
+# CI/CD workflows - require careful review
+/.github/workflows/ @tzervas
+
+# Cargo configuration
+/**/Cargo.toml @tzervas
+/Cargo.lock @tzervas

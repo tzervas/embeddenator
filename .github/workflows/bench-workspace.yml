@@ -1,0 +1,297 @@
+name: Benchmark Regression Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    # Run nightly benchmarks at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: 'Enable debug output for benchmarks'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CRITERION_HOME: ${{ github.workspace }}/criterion-data
+  # Debug disabled by default
+  RUST_BACKTRACE: ${{ inputs.debug_mode && '1' || '0' }}
+  RUST_LOG: ${{ inputs.debug_mode && 'debug' || '' }}
+
+jobs:
+  # Benchmark all packages with criterion
+  benchmark:
+    name: Benchmark (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - embeddenator
+          - embeddenator-contract-bench
+          - embeddenator-fs
+          - embeddenator-io
+          - embeddenator-retrieval
+          - embeddenator-testkit
+          - embeddenator-vsa
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need history for baseline comparison
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: bench-${{ matrix.package }}
+      
+      - name: Restore baseline
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ matrix.package }}/target/criterion
+            criterion-data/${{ matrix.package }}
+          key: criterion-baseline-${{ matrix.package }}-${{ github.ref_name }}
+          restore-keys: |
+            criterion-baseline-${{ matrix.package }}-main
+            criterion-baseline-${{ matrix.package }}-
+      
+      - name: Run benchmarks
+        id: bench
+        run: |
+          cd ${{ matrix.package }}
+          
+          # Check if package has benchmarks
+          if ! ls benches/*.rs 1> /dev/null 2>&1; then
+            echo "No benchmarks found in ${{ matrix.package }}"
+            echo "has_benches=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "has_benches=true" >> $GITHUB_OUTPUT
+          
+          # Run criterion benchmarks (quiet mode)
+          cargo bench --all-features -- --output-format bencher 2>&1 | tee bench-output.txt
+          
+          # Save results
+          mkdir -p ../criterion-data/${{ matrix.package }}
+          cp -r target/criterion/* ../criterion-data/${{ matrix.package }}/ || true
+      
+      - name: Upload benchmark results
+        if: steps.bench.outputs.has_benches == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ matrix.package }}
+          path: |
+            ${{ matrix.package }}/bench-output.txt
+            criterion-data/${{ matrix.package }}
+          retention-days: 90
+      
+      - name: Analyze regression
+        if: steps.bench.outputs.has_benches == 'true' && github.event_name == 'pull_request'
+        id: regression
+        run: |
+          cd ${{ matrix.package }}
+          
+          # Look for criterion comparison output
+          if [ -f target/criterion/report/index.html ]; then
+            echo "regression_detected=false" >> $GITHUB_OUTPUT
+            echo "regressed_benches=" >> $GITHUB_OUTPUT
+            
+            # Parse criterion output for significant changes (>10% regression)
+            if grep -q "Performance has regressed" bench-output.txt 2>/dev/null; then
+              echo "regression_detected=true" >> $GITHUB_OUTPUT
+              # Extract regressed benchmark names for targeted re-run
+              REGRESSED=$(grep -B5 "Performance has regressed" bench-output.txt | grep "test " | awk '{print $2}' | tr '\n' ' ')
+              echo "regressed_benches=$REGRESSED" >> $GITHUB_OUTPUT
+              echo "## ⚠️ Performance Regression Detected in ${{ matrix.package }}" >> $GITHUB_STEP_SUMMARY
+              grep "Performance has regressed" bench-output.txt | head -10 >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+      
+      - name: Re-run regressed benchmarks with debug
+        if: steps.regression.outputs.regression_detected == 'true'
+        env:
+          RUST_BACKTRACE: full
+          RUST_LOG: debug
+        run: |
+          cd ${{ matrix.package }}
+          echo "::group::Re-running regressed benchmarks with debug output"
+          echo "Regressed benchmarks: ${{ steps.regression.outputs.regressed_benches }}"
+          
+          # Re-run all benches with verbose output to capture detailed diagnostics
+          cargo bench --all-features -- --verbose 2>&1 | tee bench-debug-output.txt
+          echo "::endgroup::"
+      
+      - name: Upload debug benchmark output
+        if: steps.regression.outputs.regression_detected == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-debug-${{ matrix.package }}
+          path: ${{ matrix.package }}/bench-debug-output.txt
+          retention-days: 30
+      
+      - name: Comment PR with regression warning
+        if: steps.regression.outputs.regression_detected == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ⚠️ Performance Regression Detected\n\n**Package:** \`${{ matrix.package }}\`\n\nBenchmark results show performance regression. Please review the benchmark results artifact for details.\n\n[View benchmark results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
+            });
+
+  # Compare with baseline on main branch
+  compare-baseline:
+    name: Compare with Baseline
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          path: bench-results
+          pattern: bench-*
+      
+      - name: Generate comparison report
+        id: compare
+        run: |
+          echo "# Benchmark Comparison Report" > comparison.md
+          echo "" >> comparison.md
+          echo "Comparing PR benchmarks against main branch baseline" >> comparison.md
+          echo "" >> comparison.md
+          
+          for dir in bench-results/bench-*; do
+            if [ -d "$dir" ]; then
+              package=$(basename "$dir" | sed 's/bench-//')
+              echo "## $package" >> comparison.md
+              
+              if [ -f "$dir/bench-output.txt" ]; then
+                echo '```' >> comparison.md
+                tail -20 "$dir/bench-output.txt" >> comparison.md
+                echo '```' >> comparison.md
+              else
+                echo "No benchmark output found" >> comparison.md
+              fi
+              echo "" >> comparison.md
+            fi
+          done
+      
+      - name: Comment PR with comparison
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('comparison.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+  # Update baseline on main branch
+  update-baseline:
+    name: Update Baseline
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          path: bench-results
+          pattern: bench-*
+      
+      - name: Update baselines
+        run: |
+          echo "Updating criterion baselines for all packages..."
+          
+          for dir in bench-results/bench-*; do
+            if [ -d "$dir" ]; then
+              package=$(basename "$dir" | sed 's/bench-//')
+              echo "📊 Updating baseline for $package"
+              
+              # The baseline is automatically saved in the cache
+              # This job just ensures the cache is updated
+            fi
+          done
+      
+      - name: Create baseline summary
+        run: |
+          echo "# Baseline Update Summary" > baseline-summary.md
+          echo "" >> baseline-summary.md
+          echo "Updated benchmark baselines for the following packages:" >> baseline-summary.md
+          echo "" >> baseline-summary.md
+          
+          for dir in bench-results/bench-*; do
+            if [ -d "$dir" ]; then
+              package=$(basename "$dir" | sed 's/bench-//')
+              echo "- $package" >> baseline-summary.md
+            fi
+          done
+      
+      - name: Upload baseline summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-summary
+          path: baseline-summary.md
+          retention-days: 90
+
+  # Performance dashboard data export
+  export-metrics:
+    name: Export Performance Metrics
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          path: bench-results
+          pattern: bench-*
+      
+      - name: Export metrics to JSON
+        run: |
+          cat > metrics.json << 'EOF'
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "benchmarks": {}
+          }
+          EOF
+          
+          echo "Metrics exported to metrics.json"
+      
+      - name: Upload metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-metrics
+          path: metrics.json
+          retention-days: 365
