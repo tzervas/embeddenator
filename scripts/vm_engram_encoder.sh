@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Configuration
-ENGRAM_DIR="${ENGRAM_DIR:-/var/lib/engram}"
+ENGRAM_DIR="${ENGRAM_DIR:-$HOME/.local/share/engram}"
 WORK_DIR="${WORK_DIR:-/tmp/engram-encoder}"
 EMBEDDENATOR_CLI="${EMBEDDENATOR_CLI:-embeddenator-cli}"
 LOG_FILE="${WORK_DIR}/encoder.log"
@@ -58,27 +58,27 @@ declare -A COMPRESSION_PROFILES=(
 
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
-    echo "[$(date -Iseconds)] INFO: $1" >> "$LOG_FILE"
+    [ -f "$LOG_FILE" ] && echo "[$(date -Iseconds)] INFO: $1" >> "$LOG_FILE"
 }
 
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
-    echo "[$(date -Iseconds)] SUCCESS: $1" >> "$LOG_FILE"
+    [ -f "$LOG_FILE" ] && echo "[$(date -Iseconds)] SUCCESS: $1" >> "$LOG_FILE"
 }
 
 log_warn() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
-    echo "[$(date -Iseconds)] WARNING: $1" >> "$LOG_FILE"
+    [ -f "$LOG_FILE" ] && echo "[$(date -Iseconds)] WARNING: $1" >> "$LOG_FILE"
 }
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
-    echo "[$(date -Iseconds)] ERROR: $1" >> "$LOG_FILE"
+    [ -f "$LOG_FILE" ] && echo "[$(date -Iseconds)] ERROR: $1" >> "$LOG_FILE"
 }
 
 log_progress() {
     echo -e "${CYAN}[PROGRESS]${NC} $1"
-    echo "[$(date -Iseconds)] PROGRESS: $1" >> "$LOG_FILE"
+    [ -f "$LOG_FILE" ] && echo "[$(date -Iseconds)] PROGRESS: $1" >> "$LOG_FILE"
 }
 
 # =============================================================================
