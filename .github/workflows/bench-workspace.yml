@@ -5,9 +5,6 @@ on:
     branches: [main, develop]
   pull_request:
     types: [opened, synchronize, reopened]
-  schedule:
-    # Run nightly benchmarks at 2 AM UTC
-    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       debug_mode:
@@ -37,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          - embeddenator
+          - embeddenator-core
           - embeddenator-contract-bench
           - embeddenator-fs
           - embeddenator-io
