@@ -1,62 +1,138 @@
 # Embeddenator Workspace
 
-> **Holographic Computing Substrate** - Multi-component Rust workspace for Vector Symbolic Architecture (VSA)
+Multi-component Rust workspace for Vector Symbolic Architecture (VSA) based holographic data encoding.
 
-> ## 🚨 DEPRECATION NOTICE
-> 
-> **The monolithic `embeddenator` repository in this workspace is DEPRECATED as of v0.20.0-alpha.1 (January 16, 2026).**
->
-> All functionality has been migrated to 10 production-ready component repositories. The monolithic crate will be:
-> - **Q2 2026 (v0.21.0)**: Archived (read-only, no updates)
-> - **Q3 2026 (v1.0.0)**: Removed from workspace
->
-> **➡️ For new projects, use component repositories directly (see table below).**  
-> **➡️ Existing users: See [DEPRECATION_NOTICE.md](./DEPRECATION_NOTICE.md) for migration guide.**
+Embeddenator is an encoding method and data model. It is not a security implementation.
 
 [![CI](https://github.com/tzervas/embeddenator/workflows/Workspace%20CI/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/ci-workspace.yml)
 [![Benchmarks](https://github.com/tzervas/embeddenator/workflows/Benchmark%20Regression%20Check/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/bench-workspace.yml)
 [![Health](https://github.com/tzervas/embeddenator/workflows/Workspace%20Health/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/health-workspace.yml)
 [![Docs](https://github.com/tzervas/embeddenator/workflows/Documentation/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/docs-workspace.yml)
 [![Security](https://github.com/tzervas/embeddenator/workflows/Security%20Scan/badge.svg)](https://github.com/tzervas/embeddenator/actions/workflows/security-workspace.yml)
+[![codecov](https://codecov.io/gh/tzervas/embeddenator/branch/main/graph/badge.svg)](https://codecov.io/gh/tzervas/embeddenator)
 
-![Version](https://img.shields.io/badge/version-0.20.0--alpha.1-orange)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Rust](https://img.shields.io/badge/rust-1.84+-000000?logo=rust)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust Version](https://img.shields.io/badge/rust-1.84+-orange.svg)](https://www.rust-lang.org/)
+[![Dependencies](https://deps.rs/repo/github/tzervas/embeddenator/status.svg)](https://deps.rs/repo/github/tzervas/embeddenator)
 
 ---
 
 ## Overview
 
-This is the **Embeddenator monorepo workspace** containing 11 production-ready component repositories that implement a holographic computing substrate using Vector Symbolic Architecture (VSA).
-
-**Current Status:** All components are **100% production-ready** with comprehensive testing, benchmarking, and documentation.
-
-> **⚠️ MONOLITHIC REPOSITORY DEPRECATED:** The `embeddenator/` directory contains the deprecated monolithic repository. **Do not use it for new projects.** All functionality has been migrated to component repositories listed below. See [DEPRECATION_NOTICE.md](./DEPRECATION_NOTICE.md) for migration information.
+This workspace contains 8 published library crates implementing holographic data encoding using sparse ternary Vector Symbolic Architecture.
 
 ---
 
-## Component Repositories
+## Published Crates
 
-### Core Components
+### Core Libraries
 
-| Component | Description | Repository | Status |
-|-----------|-------------|------------|--------|
-| **[embeddenator](./embeddenator/)** | Legacy monolithic repo (deprecated) | [GitHub](https://github.com/tzervas/embeddenator) | ⚠️ Deprecated |
-| **[embeddenator-vsa](./embeddenator-vsa/)** | Sparse ternary VSA primitives | [GitHub](https://github.com/tzervas/embeddenator-vsa) | ✅ Production |
-| **[embeddenator-fs](./embeddenator-fs/)** | Filesystem operations (EmbrFS) | [GitHub](https://github.com/tzervas/embeddenator-fs) | ✅ Production |
-| **[embeddenator-io](./embeddenator-io/)** | I/O operations and serialization | [GitHub](https://github.com/tzervas/embeddenator-io) | ✅ Production |
-| **[embeddenator-retrieval](./embeddenator-retrieval/)** | Information retrieval and search | [GitHub](https://github.com/tzervas/embeddenator-retrieval) | ✅ Production |
+#### embeddenator-vsa
 
-### Supporting Components
+[![Crate](https://img.shields.io/crates/v/embeddenator-vsa.svg)](https://crates.io/crates/embeddenator-vsa)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-vsa.svg)](https://crates.io/crates/embeddenator-vsa)
+[![Docs](https://docs.rs/embeddenator-vsa/badge.svg)](https://docs.rs/embeddenator-vsa)
 
-| Component | Description | Repository | Status |
-|-----------|-------------|------------|--------|
-| **[embeddenator-obs](./embeddenator-obs/)** | Observability and metrics | [GitHub](https://github.com/tzervas/embeddenator-obs) | ✅ Production |
-| **[embeddenator-interop](./embeddenator-interop/)** | FFI and language interoperability | [GitHub](https://github.com/tzervas/embeddenator-interop) | ✅ Production |
-| **[embeddenator-cli](./embeddenator-cli/)** | Command-line interface | [GitHub](https://github.com/tzervas/embeddenator-cli) | ✅ Production |
-| **[embeddenator-workspace](./embeddenator-workspace/)** | Workspace management tools | [GitHub](https://github.com/tzervas/embeddenator-workspace) | ✅ Production |
-| **[embeddenator-testkit](./embeddenator-testkit/)** | Testing utilities, fixtures, and integration tests | [GitHub](https://github.com/tzervas/embeddenator-testkit) | ✅ Production |
-| **[embeddenator-contract-bench](./embeddenator-contract-bench/)** | Contract testing and benchmarks | [GitHub](https://github.com/tzervas/embeddenator-contract-bench) | ✅ Production |
+Sparse ternary Vector Symbolic Architecture primitives and operations.
+
+**Repository:** https://github.com/tzervas/embeddenator-vsa
+
+#### embeddenator-io
+
+[![Crate](https://img.shields.io/crates/v/embeddenator-io.svg)](https://crates.io/crates/embeddenator-io)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-io.svg)](https://crates.io/crates/embeddenator-io)
+[![Docs](https://docs.rs/embeddenator-io/badge.svg)](https://docs.rs/embeddenator-io)
+
+I/O operations, serialization, and data persistence.
+
+**Repository:** https://github.com/tzervas/embeddenator-io
+
+#### embeddenator-obs
+
+[![Crate](https://img.shields.io/crates/v/embeddenator-obs.svg)](https://crates.io/crates/embeddenator-obs)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-obs.svg)](https://crates.io/crates/embeddenator-obs)
+[![Docs](https://docs.rs/embeddenator-obs/badge.svg)](https://docs.rs/embeddenator-obs)
+
+Observability, metrics, and tracing infrastructure.
+
+**Repository:** https://github.com/tzervas/embeddenator-obs
+
+#### embeddenator-retrieval
+
+[![Crate](https://img.shields.io/crates/v/embeddenator-retrieval.svg)](https://crates.io/crates/embeddenator-retrieval)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-retrieval.svg)](https://crates.io/crates/embeddenator-retrieval)
+[![Docs](https://docs.rs/embeddenator-retrieval/badge.svg)](https://docs.rs/embeddenator-retrieval)
+
+Information retrieval, search, and similarity matching.
+
+**Repository:** https://github.com/tzervas/embeddenator-retrieval
+
+#### embeddenator-fs
+
+[![Crate](https://img.shields.io/crates/v/embeddenator-fs.svg)](https://crates.io/crates/embeddenator-fs)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-fs.svg)](https://crates.io/crates/embeddenator-fs)
+[![Docs](https://docs.rs/embeddenator-fs/badge.svg)](https://docs.rs/embeddenator-fs)
+
+EmbrFS: Holographic filesystem operations and versioning.
+
+**Repository:** https://github.com/tzervas/embeddenator-fs
+
+#### embeddenator-interop
+
+[![Crate](https://img.shields.io/crates/v/embeddenator-interop.svg)](https://crates.io/crates/embeddenator-interop)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-interop.svg)](https://crates.io/crates/embeddenator-interop)
+[![Docs](https://docs.rs/embeddenator-interop/badge.svg)](https://docs.rs/embeddenator-interop)
+
+Foreign Function Interface (FFI) and language interoperability.
+
+**Repository:** https://github.com/tzervas/embeddenator-interop
+
+### Tools
+
+#### embeddenator-cli
+
+[![Crate](https://img.shields.io/crates/v/embeddenator-cli.svg)](https://crates.io/crates/embeddenator-cli)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-cli.svg)](https://crates.io/crates/embeddenator-cli)
+[![Docs](https://docs.rs/embeddenator-cli/badge.svg)](https://docs.rs/embeddenator-cli)
+
+Command-line interface for Embeddenator operations.
+
+**Repository:** https://github.com/tzervas/embeddenator-cli
+
+### Umbrella Crate
+
+#### embeddenator
+
+[![Crate](https://img.shields.io/crates/v/embeddenator.svg)](https://crates.io/crates/embeddenator)
+[![Downloads](https://img.shields.io/crates/d/embeddenator.svg)](https://crates.io/crates/embeddenator)
+[![Docs](https://docs.rs/embeddenator/badge.svg)](https://docs.rs/embeddenator)
+
+Comprehensive re-export of all Embeddenator functionality.
+
+**Repository:** https://github.com/tzervas/embeddenator-core
+
+---
+
+## Component Overview (Legacy Table)
+
+| Component | Description | crates.io | Version |
+|-----------|-------------|-----------|---------|
+| [embeddenator-vsa](./embeddenator-vsa/) | Sparse ternary VSA primitives | [crates.io](https://crates.io/crates/embeddenator-vsa) | 0.21.0 |
+| [embeddenator-io](./embeddenator-io/) | I/O operations and serialization | [crates.io](https://crates.io/crates/embeddenator-io) | 0.21.0 |
+| [embeddenator-obs](./embeddenator-obs/) | Observability and metrics | [crates.io](https://crates.io/crates/embeddenator-obs) | 0.21.0 |
+| [embeddenator-retrieval](./embeddenator-retrieval/) | Information retrieval and search | [crates.io](https://crates.io/crates/embeddenator-retrieval) | 0.21.0 |
+| [embeddenator-fs](./embeddenator-fs/) | Filesystem operations (EmbrFS) | [crates.io](https://crates.io/crates/embeddenator-fs) | 0.23.0 |
+| [embeddenator-interop](./embeddenator-interop/) | FFI and language interoperability | [crates.io](https://crates.io/crates/embeddenator-interop) | 0.22.0 |
+| [embeddenator-cli](./embeddenator-cli/) | Command-line interface | [crates.io](https://crates.io/crates/embeddenator-cli) | 0.21.0 |
+| [embeddenator](./embeddenator-core/) | Umbrella crate (re-exports all) | [crates.io](https://crates.io/crates/embeddenator) | 0.21.0 |
+
+### Development Tools
+
+| Component | Description |
+|-----------|-------------|
+| [embeddenator-workspace](./embeddenator-workspace/) | Workspace management tools |
+| [embeddenator-testkit](./embeddenator-testkit/) | Testing utilities and fixtures |
+| [embeddenator-contract-bench](./embeddenator-contract-bench/) | Contract testing and benchmarks |
 
 ---
 
@@ -137,9 +213,25 @@ See [CI/CD Guide](./CI_CD_GUIDE.md) for comprehensive documentation.
 
 - **[Migration Guide](./MIGRATION_GUIDE.md)** - Transition from monolithic to component architecture
 - **[CI/CD Guide](./CI_CD_GUIDE.md)** - Complete CI/CD documentation
-- **[Workspace Tracker](./WORKSPACE_TRACKER.md)** - Development progress
+- **[Maintained Dependencies](./MAINTAINED_DEPENDENCIES.md)** - Candle and related ML dependency ecosystem
 - **[Component Architecture](./embeddenator/docs/COMPONENT_ARCHITECTURE.md)** - Architecture overview
 - **[API Documentation](https://tzervas.github.io/embeddenator/)** - Generated rustdoc
+
+---
+
+## Maintained Dependencies Ecosystem
+
+This project maintains forks of several unmaintained crates critical to the Rust ML ecosystem:
+
+| Fork | Original | crates.io | Purpose |
+|------|----------|-----------|---------|
+| `qlora-paste` | `paste` | [qlora-paste](https://crates.io/crates/qlora-paste) | Token pasting macros |
+| `qlora-gemm` | `gemm` | [qlora-gemm](https://crates.io/crates/qlora-gemm) | Matrix multiplication |
+| `qlora-candle-*` | `candle-*` | [qlora-candle-core](https://crates.io/crates/qlora-candle-core) | ML framework |
+
+**Upstream Contribution:** [PR #3335](https://github.com/huggingface/candle/pull/3335) submitted to merge maintained dependencies into huggingface/candle.
+
+See [MAINTAINED_DEPENDENCIES.md](./MAINTAINED_DEPENDENCIES.md) for full integration guide.
 
 ---
 
@@ -223,17 +315,7 @@ embeddenator/
 
 ## Version Management
 
-All components maintain version consistency. Current version: **0.20.0-alpha.1**
-
-To bump versions:
-
-```bash
-cd embeddenator-workspace
-cargo build --release
-./target/release/embeddenator-workspace bump-version --prerelease
-```
-
-See [Versioning Documentation](./embeddenator/docs/VERSIONING.md) for details.
+Current published versions vary by component (see table above).
 
 ---
 
@@ -243,12 +325,9 @@ See [Versioning Documentation](./embeddenator/docs/VERSIONING.md) for details.
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Run tests (`cargo test --all-features --workspace`)
-5. Run health check (`./embeddenator-workspace/target/release/embeddenator-workspace health`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
-
-See [PULL_REQUEST_TEMPLATE.md](./.github/PULL_REQUEST_TEMPLATE.md) for the PR checklist.
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ---
 
@@ -258,23 +337,13 @@ All components are licensed under the MIT License. See [LICENSE](./LICENSE) file
 
 ---
 
-## Status Reports
-
-- [Phase 2 Complete](./PHASE2_COMPLETE.md)
-- [Migration Complete](./MIGRATION_COMPLETE.md)
-- [Integration Tests Summary](./INTEGRATION_TESTS_SUMMARY.md)
-- [CI/CD Implementation Summary](./CI_CD_IMPLEMENTATION_SUMMARY.md)
-
----
-
 ## Links
 
-- **Documentation:** https://tzervas.github.io/embeddenator/
+- **Documentation:** https://docs.rs/embeddenator
 - **Repository:** https://github.com/tzervas/embeddenator
 - **Issues:** https://github.com/tzervas/embeddenator/issues
-- **CI/CD:** https://github.com/tzervas/embeddenator/actions
 
 ---
 
-**Last Updated:** January 16, 2026  
+**Last Updated:** January 26, 2026
 **Maintained by:** @tzervas
