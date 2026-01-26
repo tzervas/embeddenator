@@ -101,11 +101,11 @@ Command-line interface for Embeddenator operations.
 
 ### Umbrella Crate
 
-#### embeddenator
+#### embeddenator-core
 
-[![Crate](https://img.shields.io/crates/v/embeddenator.svg)](https://crates.io/crates/embeddenator)
-[![Downloads](https://img.shields.io/crates/d/embeddenator.svg)](https://crates.io/crates/embeddenator)
-[![Docs](https://docs.rs/embeddenator/badge.svg)](https://docs.rs/embeddenator)
+[![Crate](https://img.shields.io/crates/v/embeddenator-core.svg)](https://crates.io/crates/embeddenator-core)
+[![Downloads](https://img.shields.io/crates/d/embeddenator-core.svg)](https://crates.io/crates/embeddenator-core)
+[![Docs](https://docs.rs/embeddenator-core/badge.svg)](https://docs.rs/embeddenator-core)
 
 Comprehensive re-export of all Embeddenator functionality.
 
@@ -124,7 +124,7 @@ Comprehensive re-export of all Embeddenator functionality.
 | [embeddenator-fs](./embeddenator-fs/) | Filesystem operations (EmbrFS) | [crates.io](https://crates.io/crates/embeddenator-fs) | 0.23.0 |
 | [embeddenator-interop](./embeddenator-interop/) | FFI and language interoperability | [crates.io](https://crates.io/crates/embeddenator-interop) | 0.22.0 |
 | [embeddenator-cli](./embeddenator-cli/) | Command-line interface | [crates.io](https://crates.io/crates/embeddenator-cli) | 0.21.0 |
-| [embeddenator](./embeddenator-core/) | Umbrella crate (re-exports all) | [crates.io](https://crates.io/crates/embeddenator) | 0.21.0 |
+| [embeddenator-core](./embeddenator-core/) | Umbrella crate (re-exports all) | [crates.io](https://crates.io/crates/embeddenator-core) | 0.22.0 |
 
 ### Development Tools
 
