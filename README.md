@@ -211,11 +211,31 @@ See [CI/CD Guide](./CI_CD_GUIDE.md) for comprehensive documentation.
 
 ## Documentation
 
-- **[Migration Guide](./MIGRATION_GUIDE.md)** - Transition from monolithic to component architecture
-- **[CI/CD Guide](./CI_CD_GUIDE.md)** - Complete CI/CD documentation
+### Project Documentation
+
+| Document | Description |
+|----------|-------------|
+| **[docs/](./docs/)** | All project documentation |
+| **[Project Charter](./docs/project-management/PROJECT_CHARTER.md)** | Vision, objectives, scope, success criteria |
+| **[Requirements](./docs/requirements/REQUIREMENTS.md)** | User stories, functional requirements |
+| **[Gap Analysis](./docs/benchmarks/GAP_ANALYSIS.md)** | Current performance vs targets |
+| **[Refactor Plan](./docs/architecture/HOLOGRAPHIC_REFACTOR_PLAN.md)** | Holographic storage implementation roadmap |
+
+### Architecture Decisions
+
+| ADR | Title | Status |
+|-----|-------|--------|
+| [ADR-001](./docs/adr/ADR-001-vsa-superposition-storage.md) | VSA Superposition Storage | Accepted |
+
+### Guides
+
+- **[CI/CD Guide](./docs/guides/CI_CD_GUIDE.md)** - Complete CI/CD documentation
 - **[Maintained Dependencies](./MAINTAINED_DEPENDENCIES.md)** - Candle and related ML dependency ecosystem
-- **[Component Architecture](./embeddenator/docs/COMPONENT_ARCHITECTURE.md)** - Architecture overview
 - **[API Documentation](https://tzervas.github.io/embeddenator/)** - Generated rustdoc
+
+### Archive
+
+- **[Migration Guide](./archive/MIGRATION_GUIDE.md)** - Transition from monolithic to component architecture (historical)
 
 ---
 
@@ -286,28 +306,26 @@ open target/doc/embeddenator/index.html
 embeddenator/
 ├── .github/
 │   ├── workflows/          # GitHub Actions CI/CD
-│   │   ├── ci-workspace.yml
-│   │   ├── bench-workspace.yml
-│   │   ├── health-workspace.yml
-│   │   ├── docs-workspace.yml
-│   │   ├── security-workspace.yml
-│   │   └── release-workspace.yml
-│   ├── CODEOWNERS          # Code ownership
-│   ├── PULL_REQUEST_TEMPLATE.md
-│   └── ISSUE_TEMPLATE/
-├── embeddenator/           # Main application
-├── embeddenator-vsa/       # VSA implementation
-├── embeddenator-fs/        # Filesystem operations
-├── embeddenator-io/        # I/O operations
-├── embeddenator-obs/       # Observable pattern
-├── embeddenator-retrieval/ # Information retrieval
-├── embeddenator-interop/   # FFI bindings
-├── embeddenator-cli/       # CLI interface
-├── embeddenator-workspace/ # Workspace tools
-├── embeddenator-testkit/   # Testing utilities + integration tests
-├── embeddenator-contract-bench/ # Contract tests
-├── update_all.sh           # Sync script
-├── CI_CD_GUIDE.md          # CI/CD documentation
+│   └── ISSUE_TEMPLATE/     # Issue templates
+├── docs/                   # Project documentation
+│   ├── adr/               # Architecture Decision Records
+│   ├── architecture/      # Design documents
+│   ├── benchmarks/        # Performance analysis
+│   ├── guides/            # How-to guides
+│   ├── project-management/ # Project tracking
+│   └── requirements/      # Specifications
+├── embeddenator-vsa/       # VSA implementation (submodule)
+├── embeddenator-fs/        # Filesystem operations (submodule)
+├── embeddenator-io/        # I/O operations (submodule)
+├── embeddenator-obs/       # Observable pattern (submodule)
+├── embeddenator-retrieval/ # Information retrieval (submodule)
+├── embeddenator-interop/   # FFI bindings (submodule)
+├── embeddenator-cli/       # CLI interface (submodule)
+├── embeddenator-core/      # Umbrella crate (submodule)
+├── embeddenator-workspace/ # Workspace tools (submodule)
+├── embeddenator-testkit/   # Testing utilities (submodule)
+├── embeddenator-contract-bench/ # Contract tests (submodule)
+├── archive/                # Historical documents
 └── README.md               # This file
 ```
 
