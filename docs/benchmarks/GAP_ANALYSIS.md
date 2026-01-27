@@ -232,3 +232,69 @@ The current implementation is **fundamentally broken** for the intended use case
 4. Hierarchical encoding for efficiency
 
 This is not incremental improvement - it requires architectural redesign of the encoding scheme while preserving the VSA/holographic properties.
+
+---
+
+## Component-Specific Gaps (Vision Alignment)
+
+The following gaps must be addressed to achieve the holographic vision of unified storage/RAM/VRAM with latent space computing.
+
+### embeddenator-vsa Gaps
+
+| Gap | Priority | Complexity | Status | Notes |
+|-----|----------|------------|--------|-------|
+| Latent space semantics (resonator networks) | CRITICAL | XL | Open | Cannot learn from data or perform reasoning |
+| GPU VRAM persistence layer | CRITICAL | L | Open | Cannot treat GPU memory as unified with RAM/storage |
+| True SIMD intrinsics for intersection | HIGH | M | Open | 2-4x CPU speedup potential |
+| PackedTritVec SIMD operations | HIGH | M | Open | 4-8x dense ops speedup |
+| Matrix CUDA kernels | HIGH | L | Open | GPU batch efficiency |
+| Virtual memory abstraction | CRITICAL | XL | Open | Address space unification |
+| CPU/GPU/storage coherency protocol | CRITICAL | XL | Open | Data consistency across tiers |
+
+### embeddenator-fs Gaps
+
+| Gap | Priority | Complexity | Status | Notes |
+|-----|----------|------------|--------|-------|
+| Streaming decode API | HIGH | M | Open | Large files load everything into RAM |
+| Wire update commands | HIGH | M | Open | Blocked by streaming decode |
+| Parallel encoding activation | MEDIUM | S | Open | Config exists, needs rayon wiring |
+| xattr FUSE integration completion | MEDIUM | S | Open | Storage exists, wire to FUSE handlers |
+
+### embeddenator-retrieval Gaps
+
+| Gap | Priority | Complexity | Status | Notes |
+|-----|----------|------------|--------|-------|
+| Parallel batch search (rayon) | CRITICAL | M | Open | Single-threaded currently |
+| Enable signature module | QUICK-WIN | S | Open | Just needs embeddenator-interop wired |
+| Fix chunk recovery stub | QUICK-WIN | S | Open | Replace placeholder with real algorithm |
+| Hierarchical HNSW indexing | HIGH | M | Open | Better search quality |
+| Distributed search protocol | CRITICAL | XL | Open | Petabyte scale capability |
+
+### embeddenator-io Gaps
+
+| Gap | Priority | Complexity | Status | Notes |
+|-----|----------|------------|--------|-------|
+| Streaming compression support | HIGH | M | Open | Memory efficiency for large files |
+
+### embeddenator-cli Gaps
+
+| Gap | Priority | Complexity | Status | Notes |
+|-----|----------|------------|--------|-------|
+| Wire update commands to fs operations | HIGH | M | Blocked | Blocked by embeddenator-fs streaming decode |
+
+### embeddenator-testkit Gaps
+
+| Gap | Priority | Complexity | Status | Notes |
+|-----|----------|------------|--------|-------|
+| Version bump 0.20 to 0.21 | QUICK-WIN | S | Open | Alignment with other components |
+
+---
+
+## Gap Resolution Roadmap
+
+See [ROADMAP.md](../../ROADMAP.md) for the full implementation plan and phase schedule.
+
+**Summary:**
+- **Phase 1 (4-6 weeks):** Foundation - learned codebooks, VRAM persistence, streaming decode, parallel search
+- **Phase 2 (3-4 weeks):** Performance - SIMD intrinsics, CUDA kernels, parallel encoding, streaming compression
+- **Phase 3 (6-8 weeks):** Integration - virtual memory, coherency protocol, HNSW indexing, distributed search

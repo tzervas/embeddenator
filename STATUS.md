@@ -90,6 +90,30 @@ See [MAINTAINED_DEPENDENCIES.md](./MAINTAINED_DEPENDENCIES.md) for integration g
 
 ---
 
+## Vision Gaps
+
+**Full Roadmap:** [ROADMAP.md](./ROADMAP.md)
+
+The following critical gaps block the holographic vision of unified storage/RAM/VRAM with latent space computing:
+
+| Gap | Component | Priority | Phase |
+|-----|-----------|----------|-------|
+| Latent space semantics | vsa | CRITICAL | 1 |
+| VRAM persistence layer | vsa | CRITICAL | 1 |
+| Streaming decode API | fs | HIGH | 1 |
+| Parallel batch search | retrieval | CRITICAL | 1 |
+| Virtual memory abstraction | vsa | CRITICAL | 3 |
+| Distributed search | retrieval | CRITICAL | 3 |
+
+**Timeline:**
+- **v0.25** (6 weeks): Production hardening - streaming, parallel ops, FUSE improvements
+- **v0.30** (3 months): Semantic intelligence - learned codebooks, latent operations
+- **v1.0** (6 months): Unified memory vision - RAM/VRAM/storage coherency, distributed scale
+
+See [Gap Analysis](./docs/benchmarks/GAP_ANALYSIS.md) for detailed component gaps.
+
+---
+
 ## CI/CD Status
 
 | Workflow | Trigger | Status |

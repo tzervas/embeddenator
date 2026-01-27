@@ -216,6 +216,7 @@ See [CI/CD Guide](./CI_CD_GUIDE.md) for comprehensive documentation.
 | Document | Description |
 |----------|-------------|
 | **[docs/](./docs/)** | All project documentation |
+| **[Roadmap](./ROADMAP.md)** | Vision gaps and implementation timeline |
 | **[Project Charter](./docs/project-management/PROJECT_CHARTER.md)** | Vision, objectives, scope, success criteria |
 | **[Requirements](./docs/requirements/REQUIREMENTS.md)** | User stories, functional requirements |
 | **[Gap Analysis](./docs/benchmarks/GAP_ANALYSIS.md)** | Current performance vs targets |

@@ -4,6 +4,7 @@
 
 | Document | Description |
 |----------|-------------|
+| [Roadmap](../ROADMAP.md) | Vision gaps and implementation timeline |
 | [Project Charter](project-management/PROJECT_CHARTER.md) | Vision, objectives, scope |
 | [Requirements](requirements/REQUIREMENTS.md) | User stories, functional requirements |
 | [Gap Analysis](benchmarks/GAP_ANALYSIS.md) | Current state vs targets |
@@ -12,21 +13,23 @@
 ## Documentation Structure
 
 ```
-docs/
-├── README.md                 # This file
-├── adr/                      # Architecture Decision Records
-│   └── ADR-001-*.md         # VSA superposition storage
-├── architecture/             # Design documents
-│   ├── HOLOGRAPHIC_REFACTOR_PLAN.md
-│   └── EXECUTION_PLAN.md
-├── benchmarks/               # Performance analysis
-│   └── GAP_ANALYSIS.md
-├── guides/                   # How-to guides
-│   └── CI_CD_GUIDE.md
-├── project-management/       # Project tracking
-│   └── PROJECT_CHARTER.md
-└── requirements/             # Specifications
-    └── REQUIREMENTS.md
+embeddenator/
+├── ROADMAP.md                # Vision gaps and implementation timeline
+└── docs/
+    ├── README.md             # This file
+    ├── adr/                  # Architecture Decision Records
+    │   └── ADR-001-*.md     # VSA superposition storage
+    ├── architecture/         # Design documents
+    │   ├── HOLOGRAPHIC_REFACTOR_PLAN.md
+    │   └── EXECUTION_PLAN.md
+    ├── benchmarks/           # Performance analysis
+    │   └── GAP_ANALYSIS.md
+    ├── guides/               # How-to guides
+    │   └── CI_CD_GUIDE.md
+    ├── project-management/   # Project tracking
+    │   └── PROJECT_CHARTER.md
+    └── requirements/         # Specifications
+        └── REQUIREMENTS.md
 ```
 
 ## Architecture Decision Records (ADRs)
