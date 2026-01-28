@@ -16,14 +16,14 @@ This roadmap tracks implementation gaps toward realizing the holographic computa
 
 | Component | Version | Core Readiness | Vision Alignment | Key Gaps |
 |-----------|---------|----------------|------------------|----------|
-| embeddenator-vsa | 0.22.0 | 98% | 75% | SIMD optimization, CUDA kernels |
-| embeddenator-fs | 0.24.0 | 70% | Partial | Encoder wiring, parallel encoding |
-| embeddenator-retrieval | 0.22.0 | 90% | 80% | HNSW indexing |
-| embeddenator-io | 0.21.0 | 85% | Good | Streaming compression |
-| embeddenator-cli | 0.21.0 | 86% | Good | Update commands blocked |
+| embeddenator-vsa | 0.22.0 | 99% | 95% | None (SIMD, CUDA, coherency complete) |
+| embeddenator-fs | 0.24.0 | 75% | Partial | Parallel encoding |
+| embeddenator-retrieval | 0.22.0 | 95% | 90% | HNSW indexing |
+| embeddenator-io | 0.21.0 | 95% | Good | None (streaming compression complete) |
+| embeddenator-cli | 0.21.0 | 86% | Good | None |
 | embeddenator-obs | 0.21.0 | Ready | Ready | None |
 | embeddenator-interop | 0.22.0 | Ready | Ready | None |
-| embeddenator-testkit | 0.20.0 | Ready | Ready | Version alignment |
+| embeddenator-testkit | 0.21.0 | Ready | Ready | None |
 | embeddenator-core | 0.22.0 | Ready | Ready | None |
 
 ---
@@ -84,11 +84,11 @@ These gaps block the core vision of unified storage/RAM/VRAM with latent space c
 
 | Task | Component | Priority | Complexity | Issue | Status |
 |------|-----------|----------|------------|-------|--------|
-| True SIMD intrinsics for intersection operations | vsa | HIGH | M | [#42](https://github.com/tzervas/embeddenator/issues/42) | Open |
-| SIMD operations for PackedTritVec | vsa | HIGH | M | [#43](https://github.com/tzervas/embeddenator/issues/43) | Open |
-| Matrix CUDA kernels for GPU acceleration | vsa | HIGH | L | [#44](https://github.com/tzervas/embeddenator/issues/44) | Open |
+| True SIMD intrinsics for intersection operations | vsa | HIGH | M | [#42](https://github.com/tzervas/embeddenator/issues/42) | **Done** |
+| SIMD operations for PackedTritVec | vsa | HIGH | M | [#43](https://github.com/tzervas/embeddenator/issues/43) | **Done** |
+| Matrix CUDA kernels for GPU acceleration | vsa | HIGH | L | [#44](https://github.com/tzervas/embeddenator/issues/44) | **Done** |
 | Activate parallel encoding configuration | fs | MEDIUM | S | [#45](https://github.com/tzervas/embeddenator/issues/45) | Open |
-| Streaming compression support | io | HIGH | M | [#46](https://github.com/tzervas/embeddenator/issues/46) | Open |
+| Streaming compression support | io | HIGH | M | [#46](https://github.com/tzervas/embeddenator/issues/46) | **Done** |
 
 ---
 
@@ -106,13 +106,13 @@ These gaps block the core vision of unified storage/RAM/VRAM with latent space c
 
 ---
 
-## Quick Wins (4/5 Complete)
+## Quick Wins (5/5 Complete)
 
 | Task | Component | Complexity | Issue | Status |
 |------|-----------|------------|-------|--------|
 | Enable signature module | retrieval | S | [#52](https://github.com/tzervas/embeddenator/issues/52) | **Done** |
 | Activate parallel config in default settings | fs | S | [#53](https://github.com/tzervas/embeddenator/issues/53) | **Done** |
-| Fix chunk recovery stub implementation | retrieval | S | [#54](https://github.com/tzervas/embeddenator/issues/54) | Open |
+| Fix chunk recovery stub implementation | retrieval | S | [#54](https://github.com/tzervas/embeddenator/issues/54) | **Done** |
 | Add remaining xattr FUSE method stubs | fs | S | [#55](https://github.com/tzervas/embeddenator/issues/55) | **Done** (already implemented) |
 | Version bump testkit from 0.20 to 0.21 | testkit | S | [#56](https://github.com/tzervas/embeddenator/issues/56) | **Done** |
 
