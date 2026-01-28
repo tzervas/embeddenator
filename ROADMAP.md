@@ -17,7 +17,7 @@ This roadmap tracks implementation gaps toward realizing the holographic computa
 | Component | Version | Core Readiness | Vision Alignment | Key Gaps |
 |-----------|---------|----------------|------------------|----------|
 | embeddenator-vsa | 0.22.0 | 99% | 95% | None (SIMD, CUDA, coherency complete) |
-| embeddenator-fs | 0.24.0 | 75% | Partial | Parallel encoding |
+| embeddenator-fs | 0.24.0 | 85% | Good | Encoder wiring (PR pending) |
 | embeddenator-retrieval | 0.22.0 | 95% | 90% | HNSW indexing |
 | embeddenator-io | 0.21.0 | 95% | Good | None (streaming compression complete) |
 | embeddenator-cli | 0.21.0 | 86% | Good | None |
@@ -87,7 +87,7 @@ These gaps block the core vision of unified storage/RAM/VRAM with latent space c
 | True SIMD intrinsics for intersection operations | vsa | HIGH | M | [#42](https://github.com/tzervas/embeddenator/issues/42) | **Done** |
 | SIMD operations for PackedTritVec | vsa | HIGH | M | [#43](https://github.com/tzervas/embeddenator/issues/43) | **Done** |
 | Matrix CUDA kernels for GPU acceleration | vsa | HIGH | L | [#44](https://github.com/tzervas/embeddenator/issues/44) | **Done** |
-| Activate parallel encoding configuration | fs | MEDIUM | S | [#45](https://github.com/tzervas/embeddenator/issues/45) | Open |
+| Activate parallel encoding configuration | fs | MEDIUM | S | [#45](https://github.com/tzervas/embeddenator/issues/45) | **Done** |
 | Streaming compression support | io | HIGH | M | [#46](https://github.com/tzervas/embeddenator/issues/46) | **Done** |
 
 ---
