@@ -18,7 +18,7 @@ This roadmap tracks implementation gaps toward realizing the holographic computa
 |-----------|---------|----------------|------------------|----------|
 | embeddenator-vsa | 0.22.0 | 99% | 95% | None (SIMD, CUDA, coherency complete) |
 | embeddenator-fs | 0.24.0 | 85% | Good | Encoder wiring (PR pending) |
-| embeddenator-retrieval | 0.22.0 | 95% | 90% | HNSW indexing |
+| embeddenator-retrieval | 0.22.0 | 99% | 95% | None (HNSW, distributed search complete) |
 | embeddenator-io | 0.21.0 | 95% | Good | None (streaming compression complete) |
 | embeddenator-cli | 0.21.0 | 86% | Good | None |
 | embeddenator-obs | 0.21.0 | Ready | Ready | None |
@@ -100,7 +100,7 @@ These gaps block the core vision of unified storage/RAM/VRAM with latent space c
 |------|-----------|----------|------------|-------|--------|
 | Virtual memory abstraction for large engrams | vsa | CRITICAL | XL | [#47](https://github.com/tzervas/embeddenator/issues/47) | **Done** |
 | CPU/GPU/storage coherency protocol | vsa | CRITICAL | XL | [#48](https://github.com/tzervas/embeddenator/issues/48) | **Done** |
-| Hierarchical HNSW indexing | retrieval | HIGH | M | [#49](https://github.com/tzervas/embeddenator/issues/49) | Open |
+| Hierarchical HNSW indexing | retrieval | HIGH | M | [#49](https://github.com/tzervas/embeddenator/issues/49) | **Done** |
 | Complete xattr FUSE integration | fs | MEDIUM | S | [#50](https://github.com/tzervas/embeddenator/issues/50) | **Done** |
 | Distributed search protocol | retrieval | CRITICAL | XL | [#51](https://github.com/tzervas/embeddenator/issues/51) | **Done** |
 
