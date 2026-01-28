@@ -1,7 +1,7 @@
 # Embeddenator Workspace Roadmap
 
-**Last Updated:** 2026-01-27
-**Version:** 1.0.0
+**Last Updated:** 2026-01-28
+**Version:** 1.1.0
 **Target Vision:** Unified holographic storage/RAM/VRAM with latent space computing
 
 ---
@@ -16,9 +16,9 @@ This roadmap tracks implementation gaps toward realizing the holographic computa
 
 | Component | Version | Core Readiness | Vision Alignment | Key Gaps |
 |-----------|---------|----------------|------------------|----------|
-| embeddenator-vsa | 0.21.1 | 95% | 40% | Latent semantics, VRAM persistence |
-| embeddenator-fs | 0.24.0 | 70% | Partial | Streaming decode, update wiring |
-| embeddenator-retrieval | 0.21.0 | 75% | Partial | Parallel/distributed search |
+| embeddenator-vsa | 0.22.0 | 98% | 75% | SIMD optimization, CUDA kernels |
+| embeddenator-fs | 0.24.0 | 70% | Partial | Encoder wiring, parallel encoding |
+| embeddenator-retrieval | 0.22.0 | 90% | 80% | HNSW indexing |
 | embeddenator-io | 0.21.0 | 85% | Good | Streaming compression |
 | embeddenator-cli | 0.21.0 | 86% | Good | Update commands blocked |
 | embeddenator-obs | 0.21.0 | Ready | Ready | None |
@@ -32,35 +32,35 @@ This roadmap tracks implementation gaps toward realizing the holographic computa
 
 These gaps block the core vision of unified storage/RAM/VRAM with latent space computation:
 
-### 1. No Latent Space Semantics
-- **Impact:** Cannot learn from data or perform reasoning
-- **Missing:** Resonator networks, semantic variable inference, learned codebooks
+### ~~1. No Latent Space Semantics~~ ✓ RESOLVED
+- ~~**Impact:** Cannot learn from data or perform reasoning~~
+- ~~**Missing:** Resonator networks, semantic variable inference, learned codebooks~~
 - **Component:** embeddenator-vsa
-- **Issue:** TBD
+- **Issue:** [#37](https://github.com/tzervas/embeddenator/issues/37) - **Implemented** (Resonator, gradient training, SemanticInference)
 
-### 2. No VRAM Persistence Layer
-- **Impact:** Cannot treat GPU memory as unified with RAM/storage
-- **Missing:** GPU memory pool, host-device coherency protocol
+### ~~2. No VRAM Persistence Layer~~ ✓ RESOLVED
+- ~~**Impact:** Cannot treat GPU memory as unified with RAM/storage~~
+- ~~**Missing:** GPU memory pool, host-device coherency protocol~~
 - **Component:** embeddenator-vsa
-- **Issue:** TBD
+- **Issue:** [#38](https://github.com/tzervas/embeddenator/issues/38) - **Implemented** (VramPool, CoherencyManager)
 
-### 3. No Streaming Decode
-- **Impact:** Large file extraction loads everything into RAM
-- **Missing:** `stream_decode()` API for incremental reconstruction
+### ~~3. No Streaming Decode~~ ✓ RESOLVED
+- ~~**Impact:** Large file extraction loads everything into RAM~~
+- ~~**Missing:** `stream_decode()` API for incremental reconstruction~~
 - **Component:** embeddenator-fs
-- **Issue:** TBD
+- **Issue:** [#39](https://github.com/tzervas/embeddenator/issues/39) - **Implemented**
 
-### 4. No Parallel/Distributed Search
-- **Impact:** Single-threaded, single-machine only
-- **Missing:** rayon parallelization, distributed index protocol
+### ~~4. No Parallel/Distributed Search~~ ✓ RESOLVED (Parallel)
+- ~~**Impact:** Single-threaded, single-machine only~~
+- ~~**Missing:** rayon parallelization~~ (distributed still pending)
 - **Component:** embeddenator-retrieval
-- **Issue:** TBD
+- **Issue:** [#40](https://github.com/tzervas/embeddenator/issues/40) - **Implemented** (parallel), [#51](https://github.com/tzervas/embeddenator/issues/51) (distributed - Phase 3)
 
-### 5. Update Operations Blocked
-- **Impact:** Cannot incrementally modify engrams via CLI
-- **Blocked by:** embeddenator-fs `add_file`/`remove_file`/`modify_file`/`compact` wiring
+### ~~5. Update Operations Blocked~~ ✓ RESOLVED
+- ~~**Impact:** Cannot incrementally modify engrams via CLI~~
+- ~~**Blocked by:** embeddenator-fs `add_file`/`remove_file`/`modify_file`/`compact` wiring~~
 - **Component:** embeddenator-cli
-- **Issue:** TBD
+- **Issue:** [#41](https://github.com/tzervas/embeddenator/issues/41) - **Implemented**
 
 ---
 
@@ -70,11 +70,11 @@ These gaps block the core vision of unified storage/RAM/VRAM with latent space c
 
 | Task | Component | Priority | Complexity | Issue | Status |
 |------|-----------|----------|------------|-------|--------|
-| Implement learned codebooks with resonator networks | vsa | CRITICAL | XL | [#37](https://github.com/tzervas/embeddenator/issues/37) | Open |
-| Implement GPU VRAM persistence layer | vsa | CRITICAL | L | [#38](https://github.com/tzervas/embeddenator/issues/38) | Open |
-| Add streaming decode API for incremental reconstruction | fs | HIGH | M | [#39](https://github.com/tzervas/embeddenator/issues/39) | Open |
-| Implement parallel batch search with rayon | retrieval | CRITICAL | M | [#40](https://github.com/tzervas/embeddenator/issues/40) | Open |
-| Wire update commands to fs operations | cli, fs | HIGH | M | [#41](https://github.com/tzervas/embeddenator/issues/41) | Open |
+| Implement learned codebooks with resonator networks | vsa | CRITICAL | XL | [#37](https://github.com/tzervas/embeddenator/issues/37) | **Done** |
+| Implement GPU VRAM persistence layer | vsa | CRITICAL | L | [#38](https://github.com/tzervas/embeddenator/issues/38) | **Done** |
+| Add streaming decode API for incremental reconstruction | fs | HIGH | M | [#39](https://github.com/tzervas/embeddenator/issues/39) | **Done** |
+| Implement parallel batch search with rayon | retrieval | CRITICAL | M | [#40](https://github.com/tzervas/embeddenator/issues/40) | **Done** |
+| Wire update commands to fs operations | cli, fs | HIGH | M | [#41](https://github.com/tzervas/embeddenator/issues/41) | **Done** |
 
 ---
 
@@ -98,11 +98,11 @@ These gaps block the core vision of unified storage/RAM/VRAM with latent space c
 
 | Task | Component | Priority | Complexity | Issue | Status |
 |------|-----------|----------|------------|-------|--------|
-| Virtual memory abstraction for large engrams | vsa | CRITICAL | XL | [#47](https://github.com/tzervas/embeddenator/issues/47) | Open |
-| CPU/GPU/storage coherency protocol | vsa | CRITICAL | XL | [#48](https://github.com/tzervas/embeddenator/issues/48) | Open |
+| Virtual memory abstraction for large engrams | vsa | CRITICAL | XL | [#47](https://github.com/tzervas/embeddenator/issues/47) | **Done** |
+| CPU/GPU/storage coherency protocol | vsa | CRITICAL | XL | [#48](https://github.com/tzervas/embeddenator/issues/48) | **Done** |
 | Hierarchical HNSW indexing | retrieval | HIGH | M | [#49](https://github.com/tzervas/embeddenator/issues/49) | Open |
-| Complete xattr FUSE integration | fs | MEDIUM | S | [#50](https://github.com/tzervas/embeddenator/issues/50) | Open |
-| Distributed search protocol | retrieval | CRITICAL | XL | [#51](https://github.com/tzervas/embeddenator/issues/51) | Open |
+| Complete xattr FUSE integration | fs | MEDIUM | S | [#50](https://github.com/tzervas/embeddenator/issues/50) | **Done** |
+| Distributed search protocol | retrieval | CRITICAL | XL | [#51](https://github.com/tzervas/embeddenator/issues/51) | **Done** |
 
 ---
 
