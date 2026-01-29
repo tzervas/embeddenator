@@ -1,7 +1,7 @@
 # Embeddenator Workspace Roadmap
 
-**Last Updated:** 2026-01-28
-**Version:** 1.1.0
+**Last Updated:** 2026-01-29
+**Version:** 1.2.0
 **Target Vision:** Unified holographic storage/RAM/VRAM with latent space computing
 
 ---
@@ -16,7 +16,7 @@ This roadmap tracks implementation gaps toward realizing the holographic computa
 
 | Component | Version | Core Readiness | Vision Alignment | Key Gaps |
 |-----------|---------|----------------|------------------|----------|
-| embeddenator-vsa | 0.22.0 | 99% | 95% | None (SIMD, CUDA, coherency complete) |
+| embeddenator-vsa | 0.23.0 | 100% | 95% | None (SIMD, CUDA, batch encoding, coherency complete) |
 | embeddenator-fs | 0.24.0 | 85% | Good | Encoder wiring (PR pending) |
 | embeddenator-retrieval | 0.22.0 | 99% | 95% | None (HNSW, distributed search complete) |
 | embeddenator-io | 0.21.0 | 95% | Good | None (streaming compression complete) |
