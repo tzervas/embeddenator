@@ -1,0 +1,24 @@
+Embeddenator v0.21.0 - Holographic Ingestion
+=====================================
+Ingesting directory: /home/kang/Documents/projects/embdntr/test-datasets
+Ingesting benchmarks/benchmark_results.md: 1660 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/binary.engram: 3441644 bytes (binary)
+  → 841 of 841 chunks needed correction
+Ingesting benchmarks/binary.json: 4953 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting benchmarks/binary_extract.log: 524 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/binary_extracted/bigbuckbunny_10s.mp4: 991017 bytes (binary)
+  → 242 of 242 chunks needed correction
+Ingesting benchmarks/binary_extracted/github_logo.png: 14 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/binary_extracted/rfc791_ip.txt: 94892 bytes (text)
+  → 24 of 24 chunks needed correction
+Ingesting benchmarks/binary_extracted/sample_image_1.jpg: 80969 bytes (binary)
+  → 20 of 20 chunks needed correction
+Ingesting benchmarks/binary_extracted/sample_image_2.jpg: 89170 bytes (binary)
+  → 22 of 22 chunks needed correction
+Ingesting benchmarks/binary_extracted/sample_image_3.jpg: 47329 bytes (binary)
+  → 12 of 12 chunks needed correction
+Ingesting benchmarks/binary_ingest.log: 923 bytes (text)

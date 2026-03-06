@@ -1,0 +1,52 @@
+Embeddenator v0.21.0 - Holographic Extraction
+======================================
+Extracting 45 files to /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/combined_extracted
+  Correction stats: 0.0% perfect, 100.03% overhead
+Extracted: benchmarks/benchmark_results.md
+Extracted: benchmarks/binary.engram
+Extracted: benchmarks/binary.json
+Extracted: benchmarks/binary_extract.log
+Extracted: benchmarks/binary_extracted/bigbuckbunny_10s.mp4
+Extracted: benchmarks/binary_extracted/github_logo.png
+Extracted: benchmarks/binary_extracted/rfc791_ip.txt
+Extracted: benchmarks/binary_extracted/sample_image_1.jpg
+Extracted: benchmarks/binary_extracted/sample_image_2.jpg
+Extracted: benchmarks/binary_extracted/sample_image_3.jpg
+Extracted: benchmarks/binary_ingest.log
+Extracted: benchmarks/combined_ingest.log
+Extracted: benchmarks/structured.engram
+Extracted: benchmarks/structured.json
+Extracted: benchmarks/structured_extract.log
+Extracted: benchmarks/structured_extracted/adult.csv
+Extracted: benchmarks/structured_extracted/github_repo.json
+Extracted: benchmarks/structured_extracted/iris.csv
+Extracted: benchmarks/structured_extracted/nyc_taxi_2024_01.parquet
+Extracted: benchmarks/structured_extracted/wine.csv
+Extracted: benchmarks/structured_ingest.log
+Extracted: benchmarks/unstructured.engram
+Extracted: benchmarks/unstructured.json
+Extracted: benchmarks/unstructured_extract.log
+Extracted: benchmarks/unstructured_extracted/apache_logs.txt
+Extracted: benchmarks/unstructured_extracted/enron_sample.csv
+Extracted: benchmarks/unstructured_extracted/moby_dick.txt
+Extracted: benchmarks/unstructured_extracted/pride_and_prejudice.txt
+Extracted: benchmarks/unstructured_ingest.log
+Extracted: binary/bigbuckbunny_10s.mp4
+Extracted: binary/github_logo.png
+Extracted: binary/rfc791_ip.txt
+Extracted: binary/sample_image_1.jpg
+Extracted: binary/sample_image_2.jpg
+Extracted: binary/sample_image_3.jpg
+Extracted: run_benchmarks.sh
+Extracted: structured/adult.csv
+Extracted: structured/github_repo.json
+Extracted: structured/iris.csv
+Extracted: structured/nyc_taxi_2024_01.parquet
+Extracted: structured/wine.csv
+Extracted: unstructured/apache_logs.txt
+Extracted: unstructured/enron_sample.csv
+Extracted: unstructured/moby_dick.txt
+Extracted: unstructured/pride_and_prejudice.txt
+
+Extraction complete!
+  Output: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/combined_extracted

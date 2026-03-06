@@ -1,0 +1,13 @@
+Embeddenator v0.21.0 - Holographic Extraction
+======================================
+Extracting 6 files to /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/binary_extracted
+  Correction stats: 0.0% perfect, 100.00% overhead
+Extracted: bigbuckbunny_10s.mp4
+Extracted: github_logo.png
+Extracted: rfc791_ip.txt
+Extracted: sample_image_1.jpg
+Extracted: sample_image_2.jpg
+Extracted: sample_image_3.jpg
+
+Extraction complete!
+  Output: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/binary_extracted

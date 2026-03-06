@@ -1,0 +1,17 @@
+Embeddenator v0.21.0 - Holographic Ingestion
+=====================================
+Ingesting directory: /home/kang/Documents/projects/embdntr/test-datasets/unstructured
+Ingesting apache_logs.txt: 2370789 bytes (text)
+  → 579 of 579 chunks needed correction
+Ingesting enron_sample.csv: 14 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting moby_dick.txt: 1256545 bytes (text)
+  → 307 of 307 chunks needed correction
+Ingesting pride_and_prejudice.txt: 752583 bytes (text)
+  → 184 of 184 chunks needed correction
+
+Ingestion complete!
+  Engram: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/unstructured.engram
+  Manifest: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/unstructured.json
+  Files: 4
+  Total chunks: 1071

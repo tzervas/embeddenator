@@ -1,0 +1,374 @@
+test codebook::tests::test_balanced_ternary_metadata ... ok
+test codebook::tests::test_balanced_ternary_range ... ok
+test codebook::tests::test_balanced_ternary_roundtrip ... ok
+test codebook::tests::test_codebook_projection ... ok
+test codebook::tests::test_parity_computation ... ok
+test coherency::tests::test_coherency_manager ... ok
+test coherency::tests::test_coherency_state_checks ... ok
+test coherency::tests::test_coherent_engram_modify_marks_dirty ... ok
+test coherency::tests::test_coherent_engram_new ... ok
+test coherency::tests::test_coherent_engram_sparse_vec_roundtrip ... ok
+test coherency::tests::test_has_valid_copy ... ok
+test coherency::tests::test_sync_protocol ... ok
+test coherency::tests::test_sync_protocol_policy ... ok
+test coherency::tests::test_tier_mask_fastest ... ok
+test coherency::tests::test_tier_mask_operations ... ok
+test coherency::tests::test_tier_mask_union ... ok
+test coherency::tests::test_tier_priority ... ok
+test coherency::tests::test_tiered_block ... ok
+test coherency::tests::test_tiered_state_invalidate ... ok
+test coherency::tests::test_tiered_state_new ... ok
+test coherency::tests::test_tiered_state_sync ... ok
+test coherency::tests::test_tiered_state_write_all ... ok
+test coherency::tests::test_tiered_state_write_back ... ok
+test coherency::tests::test_tiered_state_write_through ... ok
+test dimensional::tests::test_differential_encoding ... ok
+test dimensional::tests::test_hypervec_bind_self_inverse ... ok
+test dimensional::tests::test_hypervec_bundle_commutative ... ok
+test dimensional::tests::test_hypervec_cosine_identical ... ok
+test dimensional::tests::test_hypervec_permute_inverse ... ok
+test dimensional::tests::test_pack_unpack_roundtrip ... ok
+test dimensional::tests::test_trit_multiplication ... ok
+test dimensional::tests::test_tryte_max_values ... ok
+test dimensional::tests::test_tryte_roundtrip ... ok
+test gpu::tests::test_gpu_arch_detection ... ok
+test gpu::tests::test_gpu_config_default ... ok
+test gpu::tests::test_gpu_error_display ... ok
+test gpu::tests::test_memory_config_calculations ... ok
+test gpu::tests::test_recommended_batch_size ... ok
+test gpu_encoding::tests::test_empty_data_accuracy ... ok
+test gpu_kernels::tests::test_flatten_byte_vectors ... ok
+test gpu_kernels::tests::test_kernel_runner_creation ... ok
+test phase_training::tests::test_gradient_prediction ... ok
+test phase_training::tests::test_phase_trainer_cycles ... ok
+test phase_training::tests::test_phase_trainer_rejects_zero_correct_every ... ok
+test phase_training::tests::test_phase_trainer_rejects_zero_cycle_length ... ok
+test phase_training::tests::test_train_codebook_rejects_empty_codebook ... ok
+test phase_training::tests::test_train_codebook_rejects_empty_data ... ok
+test phase_training::tests::test_train_codebook_rejects_zero_batch_size ... ok
+test phase_training::tests::test_training_config_default ... ok
+test resonator::tests::test_factorization_empty_resonator ... ok
+test resonator::tests::test_factorization_single_factor ... ok
+test resonator::tests::test_resonator_add_codebook ... ok
+test resonator::tests::test_resonator_config_default ... ok
+test resonator::tests::test_resonator_new ... ok
+test resonator::tests::test_semantic_inference ... ok
+test resonator::tests::test_training_example_creation ... ok
+test resonator::tests::test_weighted_bundle ... ok
+test reversible_encoding::tests::test_batch_decode_empty ... ok
+test reversible_encoding::tests::test_batch_decode_matches_sequential ... ok
+test reversible_encoding::tests::test_batch_encode_accuracy ... ok
+test reversible_encoding::tests::test_batch_encode_empty ... ok
+test reversible_encoding::tests::test_batch_encode_matches_sequential ... ok
+test reversible_encoding::tests::test_chunked_encoding ... ok
+test reversible_encoding::tests::test_ensure_positions_panics_on_overflow - should panic ... ok
+test reversible_encoding::tests::test_short_string_roundtrip ... ok
+test reversible_encoding::tests::test_single_byte_roundtrip ... ok
+test reversible_encoding::tests::test_try_ensure_positions_exceeds_limit ... ok
+test reversible_encoding::tests::test_try_ensure_positions_within_limit ... ok
+test simd_cosine::tests::test_avx512_cosine_properties ... ok
+test simd_cosine::tests::test_avx512_empty_and_small_vectors ... ok
+test simd_cosine::tests::test_avx512_large_vectors ... ok
+test simd_cosine::tests::test_avx512_matches_scalar ... ok
+test simd_cosine::tests::test_avx_vnni_cosine_properties ... ok
+test simd_cosine::tests::test_avx_vnni_detection ... ok
+test simd_cosine::tests::test_avx_vnni_empty_and_small_vectors ... ok
+test simd_cosine::tests::test_avx_vnni_large_vectors ... ok
+test simd_cosine::tests::test_avx_vnni_matches_scalar ... ok
+test simd_cosine::tests::test_byte_dot_product_vnni ... ok
+test simd_cosine::tests::test_byte_dot_product_vnni_edge_cases ... ok
+test simd_cosine::tests::test_cosine_properties ... ok
+test simd_cosine::tests::test_empty_vectors ... ok
+test simd_cosine::tests::test_runtime_dispatch_selects_best_available ... ok
+test simd_cosine::tests::test_scalar_cosine_basic ... ok
+test simd_cosine::tests::test_simd_matches_scalar ... ok
+test ternary::tests::test_parity_detection ... ok
+test ternary::tests::test_trit_add_with_carry_complete ... ok
+test ternary::tests::test_trit_multiplication_associative ... ok
+test ternary::tests::test_trit_multiplication_commutative ... ok
+test ternary::tests::test_trit_multiplication_truth_table ... ok
+test ternary::tests::test_trit_negation ... ok
+test ternary::tests::test_trit_self_inverse ... ok
+test ternary::tests::test_tryte3_bind_self_inverse ... ok
+test ternary::tests::test_tryte3_pack_unpack ... ok
+test ternary::tests::test_tryte3_roundtrip ... ok
+test ternary::tests::test_word6_pack_unpack ... ok
+test ternary::tests::test_word6_roundtrip ... ok
+test virtual_memory::tests::test_allocate_disk ... ok
+test virtual_memory::tests::test_allocate_host ... ok
+test virtual_memory::tests::test_concurrent_access ... ok
+test virtual_memory::tests::test_disk_persistence ... ok
+test virtual_memory::tests::test_eviction_from_host_to_disk ... ok
+test virtual_memory::tests::test_flush_persists_dirty_data ... ok
+test virtual_memory::tests::test_free ... ok
+test virtual_memory::tests::test_memory_tier_priority ... ok
+test virtual_memory::tests::test_migrate_host_to_disk ... ok
+test virtual_memory::tests::test_pin_unpin ... ok
+test virtual_memory::tests::test_pinned_allocation_not_evicted ... ok
+test virtual_memory::tests::test_size_mismatch_error ... ok
+test virtual_memory::tests::test_stats ... ok
+test virtual_memory::tests::test_vmemhandle_accessors ... ok
+test virtual_memory::tests::test_write_read_roundtrip ... ok
+test vram_pool::tests::test_vram_allocation_lru ... ok
+test vram_pool::tests::test_vram_handle ... ok
+test vram_pool::tests::test_vram_pool_config_default ... ok
+test vram_pool::tests::test_vram_pool_stats ... ok
+test result: ok. 115 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.42s
+test test_cosine_self_similarity_bug ... ok
+test test_prime_sized_encoding ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_bundle_path_selection ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/codebook_roundtrip_tests.rs (target/release/deps/codebook_roundtrip_tests-457bd3d56c2d9e7a)
+test test_codebook_custom_config ... ok
+test test_codebook_deterministic ... ok
+test test_codebook_empty_data ... ok
+test test_codebook_high_entropy_detection ... ok
+test test_codebook_projection_has_coefficients_or_residual ... ok
+test test_codebook_quality_score_meaningful ... ok
+test test_codebook_reconstruction_applies_residual ... ok
+test test_codebook_roundtrip_simple ... ok
+test test_codebook_roundtrip_various_sizes ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test test_encoding_determinism ... ok
+test test_self_similarity_various_sizes ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_full_23_byte_trace ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_cosine_properties ... ok
+test test_cosine_scalar_basic ... ok
+test test_cosine_with_feature_gate ... ok
+test test_empty_vectors ... ok
+test test_simd_empty_vectors ... ok
+test test_simd_matches_scalar_basic ... ok
+test test_simd_matches_scalar_encoded ... ok
+test test_simd_range ... ok
+test test_simd_self_similarity ... ok
+test test_simd_symmetry ... ok
+test test_simd_synthetic_vectors ... ok
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_codebook_empty_and_edge_cases ... ok
+test test_codebook_reconstruction_preserves_structure ... ok
+test test_codebook_roundtrip_comprehensive ... ok
+test test_simd_large_vectors ... ok
+test test_simd_unaligned_data ... ok
+test test_simd_with_sparse_and_dense_patterns ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test test_encode_block_directly ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test src/coherency.rs - coherency (line 28) ... ignored
+test src/gpu.rs - gpu (line 38) ... ignored
+test src/gpu_encoding.rs - gpu_encoding (line 16) ... ignored
+test src/gpu_kernels.rs - gpu_kernels (line 21) ... ignored
+test src/lib.rs - (line 23) ... ok
+test src/phase_training.rs - phase_training (line 23) ... ignored
+test src/resonator.rs - resonator (line 34) ... ignored
+test src/reversible_encoding.rs - reversible_encoding::ReversibleVSAEncoder::batch_encode (line 359) ... ignored
+test src/reversible_encoding.rs - reversible_encoding::ReversibleVSAEncoder::ensure_positions (line 281) ... ignored
+test src/virtual_memory.rs - virtual_memory (line 37) ... ignored
+test src/vram_pool.rs - vram_pool (line 15) ... ignored
+test src/vsa.rs - vsa::SparseVec::bind (line 1241) ... ok
+test src/vsa.rs - vsa::SparseVec::bundle (line 1042) ... ok
+test src/vsa.rs - vsa::SparseVec::bundle_with_config (line 1002) ... ok
+test src/vsa.rs - vsa::SparseVec::cosine (line 1377) ... ok
+test src/vsa.rs - vsa::SparseVec::decode_data (line 740) - compile ... ok
+test src/vsa.rs - vsa::SparseVec::encode_data (line 665) ... ok
+test src/vsa.rs - vsa::SparseVec::from_data (line 948) ... ok
+test src/vsa.rs - vsa::SparseVec::inverse_permute (line 1500) ... ok
+test src/vsa.rs - vsa::SparseVec::new (line 564) ... ok
+test src/vsa.rs - vsa::SparseVec::permute (line 1466) ... ok
+test src/vsa.rs - vsa::SparseVec::random (line 582) ... ok
+test src/vsa.rs - vsa::SparseVec::random_with_config (line 618) ... ok
+test src/vsa.rs - vsa::VsaConfig (line 28) ... ok
+test src/vsa.rs - vsa::VsaConfig::for_accuracy (line 188) ... ok
+test src/vsa.rs - vsa::VsaConfig::from_schema (line 231) ... ok
+test src/vsa.rs - vsa::VsaConfigSchema (line 312) ... ok
+test result: ok. 17 passed; 0 failed; 10 ignored; 0 measured; 0 filtered out; finished in 0.79s
+test codebook::tests::test_balanced_ternary_metadata ... ok
+test codebook::tests::test_balanced_ternary_range ... ok
+test codebook::tests::test_balanced_ternary_roundtrip ... ok
+test codebook::tests::test_codebook_projection ... ok
+test codebook::tests::test_parity_computation ... ok
+test coherency::tests::test_coherency_manager ... ok
+test coherency::tests::test_coherency_state_checks ... ok
+test coherency::tests::test_coherent_engram_modify_marks_dirty ... ok
+test coherency::tests::test_coherent_engram_new ... ok
+test coherency::tests::test_coherent_engram_sparse_vec_roundtrip ... ok
+test coherency::tests::test_has_valid_copy ... ok
+test coherency::tests::test_sync_protocol ... ok
+test coherency::tests::test_sync_protocol_policy ... ok
+test coherency::tests::test_tier_mask_fastest ... ok
+test coherency::tests::test_tier_mask_operations ... ok
+test coherency::tests::test_tier_mask_union ... ok
+test coherency::tests::test_tier_priority ... ok
+test coherency::tests::test_tiered_block ... ok
+test coherency::tests::test_tiered_state_invalidate ... ok
+test coherency::tests::test_tiered_state_new ... ok
+test coherency::tests::test_tiered_state_sync ... ok
+test coherency::tests::test_tiered_state_write_all ... ok
+test coherency::tests::test_tiered_state_write_back ... ok
+test coherency::tests::test_tiered_state_write_through ... ok
+test dimensional::tests::test_differential_encoding ... ok
+test dimensional::tests::test_hypervec_bind_self_inverse ... ok
+test dimensional::tests::test_hypervec_bundle_commutative ... ok
+test dimensional::tests::test_hypervec_cosine_identical ... ok
+test dimensional::tests::test_hypervec_permute_inverse ... ok
+test dimensional::tests::test_pack_unpack_roundtrip ... ok
+test dimensional::tests::test_trit_multiplication ... ok
+test dimensional::tests::test_tryte_max_values ... ok
+test dimensional::tests::test_tryte_roundtrip ... ok
+test gpu::tests::test_gpu_arch_detection ... ok
+test gpu::tests::test_gpu_config_default ... ok
+test gpu::tests::test_gpu_error_display ... ok
+test gpu::tests::test_memory_config_calculations ... ok
+test gpu::tests::test_recommended_batch_size ... ok
+test gpu_encoding::tests::test_empty_data_accuracy ... ok
+test gpu_kernels::tests::test_flatten_byte_vectors ... ok
+test gpu_kernels::tests::test_kernel_runner_creation ... ok
+test phase_training::tests::test_gradient_prediction ... ok
+test phase_training::tests::test_phase_trainer_cycles ... ok
+test phase_training::tests::test_phase_trainer_rejects_zero_correct_every ... ok
+test phase_training::tests::test_phase_trainer_rejects_zero_cycle_length ... ok
+test phase_training::tests::test_train_codebook_rejects_empty_codebook ... ok
+test phase_training::tests::test_train_codebook_rejects_empty_data ... ok
+test phase_training::tests::test_train_codebook_rejects_zero_batch_size ... ok
+test phase_training::tests::test_training_config_default ... ok
+test resonator::tests::test_factorization_empty_resonator ... ok
+test resonator::tests::test_factorization_single_factor ... ok
+test resonator::tests::test_resonator_add_codebook ... ok
+test resonator::tests::test_resonator_config_default ... ok
+test resonator::tests::test_resonator_new ... ok
+test resonator::tests::test_semantic_inference ... ok
+test resonator::tests::test_training_example_creation ... ok
+test resonator::tests::test_weighted_bundle ... ok
+test reversible_encoding::tests::test_batch_decode_empty ... ok
+test reversible_encoding::tests::test_batch_decode_matches_sequential ... ok
+test reversible_encoding::tests::test_batch_encode_accuracy ... ok
+test reversible_encoding::tests::test_batch_encode_empty ... ok
+test reversible_encoding::tests::test_batch_encode_matches_sequential ... ok
+test reversible_encoding::tests::test_chunked_encoding ... ok
+test reversible_encoding::tests::test_ensure_positions_panics_on_overflow - should panic ... ok
+test reversible_encoding::tests::test_short_string_roundtrip ... ok
+test reversible_encoding::tests::test_single_byte_roundtrip ... ok
+test reversible_encoding::tests::test_try_ensure_positions_exceeds_limit ... ok
+test reversible_encoding::tests::test_try_ensure_positions_within_limit ... ok
+test simd_cosine::tests::test_avx512_cosine_properties ... ok
+test simd_cosine::tests::test_avx512_empty_and_small_vectors ... ok
+test simd_cosine::tests::test_avx512_large_vectors ... ok
+test simd_cosine::tests::test_avx512_matches_scalar ... ok
+test simd_cosine::tests::test_avx_vnni_cosine_properties ... ok
+test simd_cosine::tests::test_avx_vnni_detection ... ok
+test simd_cosine::tests::test_avx_vnni_empty_and_small_vectors ... ok
+test simd_cosine::tests::test_avx_vnni_large_vectors ... ok
+test simd_cosine::tests::test_avx_vnni_matches_scalar ... ok
+test simd_cosine::tests::test_byte_dot_product_vnni ... ok
+test simd_cosine::tests::test_byte_dot_product_vnni_edge_cases ... ok
+test simd_cosine::tests::test_cosine_properties ... ok
+test simd_cosine::tests::test_empty_vectors ... ok
+test simd_cosine::tests::test_runtime_dispatch_selects_best_available ... ok
+test simd_cosine::tests::test_scalar_cosine_basic ... ok
+test simd_cosine::tests::test_simd_matches_scalar ... ok
+test ternary::tests::test_parity_detection ... ok
+test ternary::tests::test_trit_add_with_carry_complete ... ok
+test ternary::tests::test_trit_multiplication_associative ... ok
+test ternary::tests::test_trit_multiplication_commutative ... ok
+test ternary::tests::test_trit_multiplication_truth_table ... ok
+test ternary::tests::test_trit_negation ... ok
+test ternary::tests::test_trit_self_inverse ... ok
+test ternary::tests::test_tryte3_bind_self_inverse ... ok
+test ternary::tests::test_tryte3_pack_unpack ... ok
+test ternary::tests::test_tryte3_roundtrip ... ok
+test ternary::tests::test_word6_pack_unpack ... ok
+test ternary::tests::test_word6_roundtrip ... ok
+test virtual_memory::tests::test_allocate_disk ... ok
+test virtual_memory::tests::test_allocate_host ... ok
+test virtual_memory::tests::test_concurrent_access ... ok
+test virtual_memory::tests::test_disk_persistence ... ok
+test virtual_memory::tests::test_eviction_from_host_to_disk ... ok
+test virtual_memory::tests::test_flush_persists_dirty_data ... ok
+test virtual_memory::tests::test_free ... ok
+test virtual_memory::tests::test_memory_tier_priority ... ok
+test virtual_memory::tests::test_migrate_host_to_disk ... ok
+test virtual_memory::tests::test_pin_unpin ... ok
+test virtual_memory::tests::test_pinned_allocation_not_evicted ... ok
+test virtual_memory::tests::test_size_mismatch_error ... ok
+test virtual_memory::tests::test_stats ... ok
+test virtual_memory::tests::test_vmemhandle_accessors ... ok
+test virtual_memory::tests::test_write_read_roundtrip ... ok
+test vram_pool::tests::test_vram_allocation_lru ... ok
+test vram_pool::tests::test_vram_handle ... ok
+test vram_pool::tests::test_vram_pool_config_default ... ok
+test vram_pool::tests::test_vram_pool_stats ... ok
+test result: ok. 115 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.43s
+test test_cosine_self_similarity_bug ... ok
+test test_prime_sized_encoding ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_bundle_path_selection ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/codebook_roundtrip_tests.rs (target/release/deps/codebook_roundtrip_tests-457bd3d56c2d9e7a)
+test test_codebook_custom_config ... ok
+test test_codebook_deterministic ... ok
+test test_codebook_empty_data ... ok
+test test_codebook_high_entropy_detection ... ok
+test test_codebook_projection_has_coefficients_or_residual ... ok
+test test_codebook_quality_score_meaningful ... ok
+test test_codebook_reconstruction_applies_residual ... ok
+test test_codebook_roundtrip_simple ... ok
+test test_codebook_roundtrip_various_sizes ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test test_encoding_determinism ... ok
+test test_self_similarity_various_sizes ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_encode_decode_per_chunk ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+test test_full_23_byte_trace ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_cosine_properties ... ok
+test test_cosine_scalar_basic ... ok
+test test_cosine_with_feature_gate ... ok
+test test_empty_vectors ... ok
+test test_simd_empty_vectors ... ok
+test test_simd_matches_scalar_basic ... ok
+test test_simd_matches_scalar_encoded ... ok
+test test_simd_range ... ok
+test test_simd_self_similarity ... ok
+test test_simd_symmetry ... ok
+test test_simd_synthetic_vectors ... ok
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test test_codebook_empty_and_edge_cases ... ok
+test test_codebook_reconstruction_preserves_structure ... ok
+test test_codebook_roundtrip_comprehensive ... ok
+test test_simd_large_vectors ... ok
+test test_simd_unaligned_data ... ok
+test test_simd_with_sparse_and_dense_patterns ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test test_encode_block_directly ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test src/coherency.rs - coherency (line 28) ... ignored
+test src/gpu.rs - gpu (line 38) ... ignored
+test src/gpu_encoding.rs - gpu_encoding (line 16) ... ignored
+test src/gpu_kernels.rs - gpu_kernels (line 21) ... ignored
+test src/lib.rs - (line 23) ... ok
+test src/phase_training.rs - phase_training (line 23) ... ignored
+test src/resonator.rs - resonator (line 34) ... ignored
+test src/reversible_encoding.rs - reversible_encoding::ReversibleVSAEncoder::batch_encode (line 359) ... ignored
+test src/reversible_encoding.rs - reversible_encoding::ReversibleVSAEncoder::ensure_positions (line 281) ... ignored
+test src/virtual_memory.rs - virtual_memory (line 37) ... ignored
+test src/vram_pool.rs - vram_pool (line 15) ... ignored
+test src/vsa.rs - vsa::SparseVec::bind (line 1241) ... ok
+test src/vsa.rs - vsa::SparseVec::bundle (line 1042) ... ok
+test src/vsa.rs - vsa::SparseVec::bundle_with_config (line 1002) ... ok
+test src/vsa.rs - vsa::SparseVec::cosine (line 1377) ... ok
+test src/vsa.rs - vsa::SparseVec::decode_data (line 740) - compile ... ok
+test src/vsa.rs - vsa::SparseVec::encode_data (line 665) ... ok
+test src/vsa.rs - vsa::SparseVec::from_data (line 948) ... ok
+test src/vsa.rs - vsa::SparseVec::inverse_permute (line 1500) ... ok
+test src/vsa.rs - vsa::SparseVec::new (line 564) ... ok
+test src/vsa.rs - vsa::SparseVec::permute (line 1466) ... ok
+test src/vsa.rs - vsa::SparseVec::random (line 582) ... ok
+test src/vsa.rs - vsa::SparseVec::random_with_config (line 618) ... ok
+test src/vsa.rs - vsa::VsaConfig (line 28) ... ok
+test src/vsa.rs - vsa::VsaConfig::for_accuracy (line 188) ... ok
+test src/vsa.rs - vsa::VsaConfig::from_schema (line 231) ... ok
+test src/vsa.rs - vsa::VsaConfigSchema (line 312) ... ok
+test result: ok. 17 passed; 0 failed; 10 ignored; 0 measured; 0 filtered out; finished in 0.80s

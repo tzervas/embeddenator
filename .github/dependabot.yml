@@ -1,0 +1,227 @@
+# Dependabot configuration for Embeddenator workspace
+# https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  # Workspace-level Rust dependencies
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "workspace"
+    reviewers:
+      - "tzervas"
+
+  # embeddenator-vsa
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-vsa"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(vsa)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-vsa"
+
+  # embeddenator-io
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-io"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(io)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-io"
+
+  # embeddenator-obs
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-obs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(obs)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-obs"
+
+  # embeddenator-retrieval
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-retrieval"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(retrieval)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-retrieval"
+
+  # embeddenator-fs
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-fs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(fs)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-fs"
+
+  # embeddenator-interop
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-interop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(interop)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-interop"
+
+  # embeddenator-cli
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-cli"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(cli)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-cli"
+
+  # embeddenator-testkit
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-testkit"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(testkit)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-testkit"
+
+  # embeddenator-workflows
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-workflows"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(workflows)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-workflows"
+
+  # embeddenator-core
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-core"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(core)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-core"
+
+  # embeddenator-contract-bench
+  - package-ecosystem: "cargo"
+    directory: "/embeddenator-contract-bench"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(bench)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "embeddenator-contract-bench"
+
+  # GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"

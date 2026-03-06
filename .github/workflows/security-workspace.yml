@@ -205,6 +205,51 @@ jobs:
                  -W clippy::indexing_slicing
           done
 
+  # cargo-deny supply chain security
+  cargo-deny:
+    name: Cargo Deny
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+      
+      - name: Run cargo-deny
+        continue-on-error: true  # Warn only for now
+        run: |
+          echo "# Cargo Deny Report" > deny-report.md
+          echo "" >> deny-report.md
+          echo "Generated: $(date -u +%Y-%m-%d)" >> deny-report.md
+          echo "" >> deny-report.md
+          
+          # Run deny checks
+          echo "## Advisories" >> deny-report.md
+          cargo deny check advisories 2>&1 | tee -a deny-report.md || true
+          echo "" >> deny-report.md
+          
+          echo "## Licenses" >> deny-report.md
+          cargo deny check licenses 2>&1 | tee -a deny-report.md || true
+          echo "" >> deny-report.md
+          
+          echo "## Bans" >> deny-report.md
+          cargo deny check bans 2>&1 | tee -a deny-report.md || true
+          echo "" >> deny-report.md
+          
+          echo "## Sources" >> deny-report.md
+          cargo deny check sources 2>&1 | tee -a deny-report.md || true
+      
+      - name: Upload deny report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-deny-report
+          path: deny-report.md
+          retention-days: 90
+
   # Check license compliance
   license-check:
     name: License Compliance

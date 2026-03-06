@@ -1,0 +1,588 @@
+   Compiling embeddenator-vsa v0.23.0 (/home/kang/Documents/projects/embdntr/embeddenator-vsa)
+    Finished `bench` profile [optimized] target(s) in 2.48s
+     Running benches/cuda.rs (target/release/deps/cuda-cf00c594cf4ddecc)
+Gnuplot not found, using plotters backend
+[GPU] Memory: 17.1GB total, 16.2GB free, 13.3GB safe limit (15% headroom)
+[GPU] Architecture: Sm120 (sm_120)
+Benchmarking cuda_decode_throughput/cpu/64
+Benchmarking cuda_decode_throughput/cpu/64: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/cpu/64: Collecting 100 samples in estimated 5.0922 s (1100 iterations)
+Benchmarking cuda_decode_throughput/cpu/64: Analyzing
+cuda_decode_throughput/cpu/64
+                        time:   [4.6207 ms 4.6234 ms 4.6262 ms]
+                        thrpt:  [13.510 KiB/s 13.518 KiB/s 13.526 KiB/s]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/64
+Benchmarking cuda_decode_throughput/gpu_kernel/64: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/gpu_kernel/64: Collecting 100 samples in estimated 5.4746 s (20k iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/64: Analyzing
+cuda_decode_throughput/gpu_kernel/64
+                        time:   [270.84 µs 271.45 µs 272.24 µs]
+                        thrpt:  [229.57 KiB/s 230.24 KiB/s 230.76 KiB/s]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+  2 (2.00%) high severe
+Benchmarking cuda_decode_throughput/cpu/256
+Benchmarking cuda_decode_throughput/cpu/256: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/cpu/256: Collecting 100 samples in estimated 8.2104 s (200 iterations)
+Benchmarking cuda_decode_throughput/cpu/256: Analyzing
+cuda_decode_throughput/cpu/256
+                        time:   [40.903 ms 41.091 ms 41.386 ms]
+                        thrpt:  [6.0407 KiB/s 6.0840 KiB/s 6.1121 KiB/s]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) high mild
+  6 (6.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/256
+Benchmarking cuda_decode_throughput/gpu_kernel/256: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 8.7s, enable flat sampling, or reduce sample count to 50.
+Benchmarking cuda_decode_throughput/gpu_kernel/256: Collecting 100 samples in estimated 8.7166 s (5050 iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/256: Analyzing
+cuda_decode_throughput/gpu_kernel/256
+                        time:   [1.7313 ms 1.7380 ms 1.7465 ms]
+                        thrpt:  [143.15 KiB/s 143.84 KiB/s 144.40 KiB/s]
+Found 16 outliers among 100 measurements (16.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  10 (10.00%) high severe
+Benchmarking cuda_decode_throughput/cpu/1024
+Benchmarking cuda_decode_throughput/cpu/1024: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 33.3s, or reduce sample count to 10.
+Benchmarking cuda_decode_throughput/cpu/1024: Collecting 100 samples in estimated 33.278 s (100 iterations)
+Benchmarking cuda_decode_throughput/cpu/1024: Analyzing
+cuda_decode_throughput/cpu/1024
+                        time:   [331.46 ms 332.21 ms 333.14 ms]
+                        thrpt:  [3.0017 KiB/s 3.0102 KiB/s 3.0169 KiB/s]
+Found 14 outliers among 100 measurements (14.00%)
+  4 (4.00%) high mild
+  10 (10.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/1024
+Benchmarking cuda_decode_throughput/gpu_kernel/1024: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/gpu_kernel/1024: Collecting 100 samples in estimated 6.2932 s (400 iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/1024: Analyzing
+cuda_decode_throughput/gpu_kernel/1024
+                        time:   [15.549 ms 15.562 ms 15.574 ms]
+                        thrpt:  [64.210 KiB/s 64.261 KiB/s 64.312 KiB/s]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+Benchmarking cuda_decode_throughput/cpu/4096
+Benchmarking cuda_decode_throughput/cpu/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 200.0s, or reduce sample count to 10.
+Benchmarking cuda_decode_throughput/cpu/4096: Collecting 100 samples in estimated 199.98 s (100 iterations)
+Benchmarking cuda_decode_throughput/cpu/4096: Analyzing
+cuda_decode_throughput/cpu/4096
+                        time:   [2.0066 s 2.0096 s 2.0130 s]
+                        thrpt:  [1.9870 KiB/s 1.9904 KiB/s 1.9934 KiB/s]
+Found 7 outliers among 100 measurements (7.00%)
+  2 (2.00%) high mild
+  5 (5.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/4096
+Benchmarking cuda_decode_throughput/gpu_kernel/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 11.7s, or reduce sample count to 40.
+Benchmarking cuda_decode_throughput/gpu_kernel/4096: Collecting 100 samples in estimated 11.716 s (100 iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/4096: Analyzing
+cuda_decode_throughput/gpu_kernel/4096
+                        time:   [115.61 ms 115.82 ms 116.06 ms]
+                        thrpt:  [34.464 KiB/s 34.537 KiB/s 34.599 KiB/s]
+Found 11 outliers among 100 measurements (11.00%)
+  5 (5.00%) high mild
+  6 (6.00%) high severe
+
+Benchmarking cuda_chunked_decode/cpu_chunked/256
+Benchmarking cuda_chunked_decode/cpu_chunked/256: Warming up for 3.0000 s
+Benchmarking cuda_chunked_decode/cpu_chunked/256: Collecting 100 samples in estimated 5.7561 s (300 iterations)
+Benchmarking cuda_chunked_decode/cpu_chunked/256: Analyzing
+cuda_chunked_decode/cpu_chunked/256
+                        time:   [19.220 ms 19.346 ms 19.540 ms]
+                        thrpt:  [12.794 KiB/s 12.923 KiB/s 13.007 KiB/s]
+Found 11 outliers among 100 measurements (11.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+  9 (9.00%) high severe
+Benchmarking cuda_chunked_decode/gpu_chunked/256
+Benchmarking cuda_chunked_decode/gpu_chunked/256: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.6s, enable flat sampling, or reduce sample count to 60.
+Benchmarking cuda_chunked_decode/gpu_chunked/256: Collecting 100 samples in estimated 5.6233 s (5050 iterations)
+Benchmarking cuda_chunked_decode/gpu_chunked/256: Analyzing
+cuda_chunked_decode/gpu_chunked/256
+                        time:   [1.1179 ms 1.1233 ms 1.1296 ms]
+                        thrpt:  [221.32 KiB/s 222.57 KiB/s 223.64 KiB/s]
+Found 13 outliers among 100 measurements (13.00%)
+  2 (2.00%) high mild
+  11 (11.00%) high severe
+Benchmarking cuda_chunked_decode/cpu_chunked/1024
+Benchmarking cuda_chunked_decode/cpu_chunked/1024: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 7.9s, or reduce sample count to 60.
+Benchmarking cuda_chunked_decode/cpu_chunked/1024: Collecting 100 samples in estimated 7.9352 s (100 iterations)
+Benchmarking cuda_chunked_decode/cpu_chunked/1024: Analyzing
+cuda_chunked_decode/cpu_chunked/1024
+                        time:   [79.021 ms 79.172 ms 79.364 ms]
+                        thrpt:  [12.600 KiB/s 12.631 KiB/s 12.655 KiB/s]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) high severe
+Benchmarking cuda_chunked_decode/gpu_chunked/1024
+Benchmarking cuda_chunked_decode/gpu_chunked/1024: Warming up for 3.0000 s
+Benchmarking cuda_chunked_decode/gpu_chunked/1024: Collecting 100 samples in estimated 5.0968 s (1100 iterations)
+Benchmarking cuda_chunked_decode/gpu_chunked/1024: Analyzing
+cuda_chunked_decode/gpu_chunked/1024
+                        time:   [4.5997 ms 4.6052 ms 4.6122 ms]
+                        thrpt:  [216.82 KiB/s 217.14 KiB/s 217.40 KiB/s]
+Found 7 outliers among 100 measurements (7.00%)
+  2 (2.00%) high mild
+  5 (5.00%) high severe
+Benchmarking cuda_chunked_decode/cpu_chunked/4096
+Benchmarking cuda_chunked_decode/cpu_chunked/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 32.4s, or reduce sample count to 10.
+Benchmarking cuda_chunked_decode/cpu_chunked/4096: Collecting 100 samples in estimated 32.356 s (100 iterations)
+Benchmarking cuda_chunked_decode/cpu_chunked/4096: Analyzing
+cuda_chunked_decode/cpu_chunked/4096
+                        time:   [321.90 ms 322.12 ms 322.39 ms]
+                        thrpt:  [12.407 KiB/s 12.418 KiB/s 12.426 KiB/s]
+Found 8 outliers among 100 measurements (8.00%)
+  5 (5.00%) high mild
+  3 (3.00%) high severe
+Benchmarking cuda_chunked_decode/gpu_chunked/4096
+Benchmarking cuda_chunked_decode/gpu_chunked/4096: Warming up for 3.0000 s
+Benchmarking cuda_chunked_decode/gpu_chunked/4096: Collecting 100 samples in estimated 5.6846 s (300 iterations)
+Benchmarking cuda_chunked_decode/gpu_chunked/4096: Analyzing
+cuda_chunked_decode/gpu_chunked/4096
+                        time:   [18.737 ms 18.759 ms 18.793 ms]
+                        thrpt:  [212.84 KiB/s 213.23 KiB/s 213.48 KiB/s]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking cuda_batch_cosine/cpu_sequential/100
+Benchmarking cuda_batch_cosine/cpu_sequential/100: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/cpu_sequential/100: Collecting 100 samples in estimated 5.3930 s (25k iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/100: Analyzing
+cuda_batch_cosine/cpu_sequential/100
+                        time:   [213.03 µs 213.49 µs 214.11 µs]
+                        thrpt:  [467.06 Kelem/s 468.40 Kelem/s 469.41 Kelem/s]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+Benchmarking cuda_batch_cosine/gpu_batch/100
+Benchmarking cuda_batch_cosine/gpu_batch/100: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/100: Collecting 100 samples in estimated 5.1014 s (152k iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/100: Analyzing
+cuda_batch_cosine/gpu_batch/100
+                        time:   [33.260 µs 33.280 µs 33.301 µs]
+                        thrpt:  [3.0030 Melem/s 3.0049 Melem/s 3.0066 Melem/s]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking cuda_batch_cosine/cpu_sequential/500
+Benchmarking cuda_batch_cosine/cpu_sequential/500: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.8s, enable flat sampling, or reduce sample count to 60.
+Benchmarking cuda_batch_cosine/cpu_sequential/500: Collecting 100 samples in estimated 5.8191 s (5050 iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/500: Analyzing
+cuda_batch_cosine/cpu_sequential/500
+                        time:   [1.1555 ms 1.1582 ms 1.1616 ms]
+                        thrpt:  [430.43 Kelem/s 431.71 Kelem/s 432.71 Kelem/s]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) high mild
+  6 (6.00%) high severe
+Benchmarking cuda_batch_cosine/gpu_batch/500
+Benchmarking cuda_batch_cosine/gpu_batch/500: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/500: Collecting 100 samples in estimated 5.3227 s (81k iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/500: Analyzing
+cuda_batch_cosine/gpu_batch/500
+                        time:   [64.546 µs 64.892 µs 65.321 µs]
+                        thrpt:  [7.6545 Melem/s 7.7051 Melem/s 7.7464 Melem/s]
+Found 7 outliers among 100 measurements (7.00%)
+  3 (3.00%) high mild
+  4 (4.00%) high severe
+Benchmarking cuda_batch_cosine/cpu_sequential/1000
+Benchmarking cuda_batch_cosine/cpu_sequential/1000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/cpu_sequential/1000: Collecting 100 samples in estimated 5.0941 s (2200 iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/1000: Analyzing
+cuda_batch_cosine/cpu_sequential/1000
+                        time:   [2.3043 ms 2.3053 ms 2.3062 ms]
+                        thrpt:  [433.61 Kelem/s 433.79 Kelem/s 433.97 Kelem/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking cuda_batch_cosine/gpu_batch/1000
+Benchmarking cuda_batch_cosine/gpu_batch/1000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/1000: Collecting 100 samples in estimated 5.1705 s (45k iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/1000: Analyzing
+cuda_batch_cosine/gpu_batch/1000
+                        time:   [113.05 µs 113.28 µs 113.55 µs]
+                        thrpt:  [8.8070 Melem/s 8.8273 Melem/s 8.8453 Melem/s]
+Found 7 outliers among 100 measurements (7.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking cuda_batch_cosine/cpu_sequential/5000
+Benchmarking cuda_batch_cosine/cpu_sequential/5000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/cpu_sequential/5000: Collecting 100 samples in estimated 5.9092 s (500 iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/5000: Analyzing
+cuda_batch_cosine/cpu_sequential/5000
+                        time:   [11.687 ms 11.731 ms 11.795 ms]
+                        thrpt:  [423.92 Kelem/s 426.22 Kelem/s 427.81 Kelem/s]
+Found 11 outliers among 100 measurements (11.00%)
+  6 (6.00%) high mild
+  5 (5.00%) high severe
+Benchmarking cuda_batch_cosine/gpu_batch/5000
+Benchmarking cuda_batch_cosine/gpu_batch/5000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/5000: Collecting 100 samples in estimated 5.1424 s (2400 iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/5000: Analyzing
+cuda_batch_cosine/gpu_batch/5000
+                        time:   [2.1357 ms 2.1447 ms 2.1560 ms]
+                        thrpt:  [2.3191 Melem/s 2.3313 Melem/s 2.3412 Melem/s]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+
+    Finished `bench` profile [optimized] target(s) in 0.03s
+     Running benches/cuda.rs (target/release/deps/cuda-cf00c594cf4ddecc)
+Gnuplot not found, using plotters backend
+[GPU] Memory: 17.1GB total, 10.6GB free, 8.6GB safe limit (15% headroom)
+[GPU] Architecture: Sm120 (sm_120)
+Benchmarking cuda_decode_throughput/cpu/64
+Benchmarking cuda_decode_throughput/cpu/64: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/cpu/64: Collecting 100 samples in estimated 5.1728 s (1100 iterations)
+Benchmarking cuda_decode_throughput/cpu/64: Analyzing
+cuda_decode_throughput/cpu/64
+                        time:   [4.6256 ms 4.6313 ms 4.6384 ms]
+                        thrpt:  [13.475 KiB/s 13.495 KiB/s 13.512 KiB/s]
+                 change:
+                        time:   [+0.0507% +0.2085% +0.4012%] (p = 0.01 < 0.05)
+                        thrpt:  [−0.3995% −0.2081% −0.0507%]
+                        Change within noise threshold.
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/64
+Benchmarking cuda_decode_throughput/gpu_kernel/64: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/gpu_kernel/64: Collecting 100 samples in estimated 5.4932 s (20k iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/64: Analyzing
+cuda_decode_throughput/gpu_kernel/64
+                        time:   [271.68 µs 272.99 µs 274.64 µs]
+                        thrpt:  [227.57 KiB/s 228.94 KiB/s 230.05 KiB/s]
+                 change:
+                        time:   [−2.3578% −1.4757% −0.5016%] (p = 0.00 < 0.05)
+                        thrpt:  [+0.5042% +1.4978% +2.4147%]
+                        Change within noise threshold.
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) high mild
+  4 (4.00%) high severe
+Benchmarking cuda_decode_throughput/cpu/256
+Benchmarking cuda_decode_throughput/cpu/256: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/cpu/256: Collecting 100 samples in estimated 8.2664 s (200 iterations)
+Benchmarking cuda_decode_throughput/cpu/256: Analyzing
+cuda_decode_throughput/cpu/256
+                        time:   [40.947 ms 41.084 ms 41.256 ms]
+                        thrpt:  [6.0597 KiB/s 6.0851 KiB/s 6.1055 KiB/s]
+                 change:
+                        time:   [−0.7049% −0.0840% +0.4993%] (p = 0.79 > 0.05)
+                        thrpt:  [−0.4968% +0.0841% +0.7099%]
+                        No change in performance detected.
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) high mild
+  6 (6.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/256
+Benchmarking cuda_decode_throughput/gpu_kernel/256: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 8.8s, enable flat sampling, or reduce sample count to 50.
+Benchmarking cuda_decode_throughput/gpu_kernel/256: Collecting 100 samples in estimated 8.7893 s (5050 iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/256: Analyzing
+cuda_decode_throughput/gpu_kernel/256
+                        time:   [1.7337 ms 1.7424 ms 1.7528 ms]
+                        thrpt:  [142.63 KiB/s 143.48 KiB/s 144.20 KiB/s]
+                 change:
+                        time:   [−0.4544% −0.1767% +0.1331%] (p = 0.26 > 0.05)
+                        thrpt:  [−0.1329% +0.1770% +0.4565%]
+                        No change in performance detected.
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  7 (7.00%) high severe
+Benchmarking cuda_decode_throughput/cpu/1024
+Benchmarking cuda_decode_throughput/cpu/1024: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 33.2s, or reduce sample count to 10.
+Benchmarking cuda_decode_throughput/cpu/1024: Collecting 100 samples in estimated 33.164 s (100 iterations)
+Benchmarking cuda_decode_throughput/cpu/1024: Analyzing
+cuda_decode_throughput/cpu/1024
+                        time:   [331.34 ms 331.82 ms 332.49 ms]
+                        thrpt:  [3.0076 KiB/s 3.0137 KiB/s 3.0180 KiB/s]
+                 change:
+                        time:   [−0.7524% −0.3978% −0.0723%] (p = 0.02 < 0.05)
+                        thrpt:  [+0.0724% +0.3994% +0.7581%]
+                        Change within noise threshold.
+Found 9 outliers among 100 measurements (9.00%)
+  2 (2.00%) high mild
+  7 (7.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/1024
+Benchmarking cuda_decode_throughput/gpu_kernel/1024: Warming up for 3.0000 s
+Benchmarking cuda_decode_throughput/gpu_kernel/1024: Collecting 100 samples in estimated 6.2885 s (400 iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/1024: Analyzing
+cuda_decode_throughput/gpu_kernel/1024
+                        time:   [15.614 ms 15.654 ms 15.714 ms]
+                        thrpt:  [63.637 KiB/s 63.882 KiB/s 64.045 KiB/s]
+                 change:
+                        time:   [−1.8203% −1.1118% −0.4729%] (p = 0.00 < 0.05)
+                        thrpt:  [+0.4751% +1.1243% +1.8540%]
+                        Change within noise threshold.
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) high mild
+  6 (6.00%) high severe
+Benchmarking cuda_decode_throughput/cpu/4096
+Benchmarking cuda_decode_throughput/cpu/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 200.9s, or reduce sample count to 10.
+Benchmarking cuda_decode_throughput/cpu/4096: Collecting 100 samples in estimated 200.92 s (100 iterations)
+Benchmarking cuda_decode_throughput/cpu/4096: Analyzing
+cuda_decode_throughput/cpu/4096
+                        time:   [2.0088 s 2.0124 s 2.0164 s]
+                        thrpt:  [1.9837 KiB/s 1.9877 KiB/s 1.9912 KiB/s]
+                 change:
+                        time:   [−2.8190% −1.2165% +0.0024%] (p = 0.09 > 0.05)
+                        thrpt:  [−0.0024% +1.2315% +2.9007%]
+                        No change in performance detected.
+Found 8 outliers among 100 measurements (8.00%)
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking cuda_decode_throughput/gpu_kernel/4096
+Benchmarking cuda_decode_throughput/gpu_kernel/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 11.6s, or reduce sample count to 40.
+Benchmarking cuda_decode_throughput/gpu_kernel/4096: Collecting 100 samples in estimated 11.593 s (100 iterations)
+Benchmarking cuda_decode_throughput/gpu_kernel/4096: Analyzing
+cuda_decode_throughput/gpu_kernel/4096
+                        time:   [115.22 ms 115.29 ms 115.39 ms]
+                        thrpt:  [34.666 KiB/s 34.695 KiB/s 34.717 KiB/s]
+                 change:
+                        time:   [−0.7253% −0.3819% −0.1052%] (p = 0.01 < 0.05)
+                        thrpt:  [+0.1053% +0.3834% +0.7306%]
+                        Change within noise threshold.
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking cuda_chunked_decode/cpu_chunked/256
+Benchmarking cuda_chunked_decode/cpu_chunked/256: Warming up for 3.0000 s
+Benchmarking cuda_chunked_decode/cpu_chunked/256: Collecting 100 samples in estimated 5.7904 s (300 iterations)
+Benchmarking cuda_chunked_decode/cpu_chunked/256: Analyzing
+cuda_chunked_decode/cpu_chunked/256
+                        time:   [19.154 ms 19.166 ms 19.179 ms]
+                        thrpt:  [13.035 KiB/s 13.044 KiB/s 13.052 KiB/s]
+                 change:
+                        time:   [−1.3711% −0.6099% −0.0562%] (p = 0.05 < 0.05)
+                        thrpt:  [+0.0563% +0.6137% +1.3902%]
+                        Change within noise threshold.
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking cuda_chunked_decode/gpu_chunked/256
+Benchmarking cuda_chunked_decode/gpu_chunked/256: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.7s, enable flat sampling, or reduce sample count to 60.
+Benchmarking cuda_chunked_decode/gpu_chunked/256: Collecting 100 samples in estimated 5.6897 s (5050 iterations)
+Benchmarking cuda_chunked_decode/gpu_chunked/256: Analyzing
+cuda_chunked_decode/gpu_chunked/256
+                        time:   [1.1144 ms 1.1196 ms 1.1257 ms]
+                        thrpt:  [222.08 KiB/s 223.30 KiB/s 224.34 KiB/s]
+                 change:
+                        time:   [−11.679% −8.4597% −5.5063%] (p = 0.00 < 0.05)
+                        thrpt:  [+5.8272% +9.2415% +13.224%]
+                        Performance has improved.
+Found 15 outliers among 100 measurements (15.00%)
+  1 (1.00%) low severe
+  3 (3.00%) low mild
+  6 (6.00%) high mild
+  5 (5.00%) high severe
+Benchmarking cuda_chunked_decode/cpu_chunked/1024
+Benchmarking cuda_chunked_decode/cpu_chunked/1024: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 7.9s, or reduce sample count to 60.
+Benchmarking cuda_chunked_decode/cpu_chunked/1024: Collecting 100 samples in estimated 7.9331 s (100 iterations)
+Benchmarking cuda_chunked_decode/cpu_chunked/1024: Analyzing
+cuda_chunked_decode/cpu_chunked/1024
+                        time:   [79.023 ms 79.200 ms 79.457 ms]
+                        thrpt:  [12.585 KiB/s 12.626 KiB/s 12.654 KiB/s]
+                 change:
+                        time:   [−0.1767% +0.0963% +0.4119%] (p = 0.60 > 0.05)
+                        thrpt:  [−0.4102% −0.0962% +0.1770%]
+                        No change in performance detected.
+Found 8 outliers among 100 measurements (8.00%)
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking cuda_chunked_decode/gpu_chunked/1024
+Benchmarking cuda_chunked_decode/gpu_chunked/1024: Warming up for 3.0000 s
+Benchmarking cuda_chunked_decode/gpu_chunked/1024: Collecting 100 samples in estimated 5.0970 s (1100 iterations)
+Benchmarking cuda_chunked_decode/gpu_chunked/1024: Analyzing
+cuda_chunked_decode/gpu_chunked/1024
+                        time:   [4.6032 ms 4.6069 ms 4.6112 ms]
+                        thrpt:  [216.86 KiB/s 217.07 KiB/s 217.24 KiB/s]
+                 change:
+                        time:   [−0.9060% −0.3246% +0.1239%] (p = 0.25 > 0.05)
+                        thrpt:  [−0.1238% +0.3257% +0.9143%]
+                        No change in performance detected.
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking cuda_chunked_decode/cpu_chunked/4096
+Benchmarking cuda_chunked_decode/cpu_chunked/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 32.2s, or reduce sample count to 10.
+Benchmarking cuda_chunked_decode/cpu_chunked/4096: Collecting 100 samples in estimated 32.210 s (100 iterations)
+Benchmarking cuda_chunked_decode/cpu_chunked/4096: Analyzing
+cuda_chunked_decode/cpu_chunked/4096
+                        time:   [322.22 ms 322.99 ms 323.98 ms]
+                        thrpt:  [12.346 KiB/s 12.384 KiB/s 12.414 KiB/s]
+                 change:
+                        time:   [−0.2229% +0.0947% +0.4342%] (p = 0.60 > 0.05)
+                        thrpt:  [−0.4324% −0.0946% +0.2234%]
+                        No change in performance detected.
+Found 10 outliers among 100 measurements (10.00%)
+  2 (2.00%) high mild
+  8 (8.00%) high severe
+Benchmarking cuda_chunked_decode/gpu_chunked/4096
+Benchmarking cuda_chunked_decode/gpu_chunked/4096: Warming up for 3.0000 s
+Benchmarking cuda_chunked_decode/gpu_chunked/4096: Collecting 100 samples in estimated 5.6958 s (300 iterations)
+Benchmarking cuda_chunked_decode/gpu_chunked/4096: Analyzing
+cuda_chunked_decode/gpu_chunked/4096
+                        time:   [18.862 ms 18.882 ms 18.904 ms]
+                        thrpt:  [211.59 KiB/s 211.84 KiB/s 212.07 KiB/s]
+                 change:
+                        time:   [−0.6489% −0.1816% +0.1751%] (p = 0.44 > 0.05)
+                        thrpt:  [−0.1748% +0.1819% +0.6531%]
+                        No change in performance detected.
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking cuda_batch_cosine/cpu_sequential/100
+Benchmarking cuda_batch_cosine/cpu_sequential/100: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/cpu_sequential/100: Collecting 100 samples in estimated 5.4290 s (25k iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/100: Analyzing
+cuda_batch_cosine/cpu_sequential/100
+                        time:   [214.38 µs 217.79 µs 223.21 µs]
+                        thrpt:  [448.00 Kelem/s 459.15 Kelem/s 466.46 Kelem/s]
+                 change:
+                        time:   [−0.2701% +0.4092% +1.3523%] (p = 0.42 > 0.05)
+                        thrpt:  [−1.3342% −0.4076% +0.2709%]
+                        No change in performance detected.
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) high mild
+  7 (7.00%) high severe
+Benchmarking cuda_batch_cosine/gpu_batch/100
+Benchmarking cuda_batch_cosine/gpu_batch/100: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/100: Collecting 100 samples in estimated 5.0461 s (136k iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/100: Analyzing
+cuda_batch_cosine/gpu_batch/100
+                        time:   [34.790 µs 36.421 µs 38.697 µs]
+                        thrpt:  [2.5842 Melem/s 2.7457 Melem/s 2.8744 Melem/s]
+                 change:
+                        time:   [−41.962% −37.271% −32.292%] (p = 0.00 < 0.05)
+                        thrpt:  [+47.693% +59.416% +72.301%]
+                        Performance has improved.
+Found 15 outliers among 100 measurements (15.00%)
+  7 (7.00%) high mild
+  8 (8.00%) high severe
+Benchmarking cuda_batch_cosine/cpu_sequential/500
+Benchmarking cuda_batch_cosine/cpu_sequential/500: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.0s, enable flat sampling, or reduce sample count to 60.
+Benchmarking cuda_batch_cosine/cpu_sequential/500: Collecting 100 samples in estimated 5.9783 s (5050 iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/500: Analyzing
+cuda_batch_cosine/cpu_sequential/500
+                        time:   [1.1650 ms 1.1658 ms 1.1668 ms]
+                        thrpt:  [428.54 Kelem/s 428.89 Kelem/s 429.20 Kelem/s]
+                 change:
+                        time:   [−12.198% −6.7514% −1.7592%] (p = 0.01 < 0.05)
+                        thrpt:  [+1.7907% +7.2403% +13.893%]
+                        Performance has improved.
+Found 9 outliers among 100 measurements (9.00%)
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  5 (5.00%) high severe
+Benchmarking cuda_batch_cosine/gpu_batch/500
+Benchmarking cuda_batch_cosine/gpu_batch/500: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/500: Collecting 100 samples in estimated 5.0003 s (76k iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/500: Analyzing
+cuda_batch_cosine/gpu_batch/500
+                        time:   [64.949 µs 65.080 µs 65.215 µs]
+                        thrpt:  [7.6670 Melem/s 7.6829 Melem/s 7.6983 Melem/s]
+                 change:
+                        time:   [−1.8248% −1.1056% −0.5233%] (p = 0.00 < 0.05)
+                        thrpt:  [+0.5260% +1.1179% +1.8587%]
+                        Change within noise threshold.
+Found 7 outliers among 100 measurements (7.00%)
+  2 (2.00%) low mild
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking cuda_batch_cosine/cpu_sequential/1000
+Benchmarking cuda_batch_cosine/cpu_sequential/1000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/cpu_sequential/1000: Collecting 100 samples in estimated 5.0990 s (2200 iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/1000: Analyzing
+cuda_batch_cosine/cpu_sequential/1000
+                        time:   [2.3058 ms 2.3095 ms 2.3153 ms]
+                        thrpt:  [431.92 Kelem/s 432.99 Kelem/s 433.69 Kelem/s]
+                 change:
+                        time:   [−2.6582% −2.2887% −1.9472%] (p = 0.00 < 0.05)
+                        thrpt:  [+1.9858% +2.3423% +2.7308%]
+                        Performance has improved.
+Found 7 outliers among 100 measurements (7.00%)
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking cuda_batch_cosine/gpu_batch/1000
+Benchmarking cuda_batch_cosine/gpu_batch/1000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/1000: Collecting 100 samples in estimated 5.3120 s (45k iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/1000: Analyzing
+cuda_batch_cosine/gpu_batch/1000
+                        time:   [114.48 µs 114.81 µs 115.23 µs]
+                        thrpt:  [8.6781 Melem/s 8.7098 Melem/s 8.7352 Melem/s]
+                 change:
+                        time:   [−3.8016% −2.8521% −1.9871%] (p = 0.00 < 0.05)
+                        thrpt:  [+2.0274% +2.9358% +3.9518%]
+                        Performance has improved.
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking cuda_batch_cosine/cpu_sequential/5000
+Benchmarking cuda_batch_cosine/cpu_sequential/5000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/cpu_sequential/5000: Collecting 100 samples in estimated 5.9057 s (500 iterations)
+Benchmarking cuda_batch_cosine/cpu_sequential/5000: Analyzing
+cuda_batch_cosine/cpu_sequential/5000
+                        time:   [11.777 ms 11.832 ms 11.894 ms]
+                        thrpt:  [420.37 Kelem/s 422.60 Kelem/s 424.57 Kelem/s]
+                 change:
+                        time:   [−1.3473% −0.2394% +0.6300%] (p = 0.67 > 0.05)
+                        thrpt:  [−0.6261% +0.2400% +1.3657%]
+                        No change in performance detected.
+Found 16 outliers among 100 measurements (16.00%)
+  6 (6.00%) high mild
+  10 (10.00%) high severe
+Benchmarking cuda_batch_cosine/gpu_batch/5000
+Benchmarking cuda_batch_cosine/gpu_batch/5000: Warming up for 3.0000 s
+Benchmarking cuda_batch_cosine/gpu_batch/5000: Collecting 100 samples in estimated 5.1290 s (2200 iterations)
+Benchmarking cuda_batch_cosine/gpu_batch/5000: Analyzing
+cuda_batch_cosine/gpu_batch/5000
+                        time:   [2.2703 ms 2.3018 ms 2.3360 ms]
+                        thrpt:  [2.1404 Melem/s 2.1722 Melem/s 2.2024 Melem/s]
+                 change:
+                        time:   [+1.0280% +2.7329% +4.3704%] (p = 0.00 < 0.05)
+                        thrpt:  [−4.1874% −2.6602% −1.0176%]
+                        Performance has regressed.
+Found 11 outliers among 100 measurements (11.00%)
+  9 (9.00%) high mild
+  2 (2.00%) high severe
+

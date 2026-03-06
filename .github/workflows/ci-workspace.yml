@@ -345,11 +345,71 @@ jobs:
           cargo test --all-features -- --nocapture
           echo "::endgroup::"
 
-  # Final status check
+  # Code coverage generation and upload
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: format-check
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+      
+      - name: Generate coverage
+        run: |
+          repos=(
+            embeddenator
+            embeddenator-cli
+            embeddenator-contract-bench
+            embeddenator-fs
+            embeddenator-interop
+            embeddenator-io
+            embeddenator-obs
+            embeddenator-retrieval
+            embeddenator-testkit
+            embeddenator-vsa
+            embeddenator-workspace
+          )
+          
+          # Run tarpaulin for each component
+          for repo in "${repos[@]}"; do
+            echo "📊 Generating coverage for $repo..."
+            cargo tarpaulin \
+              --manifest-path "$repo/Cargo.toml" \
+              --workspace \
+              --all-features \
+              --timeout 300 \
+              --out Xml \
+              --output-dir coverage \
+              --skip-clean || echo "⚠️ Coverage failed for $repo"
+          done
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/cobertura.xml
+          fail_ci_if_error: false
+          flags: workspace
+          name: embeddenator-workspace
+      
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+          retention-days: 30
+
+  # Final CI status check
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [format-check, test, integration-tests, health-check, version-check, docs, rust-versions]
+    needs: [format-check, test, integration-tests, health-check, version-check, docs, rust-versions, coverage]
     if: always()
     steps:
       - name: Check all jobs
@@ -364,4 +424,10 @@ jobs:
             echo "❌ CI pipeline failed"
             exit 1
           fi
+          
+          # Coverage is allowed to fail without blocking
+          if [[ "${{ needs.coverage.result }}" != "success" ]]; then
+            echo "⚠️ Code coverage did not complete successfully"
+          fi
+          
           echo "✅ All CI checks passed!"

@@ -1,0 +1,12 @@
+Embeddenator v0.21.0 - Holographic Extraction
+======================================
+Extracting 5 files to /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/structured_extracted
+  Correction stats: 0.0% perfect, 100.00% overhead
+Extracted: adult.csv
+Extracted: github_repo.json
+Extracted: iris.csv
+Extracted: nyc_taxi_2024_01.parquet
+Extracted: wine.csv
+
+Extraction complete!
+  Output: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/structured_extracted

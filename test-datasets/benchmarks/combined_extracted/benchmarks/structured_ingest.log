@@ -1,0 +1,19 @@
+Embeddenator v0.21.0 - Holographic Ingestion
+=====================================
+Ingesting directory: /home/kang/Documents/projects/embdntr/test-datasets/structured
+Ingesting adult.csv: 3974305 bytes (text)
+  → 971 of 971 chunks needed correction
+Ingesting github_repo.json: 5874 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting iris.csv: 4551 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting nyc_taxi_2024_01.parquet: 49961641 bytes (binary)
+  → 12198 of 12198 chunks needed correction
+Ingesting wine.csv: 10782 bytes (text)
+  → 3 of 3 chunks needed correction
+
+Ingestion complete!
+  Engram: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/structured.engram
+  Manifest: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/structured.json
+  Files: 5
+  Total chunks: 13176

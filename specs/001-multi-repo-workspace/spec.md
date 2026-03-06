@@ -187,10 +187,10 @@ embeddenator-contract-bench (benchmarking)
 ## Success Criteria
 
 ### Functional Requirements
-- ✅ All 11 repos have synchronized `.copilot` files
-- ✅ All agent configs updated to v2.0.0 with spec-kit integration
-- ✅ `specs/` directories created in all repos
-- ✅ Workspace-level spec (this document) exists
+-  All 11 repos have synchronized `.copilot` files
+-  All agent configs updated to v2.0.0 with spec-kit integration
+-  `specs/` directories created in all repos
+-  Workspace-level spec (this document) exists
 - ⏳ `update_all.sh` successfully syncs all repos (ahead/behind 0/0)
 - ⏳ CI pipeline validates cross-repo compatibility
 - ⏳ Contract-bench baselines established for all components

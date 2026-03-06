@@ -1,0 +1,11 @@
+Embeddenator v0.21.0 - Holographic Extraction
+======================================
+Extracting 4 files to /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/unstructured_extracted
+  Correction stats: 0.0% perfect, 100.00% overhead
+Extracted: apache_logs.txt
+Extracted: enron_sample.csv
+Extracted: moby_dick.txt
+Extracted: pride_and_prejudice.txt
+
+Extraction complete!
+  Output: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/unstructured_extracted

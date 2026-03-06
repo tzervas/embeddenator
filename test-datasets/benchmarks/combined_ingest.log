@@ -1,0 +1,99 @@
+Embeddenator v0.21.0 - Holographic Ingestion
+=====================================
+Ingesting directory: /home/kang/Documents/projects/embdntr/test-datasets
+Ingesting benchmarks/benchmark_results.md: 1660 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/binary.engram: 3441644 bytes (binary)
+  → 841 of 841 chunks needed correction
+Ingesting benchmarks/binary.json: 4953 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting benchmarks/binary_extract.log: 524 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/binary_extracted/bigbuckbunny_10s.mp4: 991017 bytes (binary)
+  → 242 of 242 chunks needed correction
+Ingesting benchmarks/binary_extracted/github_logo.png: 14 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/binary_extracted/rfc791_ip.txt: 94892 bytes (text)
+  → 24 of 24 chunks needed correction
+Ingesting benchmarks/binary_extracted/sample_image_1.jpg: 80969 bytes (binary)
+  → 20 of 20 chunks needed correction
+Ingesting benchmarks/binary_extracted/sample_image_2.jpg: 89170 bytes (binary)
+  → 22 of 22 chunks needed correction
+Ingesting benchmarks/binary_extracted/sample_image_3.jpg: 47329 bytes (binary)
+  → 12 of 12 chunks needed correction
+Ingesting benchmarks/binary_ingest.log: 923 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/combined_ingest.log: 1301 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/structured.engram: 140685049 bytes (binary)
+  → 34347 of 34347 chunks needed correction
+Ingesting benchmarks/structured.json: 187263 bytes (text)
+  → 46 of 46 chunks needed correction
+Ingesting benchmarks/structured_extract.log: 483 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/structured_extracted/adult.csv: 3974305 bytes (text)
+  → 971 of 971 chunks needed correction
+Ingesting benchmarks/structured_extracted/github_repo.json: 5874 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting benchmarks/structured_extracted/iris.csv: 4551 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting benchmarks/structured_extracted/nyc_taxi_2024_01.parquet: 49961641 bytes (binary)
+  → 12198 of 12198 chunks needed correction
+Ingesting benchmarks/structured_extracted/wine.csv: 10782 bytes (text)
+  → 3 of 3 chunks needed correction
+Ingesting benchmarks/structured_ingest.log: 830 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/unstructured.engram: 14012419 bytes (binary)
+  → 3421 of 3422 chunks needed correction
+Ingesting benchmarks/unstructured.json: 14492 bytes (text)
+  → 4 of 4 chunks needed correction
+Ingesting benchmarks/unstructured_extract.log: 477 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/unstructured_extracted/apache_logs.txt: 2370789 bytes (text)
+  → 579 of 579 chunks needed correction
+Ingesting benchmarks/unstructured_extracted/enron_sample.csv: 14 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting benchmarks/unstructured_extracted/moby_dick.txt: 1256545 bytes (text)
+  → 307 of 307 chunks needed correction
+Ingesting benchmarks/unstructured_extracted/pride_and_prejudice.txt: 752583 bytes (text)
+  → 184 of 184 chunks needed correction
+Ingesting benchmarks/unstructured_ingest.log: 765 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting binary/bigbuckbunny_10s.mp4: 991017 bytes (binary)
+  → 242 of 242 chunks needed correction
+Ingesting binary/github_logo.png: 14 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting binary/rfc791_ip.txt: 94892 bytes (text)
+  → 24 of 24 chunks needed correction
+Ingesting binary/sample_image_1.jpg: 80969 bytes (binary)
+  → 20 of 20 chunks needed correction
+Ingesting binary/sample_image_2.jpg: 89170 bytes (binary)
+  → 22 of 22 chunks needed correction
+Ingesting binary/sample_image_3.jpg: 47329 bytes (binary)
+  → 12 of 12 chunks needed correction
+Ingesting run_benchmarks.sh: 5714 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting structured/adult.csv: 3974305 bytes (text)
+  → 971 of 971 chunks needed correction
+Ingesting structured/github_repo.json: 5874 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting structured/iris.csv: 4551 bytes (text)
+  → 2 of 2 chunks needed correction
+Ingesting structured/nyc_taxi_2024_01.parquet: 49961641 bytes (binary)
+  → 12198 of 12198 chunks needed correction
+Ingesting structured/wine.csv: 10782 bytes (text)
+  → 3 of 3 chunks needed correction
+Ingesting unstructured/apache_logs.txt: 2370789 bytes (text)
+  → 579 of 579 chunks needed correction
+Ingesting unstructured/enron_sample.csv: 14 bytes (text)
+  → 1 of 1 chunks needed correction
+Ingesting unstructured/moby_dick.txt: 1256545 bytes (text)
+  → 307 of 307 chunks needed correction
+Ingesting unstructured/pride_and_prejudice.txt: 752583 bytes (text)
+  → 184 of 184 chunks needed correction
+
+Ingestion complete!
+  Engram: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/combined.engram
+  Manifest: /home/kang/Documents/projects/embdntr/test-datasets/benchmarks/combined.json
+  Files: 45
+  Total chunks: 67808
