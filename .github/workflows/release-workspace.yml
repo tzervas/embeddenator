@@ -33,7 +33,7 @@ jobs:
   # Validate release readiness
   validate:
     name: Validate Release Readiness
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 10
     outputs:
       can_release: ${{ steps.check.outputs.can_release }}
@@ -106,7 +106,7 @@ jobs:
   # Bump versions
   bump-versions:
     name: Bump Versions
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: validate
     if: needs.validate.outputs.can_release == 'true'
     timeout-minutes: 15
@@ -189,7 +189,7 @@ jobs:
   # Build release artifacts
   build-artifacts:
     name: Build Release Artifacts (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'macos-latest' && 'macos-latest' || fromJSON('["self-hosted", "linux", "x64", "podman"]') }}
     needs: bump-versions
     if: github.event.inputs.dry_run != 'true'
     timeout-minutes: 30
@@ -251,7 +251,7 @@ jobs:
   # Create GitHub release
   create-release:
     name: Create GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: [bump-versions, build-artifacts]
     if: github.event.inputs.dry_run != 'true'
     timeout-minutes: 10
@@ -300,7 +300,7 @@ jobs:
   # Publish to crates.io
   publish-crates:
     name: Publish to crates.io
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: [bump-versions, create-release]
     if: github.event.inputs.dry_run != 'true'
     timeout-minutes: 30

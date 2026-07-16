@@ -22,7 +22,7 @@ jobs:
   # Audit dependencies for known vulnerabilities
   cargo-audit:
     name: Cargo Audit
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +114,7 @@ jobs:
   # Check for outdated dependencies
   cargo-outdated:
     name: Check Outdated Dependencies
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -164,7 +164,7 @@ jobs:
   # Clippy with security lints
   clippy-security:
     name: Clippy Security Lints
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -208,7 +208,7 @@ jobs:
   # Check license compliance
   license-check:
     name: License Compliance
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
