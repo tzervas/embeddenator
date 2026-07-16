@@ -24,7 +24,7 @@ env:
   RUST_LOG: ${{ inputs.debug_mode && 'debug' || '' }}
   # Repositories to test
   REPOS: >
-    embeddenator
+    embeddenator-core
     embeddenator-cli
     embeddenator-contract-bench
     embeddenator-fs
@@ -77,7 +77,7 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          - embeddenator
+          - embeddenator-core
           - embeddenator-cli
           - embeddenator-contract-bench
           - embeddenator-fs
@@ -363,7 +363,7 @@ jobs:
       - name: Generate coverage
         run: |
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs
