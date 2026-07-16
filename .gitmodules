@@ -1,0 +1,36 @@
+[submodule "embeddenator-cli"]
+	path = embeddenator-cli
+	url = https://github.com/tzervas/embeddenator-cli.git
+[submodule "embeddenator-contract-bench"]
+	path = embeddenator-contract-bench
+	url = https://github.com/tzervas/embeddenator-contract-bench.git
+[submodule "embeddenator-core"]
+	path = embeddenator-core
+	url = https://github.com/tzervas/embeddenator-core.git
+[submodule "embeddenator-fs"]
+	path = embeddenator-fs
+	url = https://github.com/tzervas/embeddenator-fs.git
+[submodule "embeddenator-interop"]
+	path = embeddenator-interop
+	url = https://github.com/tzervas/embeddenator-interop.git
+[submodule "embeddenator-io"]
+	path = embeddenator-io
+	url = https://github.com/tzervas/embeddenator-io.git
+[submodule "embeddenator-obs"]
+	path = embeddenator-obs
+	url = https://github.com/tzervas/embeddenator-obs.git
+[submodule "embeddenator-retrieval"]
+	path = embeddenator-retrieval
+	url = https://github.com/tzervas/embeddenator-retrieval.git
+[submodule "embeddenator-testkit"]
+	path = embeddenator-testkit
+	url = https://github.com/tzervas/embeddenator-testkit.git
+[submodule "embeddenator-vsa"]
+	path = embeddenator-vsa
+	url = https://github.com/tzervas/embeddenator-vsa.git
+[submodule "embeddenator-workflows"]
+	path = embeddenator-workflows
+	url = https://github.com/tzervas/embeddenator-workflows.git
+[submodule "embeddenator-workspace"]
+	path = embeddenator-workspace
+	url = https://github.com/tzervas/embeddenator-workspace.git
