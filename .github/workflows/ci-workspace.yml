@@ -40,7 +40,7 @@ jobs:
   # Quick format check - fails fast
   format-check:
     name: Format Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +70,7 @@ jobs:
   # Matrix-based parallel testing
   test:
     name: Test (${{ matrix.package }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 15
     needs: format-check
     strategy:
@@ -138,7 +138,7 @@ jobs:
   # Integration tests are now part of embeddenator-testkit (--features integration)
   integration-tests:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 20
     needs: test
     steps:
@@ -183,7 +183,7 @@ jobs:
   # Workspace health check using embeddenator-workspace tool
   health-check:
     name: Workspace Health Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 10
     needs: test
     steps:
@@ -236,7 +236,7 @@ jobs:
   # Version consistency check
   version-check:
     name: Version Consistency
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 5
     needs: format-check
     steps:
@@ -262,7 +262,7 @@ jobs:
   # Documentation build - ensures all docs build without warnings
   docs:
     name: Documentation Build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 15
     needs: test
     steps:
@@ -304,7 +304,7 @@ jobs:
   # Multi-version Rust testing
   rust-versions:
     name: Rust ${{ matrix.rust }} (${{ matrix.package }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 15
     needs: format-check
     strategy:
@@ -348,7 +348,7 @@ jobs:
   # Final status check
   ci-success:
     name: CI Success
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: [format-check, test, integration-tests, health-check, version-check, docs, rust-versions]
     if: always()
     steps:

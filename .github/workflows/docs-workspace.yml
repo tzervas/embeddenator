@@ -24,7 +24,7 @@ jobs:
   # Build all documentation
   build-docs:
     name: Build Documentation
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -231,7 +231,7 @@ jobs:
   # Deploy to GitHub Pages (only on main branch)
   deploy:
     name: Deploy to GitHub Pages
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: build-docs
     if: github.ref == 'refs/heads/main'
     environment:
@@ -245,7 +245,7 @@ jobs:
   # Check documentation coverage
   doc-coverage:
     name: Documentation Coverage
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

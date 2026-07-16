@@ -23,7 +23,7 @@ env:
 jobs:
   health-check:
     name: Run Health Checks
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -179,7 +179,7 @@ jobs:
   # Git status check
   git-status:
     name: Git Repository Status
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

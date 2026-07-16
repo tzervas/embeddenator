@@ -28,7 +28,7 @@ jobs:
   # Benchmark all packages with criterion
   benchmark:
     name: Benchmark (${{ matrix.package }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -155,7 +155,7 @@ jobs:
   # Compare with baseline on main branch
   compare-baseline:
     name: Compare with Baseline
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: benchmark
     if: github.event_name == 'pull_request'
     timeout-minutes: 10
@@ -209,7 +209,7 @@ jobs:
   # Update baseline on main branch
   update-baseline:
     name: Update Baseline
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: benchmark
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     timeout-minutes: 10
@@ -260,7 +260,7 @@ jobs:
   # Performance dashboard data export
   export-metrics:
     name: Export Performance Metrics
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman]
     needs: benchmark
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 10
