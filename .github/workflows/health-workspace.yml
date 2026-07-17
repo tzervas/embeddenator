@@ -206,7 +206,7 @@ jobs:
           echo "Checking branch synchronization..."
           
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs

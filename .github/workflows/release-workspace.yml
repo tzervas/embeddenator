@@ -85,7 +85,7 @@ jobs:
           echo "Running full test suite..."
           
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs
@@ -226,7 +226,7 @@ jobs:
       
       - name: Build release binary
         run: |
-          cargo build --release --target ${{ matrix.target }} -p embeddenator
+          cargo build --release --target ${{ matrix.target }} -p embeddenator-core
           cargo build --release --target ${{ matrix.target }} -p embeddenator-cli
           cargo build --release --target ${{ matrix.target }} -p embeddenator-workspace
       
@@ -328,7 +328,7 @@ jobs:
             "embeddenator-contract-bench"
             "embeddenator-cli"
             "embeddenator-workspace"
-            "embeddenator"
+            "embeddenator-core"
           )
           
           for package in "${packages[@]}"; do

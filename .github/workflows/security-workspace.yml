@@ -38,7 +38,7 @@ jobs:
         continue-on-error: true
         run: |
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs
@@ -133,7 +133,7 @@ jobs:
           echo "" >> outdated-report.md
           
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs
@@ -182,7 +182,7 @@ jobs:
       - name: Run Clippy with security lints
         run: |
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs
@@ -270,7 +270,7 @@ jobs:
           echo "" >> license-report.md
           
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs

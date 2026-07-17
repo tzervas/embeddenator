@@ -45,7 +45,7 @@ jobs:
           export RUSTDOCFLAGS="-D warnings"
           
           repos=(
-            embeddenator
+            embeddenator-core
             embeddenator-cli
             embeddenator-contract-bench
             embeddenator-fs
