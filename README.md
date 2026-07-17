@@ -1,5 +1,10 @@
 # Embeddenator Workspace
 
+<!-- FLEET-BADGES:BEGIN -->
+[![CI](https://github.com/tzervas/embeddenator/actions/workflows/fleet-ci.yml/badge.svg?branch=main)](https://github.com/tzervas/embeddenator/actions/workflows/fleet-ci.yml?query=branch%3Amain)
+[![Security](https://github.com/tzervas/embeddenator/actions/workflows/fleet-security.yml/badge.svg?branch=main)](https://github.com/tzervas/embeddenator/actions/workflows/fleet-security.yml?query=branch%3Amain)
+<!-- FLEET-BADGES:END -->
+
 Multi-component Rust workspace for Vector Symbolic Architecture (VSA) based holographic data encoding.
 
 Embeddenator is an encoding method and data model. It is not a security implementation.
