@@ -15,9 +15,10 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
 
-# Prevent concurrent deployments
+# Per-ref group so stacked PRs do not cancel each other.
+# The old `group: pages` made Documentation show cancelled/red on the stack.
 concurrency:
-  group: "pages"
+  group: docs-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
