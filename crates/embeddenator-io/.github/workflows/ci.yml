@@ -1,0 +1,76 @@
+name: CI
+
+# Manual only — no push/pull_request CI triggers
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - develop
+  pull_request:
+    branches:
+      - main
+      - dev
+      - develop
+  workflow_dispatch:
+permissions:
+  contents: read
+  checks: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: [self-hosted, linux, x64, podman]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: embeddenator-io
+      
+      - name: Check formatting
+        run: cargo fmt --check
+      
+      - name: Clippy lints
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      
+      - name: Build
+        run: cargo build --all-features
+      
+      - name: Run tests
+        run: cargo test --all-features --verbose
+
+  # Optional: runs on self-hosted ARM64 runner if available
+  build-arm64:
+    name: Build (ARM64)
+    runs-on: [self-hosted, linux, arm64]
+    if: github.repository_owner == 'tzervas'
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: embeddenator-io-arm64
+      
+      - name: Build
+        run: cargo build --all-features
+      
+      - name: Run tests
+        run: cargo test --all-features
