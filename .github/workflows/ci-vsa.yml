@@ -1,0 +1,35 @@
+name: VSA workspace CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-vsa:
+    name: Test embeddenator-vsa
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout superproject
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.92"
+          components: rustfmt, clippy
+
+      - name: Test default features
+        run: cargo test -p embeddenator-vsa
+
+      - name: Test simd
+        run: cargo test -p embeddenator-vsa --features simd
+
+      - name: Test simd block-sparse trit-vsa-simd
+        run: cargo test -p embeddenator-vsa --features 'simd block-sparse trit-vsa-simd'
+
+      - name: CUDA exclusivity
+        run: bash scripts/check-cuda-exclusivity.sh

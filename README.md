@@ -23,6 +23,20 @@ This workspace contains 8 published library crates implementing holographic data
 
 ---
 
+## Workspace layout
+
+This repository is a Cargo virtual workspace. The first in-tree member is `crates/embeddenator-vsa` (git subtree). The other component repos remain gitlinks and are **not** workspace members yet — `cargo test --workspace` does **not** test all 12 crates.
+
+```bash
+git clone https://github.com/tzervas/embeddenator.git
+cd embeddenator
+# no sibling clones, no git submodule init, no rust-ai checkout
+cargo test -p embeddenator-vsa --features simd
+```
+
+Do not pass `--all-features` (that would enable both GPU backends). `embeddenator-vsa/cuda` is cudarc; `trit-vsa/cuda` is cubecl — never enable both.
+
+
 ## Published Crates
 
 ### Core Libraries
@@ -150,14 +164,14 @@ Comprehensive re-export of all Embeddenator functionality.
 git clone https://github.com/tzervas/embeddenator.git
 cd embeddenator
 
-# Build all components
+# Build the in-tree workspace member (embeddenator-vsa)
 cargo build --release
 
-# Run tests
-cargo test --all-features --workspace
+# Test embeddenator-vsa (does not cover remaining gitlink crates)
+cargo test -p embeddenator-vsa --features simd
 
-# Build documentation
-cargo doc --all-features --no-deps --open
+# Build documentation for the imported crate
+cargo doc -p embeddenator-vsa --no-deps --open
 ```
 
 ### Sync All Repositories
@@ -260,11 +274,11 @@ See [MAINTAINED_DEPENDENCIES.md](./MAINTAINED_DEPENDENCIES.md) for full integrat
 ### Running Tests
 
 ```bash
-# Run all tests
-cargo test --all-features --workspace
+# Test the imported workspace member (not all 12 component repos)
+cargo test -p embeddenator-vsa --features simd
 
-# Run tests for specific component
-cargo test -p embeddenator-vsa
+# Same crate, extra feature set (still not --all-features)
+cargo test -p embeddenator-vsa --features 'simd block-sparse trit-vsa-simd'
 
 # Run integration tests (part of embeddenator-testkit)
 cd embeddenator-testkit
@@ -314,7 +328,8 @@ embeddenator/
 │   ├── guides/            # How-to guides
 │   ├── project-management/ # Project tracking
 │   └── requirements/      # Specifications
-├── embeddenator-vsa/       # VSA implementation (submodule)
+├── crates/embeddenator-vsa/ # VSA implementation (in-tree subtree)
+├── embeddenator-vsa/       # (removed gitlink; use crates/embeddenator-vsa)
 ├── embeddenator-fs/        # Filesystem operations (submodule)
 ├── embeddenator-io/        # I/O operations (submodule)
 ├── embeddenator-obs/       # Observable pattern (submodule)
@@ -342,7 +357,7 @@ Current published versions vary by component (see table above).
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests (`cargo test --all-features --workspace`)
+4. Run tests (`cargo test -p embeddenator-vsa --features simd`)
 5. Commit your changes (`git commit -m 'Add amazing feature'`)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request

@@ -43,6 +43,11 @@ There is **no** `qlora-candle-core` (or `qlora-candle-nn` / `qlora-candle-transf
 
 ---
 
+
+## Two workspaces and trit-vsa
+
+Embeddenator pins `trit-vsa = 0.3.0` from crates.io (`default-features = false`); it does not vendor trit-vsa source. `rust-ai` remains a second, separate workspace and is not imported here. Never enable both CUDA features in one build: `embeddenator-vsa/cuda` resolves `cudarc`, while `trit-vsa/cuda` resolves `cubecl`.
+
 ## Maintained Fork Ecosystem
 
 ### qlora-paste v1.0.21
