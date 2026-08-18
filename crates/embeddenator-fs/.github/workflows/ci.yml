@@ -1,0 +1,98 @@
+name: CI
+
+# Manual only — no push/pull_request CI triggers
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - develop
+  pull_request:
+    branches:
+      - main
+      - dev
+      - develop
+  workflow_dispatch:
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    runs-on: [self-hosted, linux, x64, podman]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Clone dependency repos
+        run: |
+          cd ..
+          # Only clone direct path dependencies
+          for repo in embeddenator-vsa embeddenator-io embeddenator-retrieval; do
+            if [ ! -d "$repo" ]; then
+              git clone --depth 1 https://github.com/tzervas/$repo.git || true
+            fi
+          done
+
+      - name: Fix dependency version conflicts
+        run: |
+          # embeddenator-retrieval on GitHub has bincode = "3.0" which pulls in
+          # bincode 3.0.0 that has intentional compile_error (XKCD 2347 protest)
+          # Fix by downgrading to bincode 1.x which has compatible API
+          cd ../embeddenator-retrieval
+          sed -i 's/bincode = "3.0"/bincode = ">=1.3, <2.0"/' Cargo.toml
+
+          # Also patch embeddenator-retrieval to use local embeddenator-vsa
+          # to avoid multiple versions of the same crate
+          sed -i 's|embeddenator-vsa = { git = .*|embeddenator-vsa = { path = "../embeddenator-vsa" }|' Cargo.toml
+          sed -i 's|embeddenator-vsa = { version = .*|embeddenator-vsa = { path = "../embeddenator-vsa" }|' Cargo.toml
+          sed -i 's|embeddenator-vsa = ".*"|embeddenator-vsa = { path = "../embeddenator-vsa" }|' Cargo.toml
+
+          echo "Fixed embeddenator-retrieval dependencies:"
+          grep -E "(bincode|embeddenator-vsa)" Cargo.toml
+
+      # Note: Using nightly Rust because embeddenator-vsa on GitHub uses
+      # unstable features (avx512f, stdarch_x86_avx512, unsigned_is_multiple_of)
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 'nightly'
+          components: rustfmt, clippy
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Setup FUSE
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse3-dev fuse3
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'embeddenator-fs'
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      # Note: Using specific features instead of --all-features to avoid
+      # gpt 4.1 -> simple-bytes -> bincode 3.0.0 (has intentional compile_error)
+      # The disk-image-portable feature provides disk image support without io_uring
+      - name: Run clippy (default)
+        run: cargo clippy -- -D warnings
+
+      - name: Run clippy (fuse)
+        run: cargo clippy --features fuse -- -D warnings
+
+      - name: Run clippy (disk-image-portable)
+        run: cargo clippy --features disk-image-portable -- -D warnings
+
+      - name: Build
+        run: cargo build --release --features "fuse disk-image-portable"
+
+      - name: Run tests
+        run: cargo nextest run --features "fuse disk-image-portable"
+
+      - name: Build documentation
+        run: cargo doc --no-deps --features "fuse disk-image-portable"
