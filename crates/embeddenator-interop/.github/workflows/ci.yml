@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  ci:
+    uses: tzervas/.github-workflows/.github/workflows/reusable-ci.yml@v1
+    with:
+      rust-version: '1.84'
+      run-tests: true
+      run-benchmarks: false
+      cache-key-prefix: 'embeddenator-interop'

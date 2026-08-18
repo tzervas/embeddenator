@@ -1,0 +1,54 @@
+# Embeddenator Interop - Development Context
+
+## Active Technologies
+- **Rust**: Stable toolchain (edition 2021)
+- **Kernel Integration**: System-level interop for holographic filesystem operations
+- **Dependencies**: embeddenator-vsa (VSA primitives), embeddenator-fs (FUSE filesystem)
+- **Testing**: proptest for property-based testing
+
+## Project Structure
+```
+embeddenator-interop/
+├── src/
+│   └── lib.rs           # Kernel interop and system integration logic
+├── tests/               # Integration tests
+├── Cargo.toml           # v0.20.0-alpha.1
+└── README.md            # Phase 2A component extraction status
+```
+
+## Commands
+- **Build**: `cargo build --release`
+- **Test**: `cargo test`
+- **Check**: `cargo clippy --all-targets`
+- **Format**: `cargo fmt --all`
+
+## Code Conventions
+- **System Integration**: Provide abstractions for kernel-level operations (mmap, page cache, etc.)
+- **FUSE Bridge**: Integrate with embeddenator-fs for filesystem mounting
+- **Platform Compatibility**: Use conditional compilation (`#[cfg(target_os = "...")]`) for OS-specific code
+- **Error Handling**: Wrap system errors in descriptive Rust error types
+- **Safety**: Minimize unsafe blocks; document invariants when required
+
+## Current Focus
+- **Phase 2A Component Extraction**: Interop logic extracted from embeddenator monorepo
+- **Kernel Integration**: System-level abstractions for holographic filesystem operations
+- **FUSE Filesystem Bridge**: Connect embeddenator-fs to OS kernel via FUSE protocol
+- **Platform Support**: Validate functionality on Linux/macOS/BSD
+- **Performance**: Optimize system call overhead and memory mapping strategies
+
+## Recent Changes
+- Extracted from embeddenator monorepo as standalone interop component crate
+- Defined clean API boundaries between user-space and kernel-space operations
+- Version bumped to 0.20.0-alpha.1
+- Integrated with embeddenator-vsa and embeddenator-fs
+- Added platform-specific conditional compilation
+
+## Agents
+- Embeddenator Agent (`embeddenator/.github/agents/embeddenator.agent.md`): VSA/engram/Rust integration expert
+- Interop Agent (TBD): Kernel integration and system programming
+
+## Related Documentation
+- [WORKSPACE_TRACKER.md](/WORKSPACE_TRACKER.md): Multi-repo state tracker
+- [SPEC_KIT_INTEGRATION.md](/SPEC_KIT_INTEGRATION.md): Specification-Driven Development (SDD) workflow
+- [ADR-016](https://github.com/tzervas/embeddenator/blob/main/docs/adr/ADR-016-component-decomposition.md): Component decomposition rationale
+- [embeddenator-fs README](/embeddenator-fs/README.md): FUSE filesystem implementation
