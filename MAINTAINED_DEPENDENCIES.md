@@ -1,7 +1,7 @@
 # Maintained Dependencies Ecosystem
 
-**Document Version:** 2.1.0
-**Last Updated:** January 26, 2026
+**Document Version:** 2.2.0
+**Last Updated:** August 18, 2026
 **Status:** Active
 
 ---
@@ -20,53 +20,48 @@
 
 ## Executive Summary
 
-This document describes the maintained fork ecosystem created to address unmaintained dependencies in the Rust ML ecosystem. These forks provide drop-in replacements with active maintenance, security patches, and compatibility with modern Rust toolchains.
+This document describes the maintained fork ecosystem created to address unmaintained dependencies in the Rust ML ecosystem (`paste`, `gemm`, and candle's use of both).
 
-### Maintained Forks
+### Maintained Forks (verified 2026-08-18)
 
-| Original Crate | Maintained Fork | Version | crates.io |
-|----------------|-----------------|---------|-----------|
-| `paste` | `qlora-paste` | 1.0.20 | [qlora-paste](https://crates.io/crates/qlora-paste) |
-| `gemm` | `qlora-gemm` | 0.20.0 | [qlora-gemm](https://crates.io/crates/qlora-gemm) |
-| `candle-*` | `qlora-candle-*` | 0.8.4 | [qlora-candle-core](https://crates.io/crates/qlora-candle-core) |
+| Original Crate | Maintained Fork | Version | Distribution |
+|----------------|-----------------|---------|--------------|
+| `paste` | `qlora-paste` | **1.0.21** | [crates.io](https://crates.io/crates/qlora-paste) |
+| `gemm` | `qlora-gemm` | **0.20.0** | [crates.io](https://crates.io/crates/qlora-gemm) |
+| `candle-*` | `qlora-candle` (**keeps package names** `candle-core` / `candle-nn` / `candle-transformers`) | **0.9.2** | **Git only** — [tzervas/qlora-candle](https://github.com/tzervas/qlora-candle) branch `use-qlora-gemm` |
+
+There is **no** `qlora-candle-core` (or `qlora-candle-nn` / `qlora-candle-transformers`) crate on crates.io. Doc v2.1.0 (2026-01-26) claimed a 0.8.4 crates.io publish. That never happened. Do not `cargo add qlora-candle-core`.
 
 ### Upstream PR
 
-These changes are being contributed back upstream:
-
 - **PR #3335**: [Replace unmaintained gemm with qlora-gemm fork](https://github.com/huggingface/candle/pull/3335)
-  - Status: **OPEN**
+  - Status: **OPEN** (as of 2026-08-18)
   - Author: @tzervas
   - Repository: huggingface/candle
+  - Upstream candle on crates.io is **0.11.0** and still depends on `gemm = "0.19.0"`.
+  - This workspace does **not** bump candle to 0.11 until the fork is rebased and #3335 lands or is replaced.
 
 ---
 
 ## Maintained Fork Ecosystem
 
-### qlora-paste v1.0.20
+### qlora-paste v1.0.21
 
-**Problem:** The `paste` crate (token pasting macros) has been unmaintained since 2023, with no responses to issues or PRs.
+**Problem:** The `paste` crate (token pasting macros) has been unmaintained since 2023.
 
-**Solution:** `qlora-paste` is a maintained fork providing:
+**Solution:** `qlora-paste` is a maintained fork:
+
 - Active maintenance and security patches
 - Full API compatibility with `paste`
-- Compatible with Rust 1.84+
 - Published to crates.io
 
-**Usage:**
 ```toml
 [dependencies]
-qlora-paste = "1.0.20"
+qlora-paste = "1.0.21"
 ```
 
 ```rust
 use qlora_paste::paste;
-
-paste! {
-    fn [<my_ function>]() {
-        // Token pasting works identically
-    }
-}
 ```
 
 **Repository:** https://github.com/tzervas/qlora-paste
@@ -75,174 +70,113 @@ paste! {
 
 ### qlora-gemm v0.20.0
 
-**Problem:** The `gemm` crate (matrix multiplication) depends on unmaintained `paste` and has compatibility issues.
+**Problem:** The `gemm` crate depends on unmaintained `paste`.
 
-**Solution:** `qlora-gemm` is a maintained fork providing:
-- Uses `qlora-paste` instead of unmaintained `paste`
-- Full API compatibility with `gemm` v0.19.x
-- Active maintenance
-- Published to crates.io
+**Solution:** `qlora-gemm` uses `qlora-paste` and keeps the `gemm` v0.19.x API.
 
-**Crate Family:**
-| Crate | Version | Description |
-|-------|---------|-------------|
-| `qlora-gemm` | 0.20.0 | Core matrix multiplication |
-| `qlora-gemm-common` | 0.20.0 | Common utilities |
-| `qlora-gemm-f16` | 0.20.0 | f16 matrix multiplication |
-| `qlora-gemm-f32` | 0.20.0 | f32 matrix multiplication |
-| `qlora-gemm-f64` | 0.20.0 | f64 matrix multiplication |
+**Crate family (all 0.20.0 on crates.io):** `qlora-gemm`, `qlora-gemm-common`, `qlora-gemm-f16`, `qlora-gemm-f32`, `qlora-gemm-f64`, `qlora-gemm-c32`, `qlora-gemm-c64`.
 
-**Usage:**
 ```toml
 [dependencies]
 qlora-gemm = "0.20.0"
 ```
 
 ```rust
-use qlora_gemm as gemm;  // Drop-in replacement
-
-// All gemm APIs work identically
+use qlora_gemm as gemm;
 ```
 
 **Repository:** https://github.com/tzervas/qlora-gemm
 
 ---
 
-### qlora-candle (Candle Fork)
+### qlora-candle (Candle Fork) — git, not crates.io
 
-**Problem:** Hugging Face's `candle` ML framework depends on unmaintained `gemm`, which depends on unmaintained `paste`.
+**Problem:** Hugging Face `candle` depends on unmaintained `gemm` → `paste`.
 
-**Solution:** `qlora-candle` is a fork of candle that:
-- Uses `qlora-gemm` instead of `gemm`
-- Transitively uses `qlora-paste` instead of `paste`
-- Maintains full API compatibility with upstream candle
-- **Published to crates.io** (as of January 2026)
+**Solution:** `tzervas/qlora-candle` is a **git fork** of candle 0.9.2 that:
 
-**Crate Family:**
-| Crate | Version | Description |
-|-------|---------|-------------|
-| `qlora-candle-core` | 0.8.4 | Core tensor operations |
-| `qlora-candle-nn` | 0.8.4 | Neural network layers |
-| `qlora-candle-transformers` | 0.8.4 | Transformer implementations |
+- Replaces `gemm` with `qlora-gemm = "0.20.0"`
+- **Keeps crate names** `candle-core`, `candle-nn`, `candle-transformers` so `[patch.crates-io]` works
+- Is consumed on branch **`use-qlora-gemm`** (default `main` is still vanilla candle 0.9.2 + `gemm 0.19.0` — do not clone `main` and expect the fork)
 
-**Repository:** https://github.com/tzervas/qlora-candle
+**Not published.** Renaming the packages to `qlora-candle-*` would **break** `[patch.crates-io]` because cargo patches by package name.
+
+**Repository:** https://github.com/tzervas/qlora-candle/tree/use-qlora-gemm
 
 ---
 
 ## Dependency Chain
 
 ```
-Your Project
-    └── qlora-candle (candle fork)
-            └── qlora-gemm v0.20.0
-                    └── qlora-paste v1.0.20
+Your crate
+    └── candle-core / candle-nn / candle-transformers  (= 0.9.2)
+            └── [patch.crates-io] → git tzervas/qlora-candle @ use-qlora-gemm
+                    └── qlora-gemm v0.20.0          (crates.io)
+                            └── qlora-paste v1.0.21 (crates.io)
 ```
 
-This chain ensures all dependencies are actively maintained with no unmaintained transitive dependencies.
+Public standalone sisters (`trit-vsa`, `bitnet-quantize`, `tritter-accel`, `vsa-optim-rs`, `rust-ai-core`) currently declare `candle-core = "0.9"` against **huggingface crates.io** (still `gemm`/`paste`) unless the consumer adds the same patch. Embeddenator itself does **not** depend on candle (GPU path is `cudarc`).
 
 ---
 
 ## Upstream Contributions
 
-### PR #3335: Replace unmaintained gemm with qlora-gemm fork
+### PR #3335: Replace unmaintained gemm with qlora-gemm
 
 **URL:** https://github.com/huggingface/candle/pull/3335
 
-**Summary:** This PR proposes replacing the unmaintained `gemm` dependency in candle with `qlora-gemm`.
+**Status:** OPEN — awaiting human review. If merged, candle users get maintained `qlora-gemm` without a fork.
 
-**Changes:**
-- `Cargo.toml`: `gemm = "0.19.0"` → `qlora-gemm = "0.20.0"`
-- `candle-core/Cargo.toml`: `gemm` → `qlora-gemm`
-- `candle-core/src/cpu_backend/mod.rs`: `use gemm` → `use qlora_gemm`
-
-**Status:** OPEN - Awaiting review from Hugging Face maintainers
-
-**Impact:** If merged, all candle users will automatically benefit from maintained dependencies without needing to use the fork.
+Until then, rust-ai (training workspace) uses the git patch below. Do not rebase this pin to candle 0.11 in a docs change.
 
 ---
 
 ## Integration Guide
 
-### For New Projects
+### For projects that already depend on `candle-*` (the working pattern)
 
-If starting a new project that needs candle with maintained dependencies:
+Depend on huggingface crate names + 0.9.2, then redirect:
 
 ```toml
 [dependencies]
-qlora-candle-core = "0.8"
-qlora-candle-nn = "0.8"
-qlora-candle-transformers = "0.8"
-```
+candle-core = { version = "0.9.2", default-features = false }
+candle-nn = { version = "0.9.2", default-features = false }
+candle-transformers = { version = "0.9.2", default-features = false }
 
-Update imports to use the qlora prefixed crates:
-```rust
-use qlora_candle_core as candle_core;  // Drop-in replacement
-use qlora_candle_nn as candle_nn;
-use qlora_candle_transformers as candle_transformers;
-```
-
-### For Existing Projects Using Candle
-
-Add patch directives to replace candle with the maintained fork:
-
-```toml
 [patch.crates-io]
 candle-core = { git = "https://github.com/tzervas/qlora-candle.git", branch = "use-qlora-gemm" }
 candle-nn = { git = "https://github.com/tzervas/qlora-candle.git", branch = "use-qlora-gemm" }
 candle-transformers = { git = "https://github.com/tzervas/qlora-candle.git", branch = "use-qlora-gemm" }
 ```
 
-Or switch to the crates.io published versions directly (recommended):
+This is what `tzervas/rust-ai` does. Imports stay `use candle_core::...`.
+
+### Do not
+
 ```toml
-[dependencies]
+# THESE CRATES DO NOT EXIST ON crates.io
 qlora-candle-core = "0.8"
 qlora-candle-nn = "0.8"
 qlora-candle-transformers = "0.8"
 ```
 
-### For Projects Using gemm Directly
-
-Replace `gemm` with `qlora-gemm`:
+### For projects using gemm directly
 
 ```toml
-[dependencies]
-# Before:
-# gemm = "0.19"
-
-# After:
 qlora-gemm = "0.20.0"
 ```
 
-Update imports:
 ```rust
-// Before:
-use gemm::gemm;
-
-// After:
-use qlora_gemm::gemm;
-// Or for minimal code changes:
 use qlora_gemm as gemm;
 ```
 
-### For Projects Using paste Directly
-
-Replace `paste` with `qlora-paste`:
+### For projects using paste directly
 
 ```toml
-[dependencies]
-# Before:
-# paste = "1.0"
-
-# After:
-qlora-paste = "1.0.20"
+qlora-paste = "1.0.21"
 ```
 
-Update imports:
 ```rust
-// Before:
-use paste::paste;
-
-// After:
 use qlora_paste::paste;
 ```
 
@@ -250,28 +184,7 @@ use qlora_paste::paste;
 
 ## For Embeddenator Users
 
-### Current Status
-
-The Embeddenator workspace currently uses **native CUDA via `cudarc`** for GPU acceleration, not candle. This provides:
-
-- Direct CUDA kernel execution
-- Fine-grained control over GPU memory
-- Optimized for Vector Symbolic Architecture operations
-
-### Future Candle Integration
-
-If candle integration is added to Embeddenator (e.g., for neural network-based embedding generation), it will use the maintained fork ecosystem:
-
-```toml
-# Future embeddenator-ml/Cargo.toml (hypothetical)
-[dependencies]
-qlora-candle-core = "0.8"
-qlora-candle-nn = "0.8"
-```
-
-### GPU Acceleration in Embeddenator
-
-Current GPU support in `embeddenator-vsa`:
+Embeddenator **does not depend on candle**. GPU acceleration in `embeddenator-vsa` is **native CUDA via `cudarc`**.
 
 | Feature | Status | Details |
 |---------|--------|---------|
@@ -280,50 +193,31 @@ Current GPU support in `embeddenator-vsa`:
 | SIMD (NEON) | Implemented | ARM64 acceleration |
 | GPU Arch Detection | Implemented | SM 7.5 - SM 12.0 |
 
+If a future `embeddenator-ml` crate needs candle, it will use the **git patch** above (0.9.2, package names unchanged). It will not depend on a non-existent `qlora-candle-core`.
+
+Do **not** enable `embeddenator-vsa` `cuda` (cudarc) and `trit-vsa` `cuda` (cubecl) in one build until a single GPU backend is chosen.
+
 ---
 
 ## For External Projects
 
-### Adopting the Maintained Ecosystem
+1. **Audit:**
 
-1. **Audit your dependencies:**
    ```bash
-   cargo tree | grep -E "paste|gemm|candle"
+   cargo tree | grep -E "paste|gemm|candle|qlora"
    ```
 
-2. **Option A: Direct crates.io dependencies (recommended):**
-   ```toml
-   [dependencies]
-   qlora-candle-core = "0.8"
-   qlora-candle-nn = "0.8"
-   qlora-candle-transformers = "0.8"
-   ```
+2. **Paste / gemm:** switch to crates.io `qlora-paste` / `qlora-gemm`.
 
-3. **Option B: Patch existing candle dependencies:**
-   ```toml
-   [patch.crates-io]
-   candle-core = { git = "https://github.com/tzervas/qlora-candle.git", branch = "use-qlora-gemm" }
-   candle-nn = { git = "https://github.com/tzervas/qlora-candle.git", branch = "use-qlora-gemm" }
-   candle-transformers = { git = "https://github.com/tzervas/qlora-candle.git", branch = "use-qlora-gemm" }
-   ```
+3. **Candle:** add the `[patch.crates-io]` git snippet. Verify:
 
-4. **Verify the maintained dependencies are applied:**
    ```bash
-   cargo tree | grep qlora
-   # Should show qlora-gemm and qlora-paste in the tree
+   cargo tree -i candle-core
+   # source should be tzervas/qlora-candle, not crates.io huggingface/candle
+   cargo tree | grep qlora-gemm
    ```
 
-5. **Run tests:**
-   ```bash
-   cargo test --all-features
-   ```
-
-### Security Considerations
-
-Using maintained forks provides:
-- Active vulnerability monitoring
-- Timely security patches
-- Compatibility with `cargo audit` and `cargo deny`
+4. **Do not** bump to candle 0.11 in lockstep with this guide. Upstream 0.11 still uses `gemm 0.19.0`.
 
 ---
 
@@ -331,7 +225,8 @@ Using maintained forks provides:
 
 | Date | Version | Changes |
 |------|---------|---------|
-| 2026-01-26 | 2.1.0 | qlora-candle published to crates.io (v0.8.4); updated integration guide |
+| 2026-08-18 | 2.2.0 | **Retract** crates.io `qlora-candle-*` 0.8.4 claim. Candle is git-only @ `use-qlora-gemm`, package names `candle-*` 0.9.2. `qlora-paste` is 1.0.21. Upstream candle is 0.11.0; #3335 still open. |
+| 2026-01-26 | 2.1.0 | *(incorrect)* claimed qlora-candle published to crates.io as v0.8.4 |
 | 2026-01-26 | 2.0.0 | Expanded to comprehensive maintained dependencies guide |
 | 2026-01-26 | 1.0.0 | Initial paste → qlora-paste migration guide |
 
@@ -339,29 +234,31 @@ Using maintained forks provides:
 
 ## Related Documentation
 
-- [SECURITY.md](SECURITY.md) - Security policy
-- [CI_CD_GUIDE.md](CI_CD_GUIDE.md) - CI/CD documentation
-- [deny.toml](deny.toml) - Supply chain security configuration
+- [CI_CD_GUIDE.md](CI_CD_GUIDE.md) — CI/CD documentation (if present in this checkout)
+- rust-ai (private training workspace): `MAINTAINED_FORKS_ADOPTION.md` — already matches this 2.2.0 truth
 
 ---
 
 ## Links
 
 ### Maintained Forks
+
 - **qlora-paste:** https://crates.io/crates/qlora-paste
 - **qlora-gemm:** https://crates.io/crates/qlora-gemm
-- **qlora-candle-core:** https://crates.io/crates/qlora-candle-core
-- **qlora-candle (GitHub):** https://github.com/tzervas/qlora-candle
+- **qlora-candle (git, `use-qlora-gemm`):** https://github.com/tzervas/qlora-candle/tree/use-qlora-gemm
 
 ### Upstream
+
 - **Candle PR #3335:** https://github.com/huggingface/candle/pull/3335
 - **Candle Repository:** https://github.com/huggingface/candle
+- **crates.io candle-core:** https://crates.io/crates/candle-core (huggingface; latest 0.11.0)
 
 ### Original (Unmaintained)
-- **paste:** https://crates.io/crates/paste (unmaintained)
-- **gemm:** https://crates.io/crates/gemm (unmaintained)
+
+- **paste:** https://crates.io/crates/paste
+- **gemm:** https://crates.io/crates/gemm
 
 ---
 
 **Maintained by:** @tzervas
-**Questions?** Open an issue on GitHub
+**Parent epic:** [embeddenator#66](https://github.com/tzervas/embeddenator/issues/66)
