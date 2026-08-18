@@ -19,9 +19,9 @@ compression-lz4 = ["embeddenator-io/compression-lz4"]
 compression = ["compression-zstd", "compression-lz4"]
 
 [dependencies]
-embeddenator-vsa = { path = "../embeddenator-vsa", version = ">=0.21.0, <1.0.0" }
-embeddenator-fs = { path = "../embeddenator-fs", version = ">=0.23.0, <1.0.0" }
-embeddenator-io = { path = "../embeddenator-io", version = ">=0.21.0, <1.0.0" }
+embeddenator-vsa = { workspace = true }
+embeddenator-fs = { workspace = true }
+embeddenator-io = { workspace = true }
 
 # Serialization
 serde = { version = ">=1.0, <2.0", features = ["derive"] }

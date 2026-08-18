@@ -79,11 +79,10 @@ signal-hook = "0.3"
 # Parallel processing for chunk encoding/decoding
 rayon = ">=1.8, <2.0"
 
-# Core embeddenator dependencies (path for dev, semver for publish)
-# Note: Version constraints relaxed for CI compatibility with GitHub remotes
-embeddenator-vsa = { path = "../embeddenator-vsa", version = ">=0.20.0, <1.0.0" }
-embeddenator-retrieval = { path = "../embeddenator-retrieval", version = ">=0.20.0, <1.0.0" }
-embeddenator-io = { path = "../embeddenator-io", version = ">=0.20.0, <1.0.0", features = ["compression-zstd", "compression-lz4"] }
+# Workspace path pins (PR4). Keep io compression features.
+embeddenator-vsa = { workspace = true }
+embeddenator-retrieval = { workspace = true }
+embeddenator-io = { workspace = true, features = ["compression-zstd", "compression-lz4"] }
 
 [dependencies.clap]
 version = ">=4.5, <5.0"
