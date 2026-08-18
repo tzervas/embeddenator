@@ -25,13 +25,15 @@ This workspace contains 8 published library crates implementing holographic data
 
 ## Workspace layout
 
-This repository is a Cargo virtual workspace. The first in-tree member is `crates/embeddenator-vsa` (git subtree). The other component repos remain gitlinks and are **not** workspace members yet — `cargo test --workspace` does **not** test all 12 crates.
+This repository is a Cargo virtual workspace. In-tree members (git subtrees): `crates/embeddenator-vsa`, `crates/embeddenator-io`, and `crates/embeddenator-obs`. The other component repos remain gitlinks and are **not** workspace members yet — `cargo test --workspace` does **not** test all 12 crates.
 
 ```bash
 git clone https://github.com/tzervas/embeddenator.git
 cd embeddenator
 # no sibling clones, no git submodule init, no rust-ai checkout
 cargo test -p embeddenator-vsa --features simd
+cargo test -p embeddenator-io
+cargo test -p embeddenator-obs
 ```
 
 Do not pass `--all-features` (that would enable both GPU backends). `embeddenator-vsa/cuda` is cudarc; `trit-vsa/cuda` is cubecl — never enable both.
