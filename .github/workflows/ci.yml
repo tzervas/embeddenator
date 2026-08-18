@@ -1,0 +1,121 @@
+name: CI
+
+# Manual only — no push/pull_request CI triggers
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - develop
+  pull_request:
+    branches:
+      - main
+      - dev
+      - develop
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: 'Enable debug output (RUST_BACKTRACE, RUST_LOG)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  checks: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # Debug disabled by default - enable via workflow_dispatch with debug_mode=true
+  # Use empty string instead of '0' to avoid explicitly disabling backtraces
+  RUST_BACKTRACE: ${{ inputs.debug_mode && '1' || '' }}
+  RUST_LOG: ${{ inputs.debug_mode && 'debug' || '' }}
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: [self-hosted, linux, x64, podman]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: embeddenator-vsa
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      # NOTE: CUDA feature is excluded from CI as it requires GPU hardware.
+      # CUDA tests are performed locally before merging GPU-related changes.
+      # See: https://github.com/tzervas/embeddenator-vsa/pull/29#discussion_r2734544915
+      - name: Clippy lints
+        run: cargo clippy --all-targets --features simd,block-sparse -- -D warnings
+
+      - name: Build
+        run: cargo build --features simd,block-sparse
+
+      # NOTE: CUDA feature tests require GPU hardware and are run locally.
+      # Only simd and block-sparse features are tested in CI.
+      - name: Run tests (quiet first pass)
+        id: test_quiet
+        continue-on-error: true
+        run: |
+          cargo nextest run --features simd,block-sparse --no-fail-fast 2>&1 | tee test-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Re-run failed tests with debug
+        if: steps.test_quiet.outputs.exit_code != '0' || inputs.debug_mode
+        env:
+          RUST_BACKTRACE: full
+          RUST_LOG: debug
+        run: |
+          echo "::group::Re-running tests with debug output"
+          # Use same test selection as first pass for consistency
+          cargo nextest run --features simd,block-sparse --retries 0 --failure-output immediate-final
+          echo "::endgroup::"
+
+  # =========================================================================
+  # GPU/CUDA Testing Strategy
+  # =========================================================================
+  # CUDA-dependent tests require physical GPU hardware and are NOT run in CI.
+  # These tests are performed locally before merging any GPU-related changes:
+  # - cargo test --features cuda (requires NVIDIA GPU with CUDA toolkit)
+  # - cargo test --features cuda,simd (combined feature testing)
+  #
+  # Local GPU testing verified on:
+  # - NVIDIA RTX series (Ampere/Ada architecture)
+  # - CUDA Toolkit 12.x
+  # =========================================================================
+
+  # Optional: runs on self-hosted ARM64 runner if available
+  # build-arm64:
+  #   name: Build (ARM64)
+  #   runs-on: [self-hosted, linux, arm64]
+  #   if: github.repository_owner == 'tzervas'
+  #   continue-on-error: true
+  #   timeout-minutes: 30
+  #   steps:
+  #     - uses: actions/checkout@v6
+
+  #     - name: Set up Rust
+  #       uses: dtolnay/rust-toolchain@stable
+
+  #     - name: Rust cache
+  #       uses: Swatinem/rust-cache@v2
+  #       with:
+  #         key: embeddenator-vsa-arm64
+
+  #     - name: Build
+  #       run: cargo build --features simd,block-sparse
+
+  #     - name: Run tests
+  #       run: cargo test --features simd,block-sparse
