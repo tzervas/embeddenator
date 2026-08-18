@@ -48,7 +48,7 @@ There is **no** `qlora-candle-core` (or `qlora-candle-nn` / `qlora-candle-transf
 
 Embeddenator pins `trit-vsa = 0.3.0` from crates.io (`default-features = false`); it does not vendor trit-vsa source. `rust-ai` remains a second, separate workspace and is not imported here. Never enable both CUDA features in one build: `embeddenator-vsa/cuda` resolves `cudarc`, while `trit-vsa/cuda` resolves `cubecl`.
 
-In-tree workspace members (git subtrees): `crates/embeddenator-vsa`, `crates/embeddenator-io`, `crates/embeddenator-obs`. `embeddenator-io` and `embeddenator-obs` are true leaves (no `embeddenator-vsa`, `trit-vsa`, or `rust-ai` dependency).
+In-tree workspace members (git subtrees): `crates/embeddenator-vsa`, `crates/embeddenator-io`, `crates/embeddenator-obs`, `crates/embeddenator-retrieval`. `embeddenator-retrieval` depends on `embeddenator-vsa` via `workspace = true` (first workspace-dep rewrite). `embeddenator-fs` remains a root gitlink; the crates.io `embeddenator-fs = "0.25"` pin is left in `crates/embeddenator-retrieval/Cargo.toml` as a comment (a live dev-dep would pull a second retrieval 0.22.0 and break `cargo test -p`). Do not run retrieval benches in this PR. `embeddenator-io` and `embeddenator-obs` are true leaves (no `embeddenator-vsa`, `trit-vsa`, or `rust-ai` dependency).
 
 ## Maintained Fork Ecosystem
 

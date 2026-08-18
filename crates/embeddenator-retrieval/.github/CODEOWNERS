@@ -1,0 +1,5 @@
+# Default owners for everything in the repo
+* @tzervas
+
+# Workflow changes require review
+.github/ @tzervas

@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   test-vsa:
@@ -30,6 +29,33 @@ jobs:
 
       - name: Test simd block-sparse trit-vsa-simd
         run: cargo test -p embeddenator-vsa --features 'simd block-sparse trit-vsa-simd'
+
+      - name: CUDA exclusivity
+        run: bash scripts/check-cuda-exclusivity.sh
+
+  test-members:
+    name: Test workspace members (io, obs, retrieval)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout superproject
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.92"
+          components: rustfmt, clippy
+
+      - name: Test embeddenator-io
+        run: cargo test -p embeddenator-io
+
+      - name: Test embeddenator-obs
+        run: cargo test -p embeddenator-obs
+
+      - name: Test embeddenator-retrieval
+        run: cargo test -p embeddenator-retrieval
 
       - name: CUDA exclusivity
         run: bash scripts/check-cuda-exclusivity.sh
