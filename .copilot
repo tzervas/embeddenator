@@ -1,0 +1,55 @@
+# Embeddenator IO - Development Context
+
+## Active Technologies
+- **Rust**: Stable toolchain (edition 2021)
+- **Envelope Format**: Custom serialization format for holographic engrams
+- **Compression**: Optional zstd (via `compression-zstd` feature) or lz4_flex (via `compression-lz4` feature)
+- **Testing**: proptest for property-based testing (roundtrip validation)
+
+## Project Structure
+```
+embeddenator-io/
+├── src/
+│   └── lib.rs           # Envelope format and serialization logic
+├── tests/               # Integration tests for I/O roundtrips
+├── Cargo.toml           # v0.20.0-alpha.1 with optional compression features
+└── README.md            # Phase 2A component extraction status
+```
+
+## Commands
+- **Build**: `cargo build --release`
+- **Build with Compression**: `cargo build --release --features compression-zstd` or `compression-lz4`
+- **Test**: `cargo test --all-features`
+- **Check**: `cargo clippy --all-targets --all-features`
+- **Format**: `cargo fmt --all`
+
+## Code Conventions
+- **Envelope Format**: Define version-tagged binary format for engram serialization
+- **Compression Strategy**: Conditionally compile compression backends via feature flags
+- **Roundtrip Testing**: Use proptest to validate `serialize -> deserialize == identity`
+- **Zero-Copy Deserialization**: Prefer `&[u8]` views over copying when possible
+- **Error Types**: Define descriptive I/O error enums (e.g., `EnvelopeError::CorruptHeader`)
+
+## Current Focus
+- **Phase 2A Component Extraction**: I/O logic extracted from embeddenator monorepo
+- **Envelope Format Design**: Define stable binary format for engram persistence
+- **Compression Integration**: Support optional zstd/lz4 compression for large engrams
+- **Versioning**: Implement format versioning to support backward compatibility
+- **Performance**: Optimize serialization/deserialization throughput
+
+## Recent Changes
+- Extracted from embeddenator monorepo as standalone I/O component crate
+- Defined envelope format with optional compression support
+- Version bumped to 0.20.0-alpha.1
+- Added feature flags for compression backends (zstd, lz4_flex)
+- Implemented property-based tests for roundtrip validation
+
+## Agents
+- Embeddenator Agent (`embeddenator/.github/agents/embeddenator.agent.md`): VSA/engram/Rust integration expert
+- IO Agent (TBD): Serialization format and performance optimization
+
+## Related Documentation
+- [WORKSPACE_TRACKER.md](/WORKSPACE_TRACKER.md): Multi-repo state tracker
+- [SPEC_KIT_INTEGRATION.md](/SPEC_KIT_INTEGRATION.md): Specification-Driven Development (SDD) workflow
+- [ADR-016](https://github.com/tzervas/embeddenator/blob/main/docs/adr/ADR-016-component-decomposition.md): Component decomposition rationale
+- [embeddenator README](/embeddenator/README.md): Main project overview
