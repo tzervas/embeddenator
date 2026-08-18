@@ -25,7 +25,7 @@ This workspace contains 8 published library crates implementing holographic data
 
 ## Workspace layout
 
-This repository is a Cargo virtual workspace. In-tree members (git subtrees): `crates/embeddenator-vsa`, `crates/embeddenator-io`, and `crates/embeddenator-obs`. The other component repos remain gitlinks and are **not** workspace members yet — `cargo test --workspace` does **not** test all 12 crates.
+This repository is a Cargo virtual workspace. In-tree members (git subtrees): `crates/embeddenator-vsa`, `crates/embeddenator-io`, `crates/embeddenator-obs`, and `crates/embeddenator-retrieval`. `embeddenator-retrieval` pins `embeddenator-vsa` via `workspace = true`. `embeddenator-fs` is still a root gitlink (crates.io 0.25 for retrieval benches only). The other component repos remain gitlinks and are **not** workspace members yet — `cargo test --workspace` does **not** test all 12 crates.
 
 ```bash
 git clone https://github.com/tzervas/embeddenator.git
@@ -34,6 +34,7 @@ cd embeddenator
 cargo test -p embeddenator-vsa --features simd
 cargo test -p embeddenator-io
 cargo test -p embeddenator-obs
+cargo test -p embeddenator-retrieval
 ```
 
 Do not pass `--all-features` (that would enable both GPU backends). `embeddenator-vsa/cuda` is cudarc; `trit-vsa/cuda` is cubecl — never enable both.
@@ -276,8 +277,11 @@ See [MAINTAINED_DEPENDENCIES.md](./MAINTAINED_DEPENDENCIES.md) for full integrat
 ### Running Tests
 
 ```bash
-# Test the imported workspace member (not all 12 component repos)
+# Test the imported workspace members (not all 12 component repos)
 cargo test -p embeddenator-vsa --features simd
+cargo test -p embeddenator-io
+cargo test -p embeddenator-obs
+cargo test -p embeddenator-retrieval
 
 # Same crate, extra feature set (still not --all-features)
 cargo test -p embeddenator-vsa --features 'simd block-sparse trit-vsa-simd'
@@ -331,11 +335,14 @@ embeddenator/
 │   ├── project-management/ # Project tracking
 │   └── requirements/      # Specifications
 ├── crates/embeddenator-vsa/ # VSA implementation (in-tree subtree)
+├── crates/embeddenator-io/  # I/O operations (in-tree subtree)
+├── crates/embeddenator-obs/ # Observability (in-tree subtree)
+├── crates/embeddenator-retrieval/ # Retrieval (in-tree subtree; vsa via workspace=true)
 ├── embeddenator-vsa/       # (removed gitlink; use crates/embeddenator-vsa)
-├── embeddenator-fs/        # Filesystem operations (submodule)
-├── embeddenator-io/        # I/O operations (submodule)
-├── embeddenator-obs/       # Observable pattern (submodule)
-├── embeddenator-retrieval/ # Information retrieval (submodule)
+├── embeddenator-io/        # (removed gitlink; use crates/embeddenator-io)
+├── embeddenator-obs/       # (removed gitlink; use crates/embeddenator-obs)
+├── embeddenator-retrieval/ # (removed gitlink; use crates/embeddenator-retrieval)
+├── embeddenator-fs/        # Filesystem operations (gitlink; crates.io 0.25 for retrieval benches)
 ├── embeddenator-interop/   # FFI bindings (submodule)
 ├── embeddenator-cli/       # CLI interface (submodule)
 ├── embeddenator-core/      # Umbrella crate (submodule)

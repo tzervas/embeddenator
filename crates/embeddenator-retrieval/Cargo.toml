@@ -20,13 +20,18 @@ sha2 = "0.10"
 # Use 1.x which has compatible serialize/deserialize API
 bincode = ">=1.3, <2.0"
 rayon = ">=1.8, <2.0"
-embeddenator-vsa = { path = "../embeddenator-vsa", version = ">=0.22.0, <1.0.0" }
+embeddenator-vsa = { workspace = true }
 
 [dev-dependencies]
 proptest = "1.0"
 criterion = "0.8"
 tempfile = "3.0"
-embeddenator-fs = { path = "../embeddenator-fs", version = ">=0.23.0, <1.0.0" }
+# crates.io version pin (no path). embeddenator-fs remains a root gitlink
+# until PR4. Only benches/query_hierarchical.rs wants it.
+# A live `embeddenator-fs = "0.25"` pulls crates.io retrieval 0.22.0
+# (fs → retrieval ≥0.20,<1.0) and makes `cargo test -p embeddenator-retrieval`
+# ambiguous. Unify would cycle. Leave the pin; do not run benches.
+# embeddenator-fs = "0.25"
 
 [[bench]]
 name = "retrieval"

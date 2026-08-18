@@ -4,11 +4,13 @@ members = [
     "crates/embeddenator-vsa",
     "crates/embeddenator-io",
     "crates/embeddenator-obs",
+    "crates/embeddenator-retrieval",
 ]
 default-members = [
     "crates/embeddenator-vsa",
     "crates/embeddenator-io",
     "crates/embeddenator-obs",
+    "crates/embeddenator-retrieval",
 ]
 
 [workspace.package]
@@ -24,8 +26,10 @@ rand = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
+embeddenator-vsa = { version = "0.23.0", path = "crates/embeddenator-vsa" }
 embeddenator-io = { version = "0.21.0", path = "crates/embeddenator-io" }
 embeddenator-obs = { version = "0.21.0", path = "crates/embeddenator-obs" }
+embeddenator-retrieval = { version = "0.22.0", path = "crates/embeddenator-retrieval" }
 
 [workspace.metadata.embeddenator]
 # embeddenator-vsa/cuda → cudarc
