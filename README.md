@@ -25,7 +25,7 @@ This workspace contains 8 published library crates implementing holographic data
 
 ## Workspace layout
 
-This repository is a Cargo virtual workspace. In-tree members (git subtrees): `crates/embeddenator-vsa`, `crates/embeddenator-io`, `crates/embeddenator-obs`, and `crates/embeddenator-retrieval`. `embeddenator-retrieval` pins `embeddenator-vsa` via `workspace = true`. `embeddenator-fs` is still a root gitlink (crates.io 0.25 for retrieval benches only). The other component repos remain gitlinks and are **not** workspace members yet — `cargo test --workspace` does **not** test all 12 crates.
+This repository is a Cargo virtual workspace. In-tree members (git subtrees): `crates/embeddenator-vsa`, `crates/embeddenator-io`, `crates/embeddenator-obs`, `crates/embeddenator-retrieval`, `crates/embeddenator-fs`, and `crates/embeddenator-interop`. Path deps are `workspace = true`. **default-members** stay vsa+io+obs+retrieval so `cargo test` stays fast — fs/interop are members only (fs `default = []`; do not enable fuse/disk-image/python/c-bindings/cuda). Remaining gitlinks (cli/core/testkit/workflows/…) are **not** members. `cargo test --workspace` still does **not** test all 12 crates.
 
 ```bash
 git clone https://github.com/tzervas/embeddenator.git
@@ -35,6 +35,8 @@ cargo test -p embeddenator-vsa --features simd
 cargo test -p embeddenator-io
 cargo test -p embeddenator-obs
 cargo test -p embeddenator-retrieval
+cargo test -p embeddenator-fs --lib
+cargo test -p embeddenator-interop
 ```
 
 Do not pass `--all-features` (that would enable both GPU backends). `embeddenator-vsa/cuda` is cudarc; `trit-vsa/cuda` is cubecl — never enable both.

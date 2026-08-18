@@ -5,7 +5,16 @@ members = [
     "crates/embeddenator-io",
     "crates/embeddenator-obs",
     "crates/embeddenator-retrieval",
+    "crates/embeddenator-fs",
+    "crates/embeddenator-interop",
 ]
+# default-members stay vsa+io+obs+retrieval so `cargo test` stays fast.
+# fs/interop are members (path-resolvable) but not default: fs has heavy
+# optional features (fuse/disk-image) and slow integration tests
+# (large_file/concurrent_stress/scale/vm_boot). fs default = [] so it
+# *could* be a default-member; we omit it anyway. Use
+# `cargo test -p embeddenator-fs --lib` / selected --test filters, and
+# `cargo test -p embeddenator-interop` (no python/c-bindings).
 default-members = [
     "crates/embeddenator-vsa",
     "crates/embeddenator-io",
@@ -30,6 +39,8 @@ embeddenator-vsa = { version = "0.23.0", path = "crates/embeddenator-vsa" }
 embeddenator-io = { version = "0.21.0", path = "crates/embeddenator-io" }
 embeddenator-obs = { version = "0.21.0", path = "crates/embeddenator-obs" }
 embeddenator-retrieval = { version = "0.22.0", path = "crates/embeddenator-retrieval" }
+embeddenator-fs = { version = "0.25.0", path = "crates/embeddenator-fs" }
+embeddenator-interop = { version = "0.22.0", path = "crates/embeddenator-interop" }
 
 [workspace.metadata.embeddenator]
 # embeddenator-vsa/cuda → cudarc
