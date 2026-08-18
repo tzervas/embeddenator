@@ -1,0 +1,59 @@
+# Embeddenator Retrieval - Development Context
+
+## Active Technologies
+- **Rust**: Stable toolchain (edition 2021)
+- **VSA Operations**: Signature-based retrieval and resonator logic for holographic engrams
+- **Dependencies**: embeddenator-vsa (sparse ternary vectors), sha2 (hashing), bincode (serialization)
+- **Serialization**: serde with derive macros
+- **Testing**: proptest for property-based testing, criterion for benchmarking
+
+## Project Structure
+```
+embeddenator-retrieval/
+├── src/
+│   ├── lib.rs           # Library root
+│   ├── core/            # Core retrieval algorithms
+│   └── retrieval/       # Resonator and search implementations
+├── benches/             # Criterion benchmarks
+├── tests/               # Integration tests
+├── Cargo.toml           # v0.20.0-alpha.1
+└── README.md            # Phase 2A component extraction status
+```
+
+## Commands
+- **Build**: `cargo build --release`
+- **Test**: `cargo test`
+- **Bench**: `cargo bench`
+- **Check**: `cargo clippy --all-targets`
+- **Format**: `cargo fmt --all`
+
+## Code Conventions
+- **Retrieval Signatures**: Use SHA2-based hashing for content addressing
+- **Resonator Pattern**: Implement query-by-example using VSA cosine similarity
+- **Error Handling**: Return `Result<T, E>` with descriptive error types
+- **Serialization**: Annotate structs with `#[derive(Serialize, Deserialize)]`
+- **Property Tests**: Use proptest for edge case coverage (empty engrams, collision resistance, etc.)
+
+## Current Focus
+- **Phase 2A Component Extraction**: Retrieval logic extracted from embeddenator monorepo
+- **Signature-Based Retrieval**: Content-addressable search using holographic signatures
+- **Resonator Implementation**: Query-by-example similarity search using VSA operations
+- **Integration Testing**: Validate retrieval accuracy across different engram structures
+- **Performance Optimization**: Benchmark retrieval latency and throughput
+
+## Recent Changes
+- Extracted from embeddenator monorepo as standalone component crate
+- Defined clean API boundaries for signature generation and resonator queries
+- Version bumped to 0.20.0-alpha.1
+- Added property-based tests for retrieval correctness
+- Integrated with embeddenator-vsa for vector operations
+
+## Agents
+- Embeddenator Agent (`embeddenator/.github/agents/embeddenator.agent.md`): VSA/engram/Rust integration expert
+- Retrieval Agent (TBD): Signature-based search and resonator optimization
+
+## Related Documentation
+- [WORKSPACE_TRACKER.md](/WORKSPACE_TRACKER.md): Multi-repo state tracker
+- [SPEC_KIT_INTEGRATION.md](/SPEC_KIT_INTEGRATION.md): Specification-Driven Development (SDD) workflow
+- [ADR-016](https://github.com/tzervas/embeddenator/blob/main/docs/adr/ADR-016-component-decomposition.md): Component decomposition rationale
+- [embeddenator-vsa README](/embeddenator-vsa/README.md): VSA primitives documentation
