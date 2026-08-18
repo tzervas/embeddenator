@@ -1,0 +1,32 @@
+[package]
+name = "embeddenator-obs"
+version = "0.21.0"
+edition = "2021"
+authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
+description = "Observability: metrics, logging, and tracing for Embeddenator"
+license = "MIT"
+repository = "https://github.com/tzervas/embeddenator-obs"
+documentation = "https://docs.rs/embeddenator-obs"
+keywords = ["embeddenator", "observability", "metrics", "logging"]
+categories = ["development-tools::profiling", "development-tools::debugging"]
+
+[features]
+default = ["metrics"]
+metrics = []
+tracing = ["dep:tracing", "dep:tracing-subscriber"]
+logging = ["tracing"]
+telemetry = ["metrics", "tracing"]
+prometheus = ["telemetry"]
+opentelemetry = ["telemetry"]
+streaming = ["metrics"]
+advanced-stats = ["telemetry"]
+full = ["metrics", "tracing", "logging", "telemetry", "prometheus", "opentelemetry", "streaming", "advanced-stats"]
+
+[dependencies]
+tracing = { version = ">=0.1, <1.0", optional = true }
+tracing-subscriber = { version = ">=0.3, <1.0", optional = true, features = ["env-filter", "fmt", "json"] }
+serde = { version = ">=1.0, <2.0", optional = true, features = ["derive"] }
+serde_json = { version = ">=1.0, <2.0", optional = true }
+
+[dev-dependencies]
+proptest = ">=1.0, <2.0"

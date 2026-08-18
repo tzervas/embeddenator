@@ -1,0 +1,55 @@
+# Embeddenator Obs - Development Context
+
+## Active Technologies
+- **Rust**: Stable toolchain (edition 2021)
+- **Observability**: Metrics, logging, and tracing for holographic operations
+- **Tracing**: Optional tracing-subscriber integration (via `tracing` feature flag)
+- **Testing**: proptest for property-based testing
+
+## Project Structure
+```
+embeddenator-obs/
+├── src/
+│   └── lib.rs           # Observability: metrics, logging, tracing
+├── tests/               # Integration tests
+├── Cargo.toml           # v0.20.0-alpha.1 with optional tracing feature
+└── README.md            # Phase 2A component extraction status
+```
+
+## Commands
+- **Build**: `cargo build --release`
+- **Build with Tracing**: `cargo build --release --features tracing`
+- **Test**: `cargo test --all-features`
+- **Check**: `cargo clippy --all-targets --all-features`
+- **Format**: `cargo fmt --all`
+
+## Code Conventions
+- **Structured Logging**: Use tracing macros (`info!`, `debug!`, `warn!`, `error!`)
+- **Metrics Instrumentation**: Define custom metrics for engram operations (ingest rate, extract latency, etc.)
+- **Conditional Compilation**: Use `#[cfg(feature = "tracing")]` for optional tracing support
+- **Performance**: Minimize overhead of observability instrumentation
+- **Span Hierarchy**: Create meaningful tracing spans for operation context (e.g., `ingest_span`, `extract_span`)
+
+## Current Focus
+- **Phase 2A Component Extraction**: Observability logic extracted from embeddenator monorepo
+- **Metrics Collection**: Track performance metrics for VSA operations (throughput, latency, memory usage)
+- **Tracing Integration**: Optional tracing-subscriber for structured logging
+- **Profiling Support**: Integrate with profiling tools (flamegraphs, perf, valgrind)
+- **Alerting**: Define threshold-based alerts for performance regressions
+
+## Recent Changes
+- Extracted from embeddenator monorepo as standalone observability component crate
+- Added optional tracing-subscriber integration via feature flag
+- Version bumped to 0.20.0-alpha.1
+- Defined metrics API for engram operations
+- Implemented structured logging with tracing macros
+
+## Agents
+- Embeddenator Agent (`embeddenator/.github/agents/embeddenator.agent.md`): VSA/engram/Rust integration expert
+- Observability Agent (TBD): Metrics, logging, and performance analysis
+
+## Related Documentation
+- [WORKSPACE_TRACKER.md](/WORKSPACE_TRACKER.md): Multi-repo state tracker
+- [SPEC_KIT_INTEGRATION.md](/SPEC_KIT_INTEGRATION.md): Specification-Driven Development (SDD) workflow
+- [ADR-016](https://github.com/tzervas/embeddenator/blob/main/docs/adr/ADR-016-component-decomposition.md): Component decomposition rationale
+- [PROFILING_TOOLKIT.md](/embeddenator/PROFILING_TOOLKIT.md): Performance profiling guide
