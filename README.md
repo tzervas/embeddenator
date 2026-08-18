@@ -243,11 +243,11 @@ See [CI/CD Guide](./CI_CD_GUIDE.md) for comprehensive documentation.
 
 This project maintains forks of several unmaintained crates critical to the Rust ML ecosystem:
 
-| Fork | Original | crates.io | Purpose |
+| Fork | Original | Source | Purpose |
 |------|----------|-----------|---------|
-| `qlora-paste` | `paste` | [qlora-paste](https://crates.io/crates/qlora-paste) | Token pasting macros |
-| `qlora-gemm` | `gemm` | [qlora-gemm](https://crates.io/crates/qlora-gemm) | Matrix multiplication |
-| `qlora-candle-*` | `candle-*` | [qlora-candle-core](https://crates.io/crates/qlora-candle-core) | ML framework |
+| `qlora-paste` | `paste` | [crates.io](https://crates.io/crates/qlora-paste) **1.0.21** | Token pasting macros |
+| `qlora-gemm` | `gemm` | [crates.io](https://crates.io/crates/qlora-gemm) **0.20.0** | Matrix multiplication |
+| `qlora-candle` | `candle-*` | **Git only** — [tzervas/qlora-candle@use-qlora-gemm](https://github.com/tzervas/qlora-candle/tree/use-qlora-gemm) (keeps crate names `candle-core` 0.9.2; **no** `qlora-candle-core` on crates.io) | ML framework |
 
 **Upstream Contribution:** [PR #3335](https://github.com/huggingface/candle/pull/3335) submitted to merge maintained dependencies into huggingface/candle.
 

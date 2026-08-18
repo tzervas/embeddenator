@@ -50,9 +50,9 @@ This workspace maintains forks of unmaintained crates in the Rust ML ecosystem:
 
 | Fork | Original | Version | Purpose |
 |------|----------|---------|---------|
-| [qlora-paste](https://crates.io/crates/qlora-paste) | paste | 1.0.20 | Token pasting macros |
+| [qlora-paste](https://crates.io/crates/qlora-paste) | paste | 1.0.21 | Token pasting macros |
 | [qlora-gemm](https://crates.io/crates/qlora-gemm) | gemm | 0.20.0 | Matrix multiplication |
-| [qlora-candle-core](https://crates.io/crates/qlora-candle-core) | candle-core | 0.8.4 | ML framework |
+| [qlora-candle](https://github.com/tzervas/qlora-candle/tree/use-qlora-gemm) | candle-* | 0.9.2 **git only** (`use-qlora-gemm`; package names stay `candle-*`) | ML framework |
 
 **Upstream PR:** [huggingface/candle#3335](https://github.com/huggingface/candle/pull/3335) (open)
 
@@ -62,11 +62,14 @@ See [MAINTAINED_DEPENDENCIES.md](./MAINTAINED_DEPENDENCIES.md) for integration g
 
 ## Recent Changes
 
+### 2026-08-18
+- **Docs retraction:** `qlora-candle-*` was **never** published to crates.io. Consume candle via git patch to `tzervas/qlora-candle@use-qlora-gemm` (crate names `candle-*` 0.9.2). `qlora-paste` on crates.io is 1.0.21. See [MAINTAINED_DEPENDENCIES.md](./MAINTAINED_DEPENDENCIES.md) v2.2.0.
+
 ### 2026-01-26
 - **embeddenator-core v0.22.0**: Package renamed from `embeddenator` to `embeddenator-core`
 - **Container Images**: Published to ghcr.io/tzervas/embeddenator-core
 - **Dependencies**: Updated rand 0.9, criterion 0.8
-- **qlora-candle**: Now published to crates.io (v0.8.4)
+- **qlora-candle**: *(retracted 2026-08-18)* docs claimed crates.io v0.8.4; that crate does not exist
 - **CI/CD**: Removed nightly builds, updated to use `main` branch
 
 ---
