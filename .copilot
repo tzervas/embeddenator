@@ -1,0 +1,194 @@
+# Embeddenator-FS Development Context
+
+**Repo**: embeddenator-fs  
+**Version**: 0.20.0-alpha.3  
+**Focus**: FUSE filesystem, read-write engrams, transactional updates  
+**Last Updated**: 2026-01-16
+
+---
+
+## Active Technologies
+
+- **Rust** 1.84+
+- **embeddenator-vsa** 0.20.0-alpha.1: VSA primitives
+- **embeddenator-retrieval** 0.20.0-alpha.1: Hierarchical queries
+- **fuser** 0.16: FUSE userspace filesystem (Linux/macOS)
+- **serde/serde_json**: Manifest serialization
+- **libc**: POSIX filesystem operations
+
+---
+
+## Project Structure
+
+```
+embeddenator-fs/
+├── specs/                    # Feature specifications (SDD)
+├── src/
+│   ├── lib.rs               # Public API
+│   ├── fs/
+│   │   ├── embrfs.rs        # Core EmbrFS operations
+│   │   └── fuse_shim.rs     # FUSE integration
+│   └── correction.rs         # Bit-perfect reconstruction layer
+├── tests/integration_tests.rs  # 30 passing tests
+├── docs/
+│   ├── ARCHITECTURE.md      # System design (5,000+ words)
+│   ├── FUSE.md              # FUSE operations guide (4,000+ words)
+│   ├── CORRECTION.md        # Reconstruction strategies (6,000+ words)
+│   └── STATUS.md            # Current state summary
+├── ROADMAP.md               # Alpha → Beta → RC → Stable plan
+├── IMPLEMENTATION_PLAN_V2.md  # **CRITICAL**: Read-write pivot details
+├── MUTABILITY_PLAN.md       # Transactional write model
+├── GAP_ANALYSIS.md          # Missing: CLI, examples, benches
+└── .github/agents/          # Specialized agents
+```
+
+---
+
+## Commands
+
+### Build
+```bash
+cargo build --release
+cargo build --features fuse  # Enable FUSE features
+```
+
+### Test
+```bash
+cargo test --lib              # Unit tests (20 passing)
+cargo test --test integration_tests  # Integration (10 passing)
+cargo test --all              # All tests
+```
+
+### Usage (Library API)
+```rust
+use embeddenator_fs::{EmbrFS, ingest_directory, extract_hierarchically};
+
+// Ingest directory → engram
+let mut fs = EmbrFS::new();
+ingest_directory(&mut fs, "./data")?;
+fs.save_engram("out.engram")?;
+
+// Extract engram → directory
+let engram = EmbrFS::load_engram("out.engram")?;
+extract_hierarchically(&engram, manifest, "./restored")?;
+```
+
+---
+
+## Critical Architecture Pivot
+
+### ⚠️ READ-WRITE ENGRAMS (IMPLEMENTATION_PLAN_V2.md)
+
+**Previous Assumption (INCORRECT)**: Engrams are immutable read-only snapshots.
+
+**Correct Design**: Engrams MUST support read-write operations while in compressed state.
+
+### Key Changes Needed
+
+1. **In-Place Chunk Modification**
+   - Modify chunks without full decompression/recompression
+   - Differential updates: store deltas, apply on read
+   - Lazy rebundling: update only affected sub-engrams
+
+2. **Write-Through FUSE Operations**
+   - `write()`, `create()`, `mkdir()`, `unlink()`, `rmdir()`, `truncate()`, `chmod()`, `chown()`, `utimens()`, `rename()`
+   - Currently return `EROFS` (read-only error) — must be fixed
+
+3. **Transactional Consistency**
+   - Atomic writes (all or nothing)
+   - Crash recovery via journal/log
+   - Concurrent access (readers during write)
+
+4. **Fine-Grained Locking**
+   - Current: Single `RwLock<EmbrFS>` (coarse-grained)
+   - Needed: Per-chunk/per-file locks
+   - Lock-free reads for immutable chunks
+
+### Implementation Phases (ROADMAP.md)
+
+**Week 1 (P0)**: CLI app + examples
+- Create `src/bin/embrfs.rs`
+- Commands: ingest, extract, stats, compact
+- 3+ working examples
+
+**Week 2 (P1)**: Integration tests + benches
+- Large-scale ingestion tests
+- Hierarchical query tests
+- FUSE operation benchmarks
+
+**Week 3+**: Read-write model
+- Data model changes (write log, lock table, transactions)
+- FUSE write operations implementation
+- Transactional commit/rollback
+
+---
+
+## Code Conventions
+
+### Style
+- Follow Rust API Guidelines
+- Zero clippy warnings (6 style warnings acceptable for alpha)
+- Run `cargo fmt` before commit
+
+### Error Handling
+- Use `Result<T, io::Error>` for I/O
+- Use `anyhow::Result` for high-level operations
+- Planned: Custom `FsError` type
+
+### FUSE Operations
+- All operations must check permissions
+- Return proper POSIX error codes
+- Log operations at `debug` level (when tracing enabled)
+
+---
+
+## Current Focus (2026-01-16)
+
+### P0: CLI Application (ROADMAP Week 1)
+- [ ] Create `src/bin/embrfs.rs` entry point
+- [ ] Implement ingest, extract, stats, compact commands
+- [ ] Add clap dependency for argument parsing
+- [ ] Write CLI usage documentation
+
+### P0: Examples (ROADMAP Week 1)
+- [ ] `examples/basic_usage.rs`: Simple ingest/extract
+- [ ] `examples/incremental_updates.rs`: Add/remove/modify
+- [ ] `examples/hierarchical.rs`: Multi-level bundling
+
+### P1: Integration Tests (ROADMAP Week 2)
+- [ ] `tests/integration/large_files.rs`: GB-scale ingestion
+- [ ] `tests/integration/corruption.rs`: Correction layer validation
+- [ ] `tests/integration/fuse_mount.rs`: FUSE operations
+
+---
+
+## Recent Changes
+
+### 2026-01-16: Spec-Kit Integration
+- Added `.copilot` with repo context
+- Created `specs/` directory structure
+- Updated agents to reference specifications
+
+### 2026-01-15: Implementation Plan V2
+- Documented read-write pivot (IMPLEMENTATION_PLAN_V2.md)
+- Detailed transactional write model (MUTABILITY_PLAN.md)
+- Identified gap: CLI, examples, benches (GAP_ANALYSIS.md)
+
+### 2026-01-14: Documentation Complete
+- ARCHITECTURE.md, FUSE.md, CORRECTION.md
+- STATUS.md: 30/42 tests passing (doctests need update)
+- Ready for alpha release
+
+---
+
+## Agents
+
+Specialized agents in `.github/agents/`:
+- `fs-integration.agent.md`: FUSE operations and filesystem semantics
+- `vsa-mathematician.agent.md`: VSA operations for engram encoding
+- `rust-implementer.agent.md`: Idiomatic Rust patterns
+
+---
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
